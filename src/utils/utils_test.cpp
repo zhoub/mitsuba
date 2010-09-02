@@ -570,6 +570,8 @@ void testGrid() {
 
 int main(int argc, char **argv) {
 	Class::staticInitialization();
+	PluginManager::staticInitialization();
+	Statistics::staticInitialization();
 	Thread::staticInitialization();
 	Logger::staticInitialization();
 	Spectrum::staticInitialization();
@@ -595,6 +597,12 @@ int main(int argc, char **argv) {
 		testSHRotation();
 		testSHSampler();
 		*/
+		for (int i=1; i<argc; i++) {
+			Thread::getThread()->getLogger()->setLogLevel(EDebug);
+			std::string pluginName(argv[i]);
+			SLog(EDebug, "testing plugin %s", argv[i]);
+			PluginManager::getInstance()->unitTest(pluginName);
+		}
 	} catch (const std::exception &e) {
 		std::cerr << "Caught a critical exeption: " << e.what() << std::endl;
 		exit(-1);
@@ -606,6 +614,8 @@ int main(int argc, char **argv) {
 	Spectrum::staticShutdown();
 	Logger::staticShutdown();
 	Thread::staticShutdown();
+	Statistics::staticShutdown();
+	PluginManager::staticShutdown();
 	Class::staticShutdown();
 	return 0;
 }

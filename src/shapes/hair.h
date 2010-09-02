@@ -41,6 +41,8 @@ public:
 
 	bool vertexStartsFiber(int iv) const { return m_startFiber[iv]; }
 
+	static void unitTest();
+
 
 protected:
 

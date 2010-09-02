@@ -17,6 +17,7 @@ class MTS_EXPORT_CORE Plugin {
 	typedef void *(*CreateInstanceFunc)(const Properties &props);
 	typedef void *(*CreateUtilityFunc)(UtilityServices *us);
 	typedef char *(*GetDescriptionFunc)();
+	typedef void *(*UnitTestFunc)();
 public:
 	/// Load a plugin from the supplied path
 	Plugin(const std::string &shortName, const std::string &path);
@@ -41,9 +42,13 @@ public:
 	
 	/// Return a short name of this plugin
 	inline const std::string &getShortName() const { return m_shortName; }
+
+	/// Run this plugin's unit test; if no exception is thrown, it passed
+	void unitTest() const;
+
 protected:
 	/// Resolve the given symbol and return a pointer
-	void *getSymbol(const std::string &sym);
+	void *getSymbol(const std::string &sym) const;
 private:
 #if defined(WIN32)
 	HMODULE m_handle;
@@ -79,6 +84,9 @@ public:
 		const Properties &props
 	);
 
+	/// Run a plugin's unit test
+	void unitTest(const std::string &name);
+
 	/// Initializes the global plugin manager instance
 	static void staticInitialization();
 
@@ -96,6 +104,15 @@ private:
 	mutable ref<Mutex> m_mutex;
 	static ref<PluginManager> m_instance;
 };
+
+
+#define MTS_EXPORT_TEST(name) \
+	extern "C" { \
+		void MTS_EXPORT UnitTest() { \
+			name::unitTest(); \
+		} \
+	}
+
 
 MTS_NAMESPACE_END
 

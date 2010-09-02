@@ -93,7 +93,13 @@ void Hair::buildSegIndex() {
 }
 
 
+void Hair::unitTest() {
+	Log(EDebug, "foo!");
+}
+
+
 
 MTS_IMPLEMENT_CLASS_S(Hair, false, Shape)
 MTS_EXPORT_PLUGIN(Hair, "Hair geometry");
+MTS_EXPORT_TEST(Hair);
 MTS_NAMESPACE_END

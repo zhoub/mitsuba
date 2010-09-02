@@ -55,7 +55,7 @@ Plugin::Plugin(const std::string &shortName, const std::string &path)
 	Class::staticInitialization();
 }
 
-void *Plugin::getSymbol(const std::string &sym) {
+void *Plugin::getSymbol(const std::string &sym) const {
 #if defined(WIN32)
 	void *data = GetProcAddress(m_handle, sym.c_str());
 	if (!data) {
@@ -82,6 +82,16 @@ Utility *Plugin::createUtility(UtilityServices *us) const {
 
 std::string Plugin::getDescription() const {
 	return m_getDescription();
+}
+
+void Plugin::unitTest() const {
+	SLog(EDebug, "looking...");
+	UnitTestFunc fn = (UnitTestFunc) getSymbol("UnitTest");
+	SLog(EDebug, "unit test fn = %x", fn);
+	if (fn)
+		fn();
+	else
+		SLog(EInfo, "Module %s does not have a unit test function.", m_shortName.c_str());
 }
 
 Plugin::~Plugin() {
@@ -170,6 +180,11 @@ void PluginManager::ensurePluginLoaded(const std::string &name) {
 
 	/* Plugin not found! */
 	Log(EError, "Plugin \"%s\" not found!", name.c_str());
+}
+
+void PluginManager::unitTest(const std::string &name) {
+	ensurePluginLoaded(name);
+	m_plugins[name]->unitTest();
 }
 
 void PluginManager::staticInitialization() {

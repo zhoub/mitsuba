@@ -27,7 +27,7 @@ public:
 	}
 
 	bool isClippable() const {
-		return true;
+		return false; //true;
 	}
 
 	void configure();
