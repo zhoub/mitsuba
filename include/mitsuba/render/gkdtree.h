@@ -37,7 +37,7 @@
 #define MTS_KD_MIN_ALLOC 512*1024
 
 /// Allocate nodes & index lists in blocks of 512 KiB
-#define MTS_KD_BLOCKSIZE_KD  (512*1024/sizeof(KDNode))
+#define MTS_KD_BLOCKSIZE_KD  (512*1024/sizeof(PrelimKDNode))
 #define MTS_KD_BLOCKSIZE_IDX (512*1024/sizeof(uint32_t))
 
 /// 8*4=32 byte temporary storage for intersection computations 
@@ -476,6 +476,7 @@ private:
 template <typename Derived> class GenericKDTree : public Object {
 protected:
 	struct KDNode;
+	struct PrelimKDNode;
 	struct EdgeEvent;
 	struct EdgeEventOrdering;
 
@@ -750,7 +751,7 @@ public:
 		Log(EInfo, "Constructing a SAH kd-tree (%i primitives) ..", primCount);
 
 		m_indirectionLock = new Mutex();
-		KDNode *prelimRoot = ctx.nodes.allocate(1);
+		PrelimKDNode *prelimRoot = ctx.nodes.allocate(1);
 		buildTreeMinMax(ctx, 1, prelimRoot, m_aabb, m_aabb, 
 				indices, primCount, true, 0);
 		ctx.leftAlloc.release(indices);
@@ -773,12 +774,12 @@ public:
 				memString((ctx.classStorage.size() * (1+procCount))).c_str());
 		Log(EDebug, "   Indirection entries    : " SIZE_T_FMT " (%s)", 
 				m_indirections.size(), memString(m_indirections.capacity()
-				* sizeof(KDNode *)).c_str());
+				* sizeof(PrelimKDNode *)).c_str());
 
 		Log(EDebug, "   Main thread:");
 		ctx.printStats();
 		size_t totalUsage = m_indirections.capacity() 
-			* sizeof(KDNode *) + ctx.size();
+			* sizeof(PrelimKDNode *) + ctx.size();
 
 		/// Clean up event lists and print statistics
 		ctx.leftAlloc.cleanup();
@@ -798,79 +799,18 @@ public:
 		timer->reset();
 		Log(EDebug, "Optimizing memory layout ..");
 
-		std::stack<boost::tuple<const KDNode *, KDNode *, 
+		std::stack<boost::tuple<const PrelimKDNode *, 
 				const BuildContext *, AABB> > stack;
-
-		Float expTraversalSteps = 0;
-		Float expLeavesVisited = 0;
-		Float expPrimitivesIntersected = 0;
-		Float sahCost = 0;
-		size_type nodePtr = 0, indexPtr = 0;
 
 		m_nodes = static_cast<KDNode *> (allocAligned(
 				sizeof(KDNode) * (ctx.innerNodeCount + ctx.leafNodeCount)));
 		m_indices = new index_type[ctx.primIndexCount];
 
-		stack.push(boost::make_tuple(prelimRoot, &m_nodes[nodePtr++], &ctx, m_aabb));
-		while (!stack.empty()) {
-			const KDNode *node = boost::get<0>(stack.top());
-			KDNode *target = boost::get<1>(stack.top());
-			const BuildContext *context = boost::get<2>(stack.top());
-			AABB aabb = boost::get<3>(stack.top());
-			stack.pop();
+		FlattenContext flt(m_nodes, m_indices);
+		flattenMemoryLayout(flt, &ctx, prelimRoot, m_aabb);
 
-			if (node->isLeaf()) {
-				size_type primStart = node->getPrimStart(),
-						  primEnd = node->getPrimEnd(),
-						  primCount = primEnd-primStart;
-				target->initLeafNode(indexPtr, primCount);
-
-				Float sa = aabb.getSurfaceArea(), weightedSA = sa * primCount;
-				expLeavesVisited += aabb.getSurfaceArea();
-				expPrimitivesIntersected += weightedSA;
-				sahCost += weightedSA * m_intersectionCost;
-		
-				const BlockedVector<index_type, MTS_KD_BLOCKSIZE_IDX> &indices 
-					= context->indices;
-				for (size_type idx = primStart; idx<primEnd; ++idx)
-					m_indices[indexPtr++] = indices[idx];
-			} else {
-				typename std::map<const KDNode *, index_type>::const_iterator it 
-					= m_interface.threadMap.find(node);
-				// Check if we're switching to a subtree built by a worker thread
-				if (it != m_interface.threadMap.end()) 
-					context = &m_builders[(*it).second]->getContext();
-
-				Float sa = aabb.getSurfaceArea();
-				expTraversalSteps += sa;
-				sahCost += sa * m_traversalCost;
-
-				const KDNode *left;
-				if (EXPECT_TAKEN(!node->isIndirection()))
-					left = node->getLeft();
-				else 
-					left = m_indirections[node->getIndirectionIndex()];
-
-				KDNode *children = &m_nodes[nodePtr];
-				nodePtr += 2;
-				int axis = node->getAxis();
-				float split = node->getSplit();
-				bool result = target->initInnerNode(axis, split, children - target);
-				if (!result)
-					Log(EError, "Cannot represent relative pointer -- "
-						"too many primitives?");
-
-				Float tmp = aabb.min[axis];
-				aabb.min[axis] = split;
-				stack.push(boost::make_tuple(left+1, children+1, context, aabb));
-				aabb.min[axis] = tmp;
-				aabb.max[axis] = split;
-				stack.push(boost::make_tuple(left, children, context, aabb));
-			}
-		}
-
-		KDAssert(nodePtr == ctx.innerNodeCount + ctx.leafNodeCount);
-		KDAssert(indexPtr == ctx.primIndexCount);
+		KDAssert(flt.nodePtr - m_nodes == ctx.innerNodeCount + ctx.leafNodeCount);
+		KDAssert(flt.indexPtr - m_indices == ctx.primIndexCount);
 
 		Log(EDebug, "Finished -- took %i ms.", timer->getMilliseconds());
 
@@ -883,7 +823,7 @@ public:
 			subCtx.indices.clear();
 		}
 		m_indirectionLock = NULL;
-		std::vector<KDNode *>().swap(m_indirections);
+		std::vector<PrelimKDNode *>().swap(m_indirections);
 
 		if (m_builders.size() > 0) {
 			for (size_type i=0; i<m_builders.size(); ++i)
@@ -894,10 +834,10 @@ public:
 		Log(EDebug, "");
 
 		Float rootSA = m_aabb.getSurfaceArea();
-		expTraversalSteps /= rootSA;
-		expLeavesVisited /= rootSA;
-		expPrimitivesIntersected /= rootSA;
-		sahCost /= rootSA;
+		flt.expTraversalSteps /= rootSA;
+		flt.expLeavesVisited /= rootSA;
+		flt.expPrimitivesIntersected /= rootSA;
+		flt.sahCost /= rootSA;
 	
 		/* Slightly enlarge the bounding box 
 		   (necessary e.g. when the scene is planar) */
@@ -911,19 +851,20 @@ public:
 		Log(EDebug, "   Leaf nodes                : %i", ctx.leafNodeCount);
 		Log(EDebug, "   Nonempty leaf nodes       : %i", ctx.nonemptyLeafNodeCount);
 		Log(EDebug, "   Node storage cost         : %s", 
-				memString(nodePtr * sizeof(KDNode)).c_str());
+				memString((flt.nodePtr-m_nodes) * sizeof(PrelimKDNode)).c_str());
 		Log(EDebug, "   Index storage cost        : %s", 
-				memString(indexPtr * sizeof(index_type)).c_str());
+				memString((flt.indexPtr-m_indices) * sizeof(index_type)).c_str());
 		Log(EDebug, "   Parallel work units       : " SIZE_T_FMT, 
 				m_interface.threadMap.size());
 		Log(EDebug, "   Retracted splits          : %i", ctx.retractedSplits);
 		Log(EDebug, "   Pruned primitives         : %i", ctx.pruned);
 		Log(EDebug, "   Avg. prims/nonempty leaf  : %.2f", 
 				ctx.primIndexCount / (Float) ctx.nonemptyLeafNodeCount);
-		Log(EDebug, "   Expected traversals/ray   : %.2f", expTraversalSteps);
-		Log(EDebug, "   Expected leaf visits/ray  : %.2f", expLeavesVisited);
-		Log(EDebug, "   Expected prim. visits/ray : %.2f", expPrimitivesIntersected);
-		Log(EDebug, "   Final SAH cost            : %.2f", sahCost);
+		Log(EDebug, "   Expected traversals/ray   : %.2f", flt.expTraversalSteps);
+		Log(EDebug, "   Expected leaf visits/ray  : %.2f", flt.expLeavesVisited);
+		Log(EDebug, "   Expected prim. visits/ray : %.2f", 
+				flt.expPrimitivesIntersected);
+		Log(EDebug, "   Final SAH cost            : %.2f", flt.sahCost);
 		Log(EDebug, "");
 	}
 
@@ -1049,7 +990,7 @@ protected:
 	 */
 	struct BuildContext {
 		OrderedChunkAllocator leftAlloc, rightAlloc;
-		BlockedVector<KDNode, MTS_KD_BLOCKSIZE_KD> nodes;
+		BlockedVector<PrelimKDNode, MTS_KD_BLOCKSIZE_KD> nodes;
 		BlockedVector<index_type, MTS_KD_BLOCKSIZE_IDX> indices;
 		ClassificationStorage classStorage;
 
@@ -1072,7 +1013,7 @@ protected:
 
 		size_t size() {
 			return leftAlloc.size() + rightAlloc.size() 
-				+ nodes.capacity() * sizeof(KDNode)
+				+ nodes.capacity() * sizeof(PrelimKDNode)
 				+ indices.capacity() * sizeof(index_type)
 				+ classStorage.size();
 		}
@@ -1084,7 +1025,7 @@ protected:
 					rightAlloc.getChunkCount(), memString(rightAlloc.size()).c_str());
 			Log(EDebug, "      kd-tree nodes : " SIZE_T_FMT " entries, " SIZE_T_FMT 
 					" blocks (%s)", nodes.size(), nodes.blockCount(), 
-					memString(nodes.capacity() * sizeof(KDNode)).c_str());
+					memString(nodes.capacity() * sizeof(PrelimKDNode)).c_str());
 			Log(EDebug, "      Indices       : " SIZE_T_FMT " entries, " SIZE_T_FMT 
 					" blocks (%s)", indices.size(), indices.blockCount(), 
 					memString(indices.capacity() * sizeof(index_type)).c_str());
@@ -1108,12 +1049,12 @@ protected:
 		/* Communcation */
 		ref<Mutex> mutex;
 		ref<ConditionVariable> cond, condJobTaken;
-		std::map<const KDNode *, index_type> threadMap;
+		std::map<const PrelimKDNode *, index_type> threadMap;
 		bool done;
 
 		/* Job description for building a subtree */
 		int depth;
-		KDNode *node;
+		PrelimKDNode *node;
 		AABB nodeAABB;
 		EdgeEvent *eventStart, *eventEnd;
 		size_type primCount;
@@ -1129,9 +1070,40 @@ protected:
 	};
 
 	/**
-	 * \brief KD-tree node in 8 bytes. 
+	 * Tempory data structure used to flatten the KD-tree into a more 
+	 * cache-friendly form based on a DFS traversal.
 	 */
-	struct KDNode {
+	struct FlattenContext {
+		KDNode *nodePtr;
+		size_type *indexPtr;
+		Float expLeavesVisited;
+		Float expPrimitivesIntersected;
+		Float expTraversalSteps;
+		Float sahCost;
+
+		inline FlattenContext(KDNode *nodes, index_type *indices) : nodePtr(nodes),
+			indexPtr(indices), expLeavesVisited(0), expPrimitivesIntersected(0),
+			expTraversalSteps(0), sahCost(0) {
+		}
+	};
+
+	/**
+	 * \brief Preliminary kd-tree node in 8 bytes.
+	 *
+	 * Instances of this class are used during the initial tree
+	 * construction and will be replaced by KDNode instances once
+	 * this is done. The reason for this transformation is that the 
+	 * final tree uses a more cache-friendly way of addressing 
+	 * elements (they are stored in DFS order), whereas preliminary 
+	 * nodes use a more construction-friendly addressing mode.
+	 *
+	 * Preliminary nodes always group children next to each other,
+	 * so that a recursive partitioning algorithm can allocate storage
+	 * for both both children at once before recursing. Also, extra 
+	 * indirections are supported when the relative address pointer
+	 * to the left child of an element doesn't fit into 27 bits.
+	 */
+	struct PrelimKDNode {
 		union {
 			/* Inner node */
 			struct {
@@ -1230,19 +1202,13 @@ protected:
 		}
 
 		/// Return the left child (assuming that this is an interior node)
-		FINLINE const KDNode * __restrict getLeft() const {
+		FINLINE const PrelimKDNode * __restrict getLeft() const {
 			return this + 
 				((inner.combined & EInnerOffsetMask) >> 2);
 		}
 
 		/// Return the left child (assuming that this is an interior node)
-		FINLINE KDNode * __restrict getLeft() {
-			return this + 
-				((inner.combined & EInnerOffsetMask) >> 2);
-		}
-
-		/// Return the left child (assuming that this is an interior node)
-		FINLINE const KDNode * __restrict getRight() const {
+		FINLINE const PrelimKDNode * __restrict getRight() const {
 			return getLeft() + 1;
 		}
 
@@ -1255,20 +1221,98 @@ protected:
 		FINLINE int getAxis() const {
 			return inner.combined & EInnerAxisMask;
 		}
+	};
 
-		/// Return a string representation
-		std::string toString() const {
-			std::ostringstream oss;
-			if (isLeaf()) {
-				oss << "KDNode[leaf, primStart=" << getPrimStart() 
-					<< ", primCount=" << getPrimEnd()-getPrimStart() << "]";
-			} else {
-				oss << "KDNode[interior, axis=" << getAxis() 
-					<< ", split=" << getAxis() 
-					<< ", leftOffset=" << ((inner.combined & EInnerOffsetMask) >> 2)
-					<< "]";
-			}
-			return oss.str();
+	BOOST_STATIC_ASSERT(sizeof(PrelimKDNode) == 8);
+
+	struct KDNode {
+		union {
+			/* Inner node */
+			struct {
+				/* Bit layout:
+				   31   : False (inner node)
+				   30-3 : Offset to the left child 
+				          or indirection table entry
+				   2-0  : Split axis
+				*/
+				uint32_t combined;
+
+				/// Split plane coordinate
+				float split;
+			} inner;
+
+			/* Leaf node */
+			struct {
+				/* Bit layout:
+				   31   : True (leaf node)
+				   30-0 : Offset to the node's primitive list
+				*/
+				uint32_t combined;
+
+				/// End offset of the primitive list
+				uint32_t end;
+			} leaf;
+		};
+
+		enum EMask {
+			ETypeMask = 1 << 31,
+			ELeafOffsetMask = ~ETypeMask,
+			EInnerAxisMask = 0x3,
+			EInnerOffsetMask = ~EInnerAxisMask,
+			ERelOffsetLimit = (1<<29) - 1
+		};
+
+		/// Initialize a leaf kd-Tree node
+		inline void initLeafNode(unsigned int offset, unsigned int numPrims) {
+			leaf.combined = ETypeMask | offset;
+			leaf.end = offset + numPrims;
+		}
+
+		/**
+		 * Initialize an interior kd-Tree node. Reports a failure if the
+		 * relative offset to the left child node is too large.
+		 */
+		inline void initInnerNode(int axis, float split, ptrdiff_t relOffset) {
+			if (relOffset < 0 || relOffset > ERelOffsetLimit)
+				SLog(EError, "Internal error: cannot store relative offset in KDNode");
+			inner.combined = axis | ((uint32_t) relOffset << 2);
+			inner.split = split;
+		}
+
+		/// Is this a leaf node?
+		FINLINE bool isLeaf() const {
+			return leaf.combined & ETypeMask;
+		}
+
+		/// Assuming this is a leaf node, return the first primitive index
+		FINLINE index_type getPrimStart() const {
+			return leaf.combined & ELeafOffsetMask;
+		}
+
+		/// Assuming this is a leaf node, return the last primitive index
+		FINLINE index_type getPrimEnd() const {
+			return leaf.end;
+		}
+
+		/// Return the left child (assuming that this is an interior node)
+		FINLINE const KDNode * __restrict getLeft() const {
+			return this + 1; 
+		}
+
+		/// Return the left child (assuming that this is an interior node)
+		FINLINE const KDNode * __restrict getRight() const {
+			return this + 
+				((inner.combined & EInnerOffsetMask) >> 2);
+		}
+
+		/// Return the split plane location (assuming that this is an interior node)
+		FINLINE float getSplit() const {
+			return inner.split;
+		}
+
+		/// Return the split axis (assuming that this is an interior node)
+		FINLINE int getAxis() const {
+			return inner.combined & EInnerAxisMask;
 		}
 	};
 
@@ -1325,7 +1369,7 @@ protected:
 					break;
 				}
 				int depth = m_interface.depth;
-				KDNode *node = m_interface.node;
+				PrelimKDNode *node = m_interface.node;
 				AABB nodeAABB = m_interface.nodeAABB;
 				size_t eventCount = m_interface.eventEnd - m_interface.eventStart;
 				size_type primCount = m_interface.primCount;
@@ -1425,7 +1469,7 @@ protected:
 	 * \param primCount
 	 *     Total primitive count for the current node
 	 */
-	void createLeaf(BuildContext &ctx, KDNode *node, EdgeEvent *eventStart, 
+	void createLeaf(BuildContext &ctx, PrelimKDNode *node, EdgeEvent *eventStart, 
 			EdgeEvent *eventEnd, size_type primCount) {
 		node->initLeafNode(ctx.indices.size(), primCount);
 		if (primCount > 0) {
@@ -1457,7 +1501,7 @@ protected:
 	 * \param primCount
 	 *     Total primitive count for the current node
 	 */
-	void createLeaf(BuildContext &ctx, KDNode *node, size_type *indices,
+	void createLeaf(BuildContext &ctx, PrelimKDNode *node, size_type *indices,
 			size_type primCount) {
 		node->initLeafNode(ctx.indices.size(), primCount);
 		if (primCount > 0) {
@@ -1484,7 +1528,7 @@ protected:
 	 * \param primCount
 	 *     Total primitive count for the current node
 	 */
-	void createLeafAfterRetraction(BuildContext &ctx, KDNode *node, 
+	void createLeafAfterRetraction(BuildContext &ctx, PrelimKDNode *node, 
 			size_type start, size_type primCount) {
 		node->initLeafNode(start, primCount);
 		size_t actualCount = ctx.indices.size() - start;
@@ -1549,7 +1593,7 @@ protected:
 	 * \returns 
 	 *     Final SAH cost of the node
 	 */
-	Float buildTreeMinMax(BuildContext &ctx, unsigned int depth, KDNode *node, 
+	Float buildTreeMinMax(BuildContext &ctx, unsigned int depth, PrelimKDNode *node, 
 			const AABB &nodeAABB, const AABB &tightAABB, index_type *indices,
 			size_type primCount, bool isLeftChild, size_type badRefines) {
 		KDAssert(nodeAABB.contains(tightAABB));
@@ -1633,7 +1677,7 @@ protected:
 	    /*                              Recursion                               */
 	    /* ==================================================================== */
 
-		KDNode *children = ctx.nodes.allocate(2);
+		PrelimKDNode *children = ctx.nodes.allocate(2);
 
 		size_type nodePosBeforeSplit = ctx.nodes.size();
 		size_type indexPosBeforeSplit = ctx.indices.size();
@@ -1728,7 +1772,7 @@ protected:
 	 * \returns 
 	 *     Final SAH cost of the node
 	 */
-	Float buildTreeSAH(BuildContext &ctx, unsigned int depth, KDNode *node,
+	Float buildTreeSAH(BuildContext &ctx, unsigned int depth, PrelimKDNode *node,
 		const AABB &nodeAABB, EdgeEvent *eventStart, EdgeEvent *eventEnd, 
 		size_type primCount, bool isLeftChild, size_type badRefines) {
 
@@ -2100,7 +2144,7 @@ protected:
 		/*                              Recursion                               */
 		/* ==================================================================== */
 
-		KDNode *children = ctx.nodes.allocate(2);
+		PrelimKDNode *children = ctx.nodes.allocate(2);
 
 		size_type nodePosBeforeSplit = ctx.nodes.size();
 		size_type indexPosBeforeSplit = ctx.indices.size();
@@ -2431,6 +2475,60 @@ protected:
 		Vector m_binSize;
 	};
 
+	KDNode *flattenMemoryLayout(FlattenContext &flt, BuildContext *ctx, 
+			const PrelimKDNode *node, AABB &aabb) {
+		KDNode *target = flt.nodePtr++;
+
+		if (node->isLeaf()) {
+			size_type primStart = node->getPrimStart(),
+						primEnd = node->getPrimEnd(),
+						primCount = primEnd-primStart;
+			target->initLeafNode(flt.indexPtr - m_indices, primCount);
+
+			Float sa = aabb.getSurfaceArea(), weightedSA = sa * primCount;
+			flt.expLeavesVisited += aabb.getSurfaceArea();
+			flt.expPrimitivesIntersected += weightedSA;
+			flt.sahCost += weightedSA * m_intersectionCost;
+	
+			const BlockedVector<index_type, MTS_KD_BLOCKSIZE_IDX> &indices 
+				= ctx->indices;
+			for (size_type idx = primStart; idx<primEnd; ++idx)
+				*flt.indexPtr++ = indices[idx];
+		} else {
+			typename std::map<const PrelimKDNode *, index_type>::const_iterator 
+					it = m_interface.threadMap.find(node);
+			// Check if we're switching to a subtree built by a worker thread
+			if (it != m_interface.threadMap.end()) 
+				ctx = &m_builders[(*it).second]->getContext();
+
+			Float sa = aabb.getSurfaceArea();
+			flt.expTraversalSteps += sa;
+			flt.sahCost += sa * m_traversalCost;
+
+			const PrelimKDNode *left;
+			if (EXPECT_TAKEN(!node->isIndirection()))
+				left = node->getLeft();
+			else 
+				left = m_indirections[node->getIndirectionIndex()];
+			const PrelimKDNode *right = left+1;
+
+			int axis = node->getAxis();
+			float split = node->getSplit();
+
+			Float tmp = aabb.max[axis];
+			aabb.max[axis] = split;
+			flattenMemoryLayout(flt, ctx, left, aabb);
+			aabb.max[axis] = tmp;
+
+			tmp = aabb.min[axis];
+			aabb.min[axis] = split;
+			KDNode *rightPtr = flattenMemoryLayout(flt, ctx, right, aabb);
+			aabb.min[axis] = tmp;
+			target->initInnerNode(axis, split, rightPtr - target);
+		}
+		return target;
+	}
+
 	/// Ray traversal stack entry for incoherent ray tracing
 	struct KDStackEntryHavran {
 		/* Pointer to the far child */
@@ -2449,8 +2547,8 @@ protected:
 	template<bool shadowRay> FINLINE bool rayIntersectHavran(const Ray &ray, 
 			Float mint, Float maxt, Float &t, void *temp) const {
 		KDStackEntryHavran stack[MTS_KD_MAXDEPTH];
-		const KDNode * __restrict farChild,
-					 * __restrict currNode = m_nodes;
+		const KDNode * __restrict currNode = m_nodes;
+
 		#if 0
 		static const int prevAxisTable[] = { 2, 0, 1 };
 		static const int nextAxisTable[] = { 1, 2, 0 };
@@ -2470,9 +2568,10 @@ protected:
 		stack[exPt].t = maxt;
 		stack[exPt].p = ray(maxt);
 		stack[exPt].node = NULL;
-	
+
 		while (currNode != NULL) {
 			while (EXPECT_TAKEN(!currNode->isLeaf())) {
+				const KDNode * __restrict farChild;
 				const Float splitVal = (Float) currNode->getSplit();
 				const int axis = currNode->getAxis();
 
@@ -2493,8 +2592,8 @@ protected:
 					}
 
 					/* Case N4 */
+					farChild = currNode->getRight();
 					currNode = currNode->getLeft();
-					farChild = currNode + 1; // getRight()
 				} else { /* stack[enPt].p[axis] > splitVal */
 					if (splitVal < stack[exPt].p[axis]) {
 						/* Cases P1, P2, P3 and N5 */
@@ -2503,7 +2602,7 @@ protected:
 					}
 					/* Case P4 */
 					farChild = currNode->getLeft();
-					currNode = farChild + 1; // getRight()
+					currNode = currNode->getRight();
 				}
 
 				/* Cases P4 and N4 -- calculate the distance to the split plane */
@@ -2534,9 +2633,9 @@ protected:
 			}
 
 			#if defined(SINGLE_PRECISION)
-				const Float eps = 1e-3;
+				const Float eps = 1e-4;
 			#else
-				const Float eps = 1e-5;
+				const Float eps = 1e-6;
 			#endif
 			const Float m_eps = 1-eps, p_eps = 1+eps;
 
@@ -2575,7 +2674,8 @@ protected:
 			if (foundIntersection) 
 				return true;
 
-			/* Pop from the stack and advance to the next node on the interval */
+			/* Pop from the stack and advance 
+			   to the next node on the interval */
 			enPt = exPt;
 			currNode = stack[exPt].node;
 			exPt = stack[enPt].prev;
@@ -2592,6 +2692,7 @@ protected:
 	/**
 	 * \brief Internal kd-tree traversal implementation (Plain variant)
 	 */
+#if 0
 	template<bool shadowRay> FINLINE bool rayIntersectPlain(const Ray &ray, 
 			Float mint_, Float maxt_, Float &t, void *temp) const {
 		KDStackEntry stack[MTS_KD_MAXDEPTH];
@@ -2679,7 +2780,7 @@ protected:
 		}
 		return false;
 	}
-
+#endif
 private:
 	KDNode *m_nodes;
 	index_type *m_indices;
@@ -2693,7 +2794,7 @@ private:
 	size_type m_maxBadRefines;
 	size_type m_exactPrimThreshold;
 	std::vector<SAHTreeBuilder *> m_builders;
-	std::vector<KDNode *> m_indirections;
+	std::vector<PrelimKDNode *> m_indirections;
 	ref<Mutex> m_indirectionLock;
 	BuildInterface m_interface;
 };
