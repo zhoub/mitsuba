@@ -143,8 +143,8 @@ Scene::Scene(Stream *stream, InstanceManager *manager)
 	m_testType = (ETestType) stream->readInt();
 	m_testThresh = stream->readFloat();
 	m_blockSize = stream->readInt();
-	m_aabb = AABB(stream);
-	m_bsphere = BSphere(stream);
+	m_aabb = BoundingBox3(stream);
+	m_bsphere = BoundingSphere(stream);
 	m_backgroundLuminaire = static_cast<Luminaire *>(manager->getInstance(stream));
 	int count = stream->readInt();
 	for (int i=0; i<count; ++i) {
@@ -227,11 +227,11 @@ void Scene::configure() {
 
 		Properties props("perspective");
 		/* Create a perspective camera with 45deg. FOV, which can see the whole scene */
-		AABB aabb;
+		BoundingBox3 aabb;
 		for (size_t i=0; i<m_shapes.size(); ++i)
-			aabb.expandBy(m_shapes[i]->getAABB());
+			aabb.expandBy(m_shapes[i]->getBoundingBox3());
 		for (size_t i=0; i<m_media.size(); ++i)
-			aabb.expandBy(m_media[i]->getAABB());
+			aabb.expandBy(m_media[i]->getBoundingBox3());
 		if (!aabb.isValid())
 			Log(EError, "Unable to set up a default camera -- does the scene contain anything at all?");
 		Point center = aabb.getCenter();
@@ -273,13 +273,13 @@ void Scene::initialize() {
 		/* Build the kd-tree */
 		m_kdtree->build();
 
-		m_aabb = m_kdtree->getAABB();
-		m_bsphere = m_kdtree->getBSphere();
+		m_aabb = m_kdtree->getBoundingBox3();
+		m_bsphere = m_kdtree->getBoundingSphere();
 
 		if (m_media.size() > 0) {
 			for (size_t i=0; i<m_media.size(); i++) 
-				m_aabb.expandBy(m_media[i]->getAABB());
-			m_bsphere = m_aabb.getBSphere();
+				m_aabb.expandBy(m_media[i]->getBoundingBox3());
+			m_bsphere = m_aabb.getBoundingSphere();
 		}
 	}
 
@@ -483,7 +483,7 @@ Spectrum Scene::LeBackground(const Ray &ray) const {
 Spectrum Scene::getAttenuation(const Ray &_ray) const {
 	Spectrum attenuation(1.0f);
 	if (m_media.size() > 0) {
-		Float dLength = _ray.d.length();
+		Float dLength = _ray.d.norm();
 		Ray ray(_ray.o, _ray.d/dLength, 
 				_ray.mint*dLength, _ray.maxt*dLength, _ray.time);
 		for (std::vector<Medium *>::const_iterator it = 

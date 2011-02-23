@@ -47,7 +47,7 @@ void ShapeKDTree::addShape(const Shape *shape) {
 	if (shape->getClass()->derivesFrom(TriMesh::m_theClass)) {
 		// Triangle meshes are expanded into individual primitives,
 		// which are visible to the tree construction code. Generic
-		// primitives are only handled by their AABBs
+		// primitives are only handled by their BoundingBox3s
 		m_shapeMap.push_back((size_type) 
 			static_cast<const TriMesh *>(shape)->getTriangleCount());
 		m_triangleFlag.push_back(true);
@@ -65,7 +65,7 @@ void ShapeKDTree::build() {
 
 	SAHKDTree3D<ShapeKDTree>::buildInternal();
 		
-	m_bsphere = m_aabb.getBSphere();
+	m_bsphere = m_aabb.getBoundingSphere();
 
 #if !defined(MTS_KD_CONSERVE_MEMORY)
 	ref<Timer> timer = new Timer();
@@ -167,7 +167,7 @@ void ShapeKDTree::rayIntersectPacket(const RayPacket4 &packet,
 
 	++coherentPackets;
 
-	/* First, intersect with the kd-tree AABB to determine
+	/* First, intersect with the kd-tree BoundingBox3 to determine
 	   the intersection search intervals */
 	if (!m_aabb.rayIntersectPacket(packet, interval))
 		return;

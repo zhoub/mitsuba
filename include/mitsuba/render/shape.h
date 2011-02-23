@@ -22,7 +22,7 @@
 #include <mitsuba/core/cobject.h>
 #include <mitsuba/core/transform.h>
 #include <mitsuba/core/frame.h>
-#include <mitsuba/core/aabb.h>
+#include <mitsuba/core/bbox.h>
 
 MTS_NAMESPACE_BEGIN
 
@@ -168,7 +168,7 @@ public:
 	virtual Float getSurfaceArea() const = 0;
 
 	/// Return a bounding box containing the shape
-	virtual AABB getAABB() const = 0;
+	virtual BoundingBox3 getBoundingBox3() const = 0;
 
 	/**
 	 * \brief Returns the minimal axis-aligned bounding box 
@@ -176,9 +176,9 @@ public:
 	 * 
 	 * This is extremely important to construct decent kd-trees.
 	 * The default implementation just takes the bounding box
-	 * returned by \ref getAABB() and clips it to \a box.
+	 * returned by \ref getBoundingBox3() and clips it to \a box.
 	 */
-	virtual AABB getClippedAABB(const AABB &box) const;
+	virtual BoundingBox3 getClippedBoundingBox3(const BoundingBox3 &box) const;
 
 	/**
 	 * \brief Fast ray intersection test
@@ -252,7 +252,7 @@ public:
 	 * the interactive walkthrough. The default implementation
 	 * simply returns NULL.
 	 */
-	virtual const KDTreeBase<AABB> *getKDTree() const;
+	virtual const KDTreeBase<BoundingBox3> *getKDTree() const;
 
 	/**
 	 * \brief Create a triangle mesh approximation of this shape

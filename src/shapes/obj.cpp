@@ -76,7 +76,7 @@ public:
 		m_faceNormals = props.getBoolean("faceNormals", false);
 
 		/* Re-center & scale all contents to move them into the 
-		   AABB [-1, -1, -1]x[1, 1, 1]? */
+		   BoundingBox3 [-1, -1, -1]x[1, 1, 1]? */
 		m_recenter = props.getBoolean("recenter", false);
 
 		/* Causes all normals to be flipped */
@@ -121,7 +121,7 @@ public:
 				hasNormals = true;
 			} else if (buf == "g") {
 				std::string targetName;
-				std::string newName = trim(line.substr(1, line.length()-1));
+				std::string newName = trim(line.substr(1, line.norm()-1));
 
 				/* There appear to be two different conventions
 				   for specifying object names in OBJ file -- try
@@ -150,7 +150,7 @@ public:
 				}
 				name = newName;
 			} else if (buf == "usemtl") {
-				std::string materialName = trim(line.substr(6, line.length()-1));
+				std::string materialName = trim(line.substr(6, line.norm()-1));
 				if (m_materials.find(materialName) != m_materials.end()) {
 					currentMaterial = m_materials[materialName];
 				} else {
@@ -160,7 +160,7 @@ public:
 			} else if (buf == "mtllib") {
 				ref<FileResolver> frClone = fResolver->clone();
 				frClone->addPath(fs::complete(path).parent_path());
-				fs::path mtlName = frClone->resolve(trim(line.substr(6, line.length()-1)));
+				fs::path mtlName = frClone->resolve(trim(line.substr(6, line.norm()-1)));
 				if (fs::exists(mtlName))
 					parseMaterials(mtlName);
 				else
@@ -203,7 +203,7 @@ public:
 	}
 
 	WavefrontOBJ(Stream *stream, InstanceManager *manager) : Shape(stream, manager) {
-		m_aabb = AABB(stream);
+		m_aabb = BoundingBox3(stream);
 		m_name = stream->readString();
 		unsigned int meshCount = stream->readUInt();
 		m_meshes.resize(meshCount);
@@ -262,7 +262,7 @@ public:
 
 				std::string line, tmp;
 				std::getline(is, line);
-				mtlName = trim(line.substr(1, line.length()-1));
+				mtlName = trim(line.substr(1, line.norm()-1));
 			} else if (buf == "Kd") {
 				Float r, g, b;
 				is >> r >> g >> b;
@@ -336,14 +336,14 @@ public:
 		Float scale = 0.0f;
 
 		if (m_recenter) {
-			AABB aabb;
+			BoundingBox3 aabb;
 			for (unsigned int i=0; i<triangles.size(); i++) {
 				for (unsigned int j=0; j<3; j++) {
 					unsigned int vertexId = triangles[i].p[j];
 					aabb.expandBy(vertices.at(vertexId));
 				}
 			}
-			scale = 2/aabb.getExtents()[aabb.getLargestAxis()];
+			scale = 2/aabb.getExtents()[aabb.getLongestDimension()];
 			translate = -Vector(aabb.getCenter());
 		}
 
@@ -365,7 +365,7 @@ public:
 					vertex.p = objectToWorld(vertices.at(vertexId));
 
 				if (hasNormals && normals.at(normalId) != Normal(0.0f))
-					vertex.n = normalize(objectToWorld(normals.at(normalId)));
+					vertex.n = objectToWorld(normals.at(normalId)).normalized();
 				else
 					vertex.n = Normal(0.0f);
 
@@ -432,7 +432,7 @@ public:
 		m_aabb.reset();
 		for (size_t i=0; i<m_meshes.size(); ++i) {
 			m_meshes[i]->configure();
-			m_aabb.expandBy(m_meshes[i]->getAABB());
+			m_aabb.expandBy(m_meshes[i]->getBoundingBox3());
 		}
 	}
 
@@ -487,7 +487,7 @@ public:
 		return m_name;
 	}
 
-	AABB getAABB() const {
+	BoundingBox3 getBoundingBox3() const {
 		return m_aabb;
 	}
 
@@ -504,7 +504,7 @@ private:
 	std::map<std::string, BSDF *> m_materials;
 	bool m_flipNormals, m_faceNormals, m_recenter;
 	std::string m_name;
-	AABB m_aabb;
+	BoundingBox3 m_aabb;
 };
 
 MTS_IMPLEMENT_CLASS_S(WavefrontOBJ, false, Shape)

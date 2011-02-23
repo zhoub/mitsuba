@@ -187,8 +187,8 @@ void ParticleTracer::process(const WorkUnit *workUnit, WorkResult *workResult,
 				ray = Ray(its.p, wo, ray.time);
 
 				/* Prevent light leaks due to the use of shading normals -- [Veach, p. 158] */
-				Float wiDotGeoN = dot(its.geoFrame.n, wi),
-						woDotGeoN = dot(its.geoFrame.n, wo);
+				Float wiDotGeoN = wi.dot(its.geoFrame.n),
+						woDotGeoN = wo.dot(its.geoFrame.n);
 				if (wiDotGeoN * Frame::cosTheta(bRec.wi) <= 0 || 
 					woDotGeoN * Frame::cosTheta(bRec.wo) <= 0)
 					break;

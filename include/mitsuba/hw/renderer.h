@@ -180,7 +180,7 @@ public:
 			const Vector &axis1, const Vector &axis2) = 0;
 
 	/// Draw a wire-frame axis-aligned box
-	virtual void drawAABB(const AABB &aabb) = 0;
+	virtual void drawBoundingBox3(const BoundingBox3 &aabb) = 0;
 
 	/// Set a depth offset for shadow mapping (0 to disable)
 	virtual void setDepthOffset(Float value) = 0;

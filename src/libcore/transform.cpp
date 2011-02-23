@@ -64,7 +64,7 @@ Transform Transform::scale(const Vector &v) {
 
 Transform Transform::rotate(const Vector &axis, Float angle) {
 	/* Make sure that the axis is normalized */
-	Vector naxis = normalize(axis);
+	Vector naxis = axis.normalized();
 
 	Float rotAngle = degToRad(angle);
 	Float sinAngle = std::sin(rotAngle);
@@ -174,11 +174,11 @@ Transform Transform::glOrthographic(Float clipNear, Float clipFar) {
 Transform Transform::lookAt(const Point &p, const Point &t, const Vector &up) {
 	Matrix4x4 result;
 
-	Vector dirct = normalize(t-p);
-	Vector right = normalize(cross(dirct, up));
+	Vector dirct = (t-p).normalized();
+	Vector right = dirct.cross(up).normalized();
 
 	/* Generate a new, orthogonalized up vector */
-	Vector newUp = cross(right, dirct);
+	Vector newUp = right.cross(dirct);
 
 	/* Store as columns */
 	result.m[0][0] = right.x; result.m[1][0] = right.y; result.m[2][0] = right.z; result.m[3][0] = 0;

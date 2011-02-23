@@ -20,7 +20,7 @@
 #define __MEDIUM_H
 
 #include <mitsuba/core/netobject.h>
-#include <mitsuba/core/aabb.h>
+#include <mitsuba/core/bbox.h>
 
 MTS_NAMESPACE_BEGIN
 /**
@@ -155,7 +155,7 @@ public:
 	virtual void addChild(const std::string &name, ConfigurableObject *child);
 
 	/// Return a bounding volume
-	inline const AABB &getAABB() const { return m_aabb; }
+	inline const BoundingBox3 &getBoundingBox3() const { return m_aabb; }
 
 	/// Return a string representation
 	virtual std::string toString() const = 0;
@@ -175,7 +175,7 @@ protected:
 	Spectrum m_sigmaS;
 	Spectrum m_sigmaT;
 	Float m_albedo;
-	AABB m_aabb;
+	BoundingBox3 m_aabb;
 	ref<PhaseFunction> m_phaseFunction;
 	Float m_densityMultiplier;
 };

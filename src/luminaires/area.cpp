@@ -60,7 +60,7 @@ public:
 	}
 
 	Spectrum Le(const LuminaireSamplingRecord &lRec) const {
-		if (dot(lRec.d, lRec.sRec.n) <= 0)
+		if (lRec.d.dot(lRec.sRec.n) <= 0)
 			return Spectrum(0.0f);
 		return m_intensity;
 	}
@@ -70,9 +70,9 @@ public:
 		lRec.pdf = m_shape->sampleSolidAngle(lRec.sRec, p, sample);
 		lRec.d = p - lRec.sRec.p;
 
-		if (EXPECT_TAKEN(lRec.pdf > 0 && dot(lRec.d, lRec.sRec.n) > 0)) {
+		if (EXPECT_TAKEN(lRec.pdf > 0 && lRec.d.dot(lRec.sRec.n) > 0)) {
 			lRec.Le = m_intensity;
-			lRec.d = normalize(lRec.d);
+			lRec.d.normalize();
 		} else {
 			lRec.pdf = 0;
 		}
@@ -117,7 +117,7 @@ public:
 	}
 
 	Spectrum f(const EmissionRecord &eRec) const {
-		Float dp = dot(eRec.sRec.n, eRec.d);
+		Float dp = eRec.sRec.n.dot(eRec.d);
 		if (dp > 0)
 			return Spectrum(INV_PI);
 		else
@@ -125,7 +125,7 @@ public:
 	}
 
 	void pdfEmission(EmissionRecord &eRec, bool delta) const {
-		Float dp = dot(eRec.sRec.n, eRec.d);
+		Float dp = eRec.sRec.n.dot(eRec.d);
 		if (dp > 0)
 			eRec.pdfDir = delta ? 0.0f : dp * INV_PI;
 		else {

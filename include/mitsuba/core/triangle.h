@@ -20,7 +20,7 @@
 #define __TRIANGLE_H
 
 #include <mitsuba/mitsuba.h>
-#include <mitsuba/core/aabb.h>
+#include <mitsuba/core/bbox.h>
 
 MTS_NAMESPACE_BEGIN
 
@@ -36,8 +36,8 @@ struct MTS_EXPORT_CORE Triangle {
 	uint32_t idx[3];
 
 	/// Construct an axis-aligned box, which contains the triangle
-	inline AABB getAABB(const Point *positions) const {
-		AABB result(positions[idx[0]]);
+	inline BoundingBox3 getBoundingBox3(const Point *positions) const {
+		BoundingBox3 result(positions[idx[0]]);
 		result.expandBy(positions[idx[1]]);
 		result.expandBy(positions[idx[2]]);
 		return result;
@@ -45,17 +45,17 @@ struct MTS_EXPORT_CORE Triangle {
 
 	/**
 	 * \brief Returns the axis-aligned bounding box of a triangle after it has 
-	 * clipped to the extends of another, given AABB. 
+	 * clipped to the extends of another, given BoundingBox3. 
 	 *
 	 * This function uses the Sutherland-Hodgman algorithm to calculate the 
-	 * convex polygon, which is created when applying all 6 AABB splitting 
-	 * planes to the triangle. Afterwards, the AABB of the newly created 
+	 * convex polygon, which is created when applying all 6 BoundingBox3 splitting 
+	 * planes to the triangle. Afterwards, the BoundingBox3 of the newly created 
 	 * convex polygon is returned. This function is an important component 
 	 * for efficiently creating 'Perfect Split' KD-trees. For more detail, 
 	 * see "On building fast kd-Trees for Ray Tracing, and on doing 
 	 * that in O(N log N)" by Ingo Wald and Vlastimil Havran
 	 */
-	AABB getClippedAABB(const Point *positions, const AABB &aabb) const;
+	BoundingBox3 getClippedBoundingBox3(const Point *positions, const BoundingBox3 &aabb) const;
 
 	/// Uniformly sample a point on the triangle and return its normal
 	Point sample(const Point *positions, const Normal *normals,
@@ -79,10 +79,10 @@ struct MTS_EXPORT_CORE Triangle {
 		Vector edge1 = p1 - p0, edge2 = p2 - p0;
 
 		/* begin calculating determinant - also used to calculate U parameter */
-		Vector pvec = cross(ray.d, edge2);
+		Vector pvec = ray.d.cross(edge2);
 
 		/* if determinant is near zero, ray lies in plane of triangle */
-		Float det = dot(edge1, pvec);
+		Float det = edge1.dot(pvec);
 
 		if (det > -1e-8f && det < 1e-8f)
 			return false;
@@ -92,20 +92,20 @@ struct MTS_EXPORT_CORE Triangle {
 		Vector tvec = ray.o - p0;
 
 		/* calculate U parameter and test bounds */
-		u = dot(tvec, pvec) * inv_det;
+		u = tvec.dot(pvec) * inv_det;
 		if (u < 0.0 || u > 1.0)
 			return false;
 
 		/* prepare to test V parameter */
-		Vector qvec = cross(tvec, edge1);
+		Vector qvec = tvec.cross(edge1);
 
 		/* calculate V parameter and test bounds */
-		v = dot(ray.d, qvec) * inv_det;
+		v = ray.d.dot(qvec) * inv_det;
 		if (v < 0.0 || u + v > 1.0)
 			return false;
 
 		/* ray intersects triangle -> compute t */
-		t = dot(edge2, qvec) * inv_det;
+		t = edge2.dot(qvec) * inv_det;
 
 		return true;
 	}

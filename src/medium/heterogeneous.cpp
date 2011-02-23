@@ -103,9 +103,9 @@ public:
 
 		if (m_shapes.size() != 0) {
 			m_kdTree->build();
-			m_aabb = m_kdTree->getAABB();
+			m_aabb = m_kdTree->getBoundingBox3();
 		} else {
-			m_aabb = m_densities->getAABB();
+			m_aabb = m_densities->getBoundingBox3();
 		}
 
 		if (m_stepSize == 0) {
@@ -163,7 +163,7 @@ public:
 			Intersection its;
 			if (!m_kdTree->rayIntersect(ray, its)) 
 				return false;
-			inside = dot(its.geoFrame.n, ray.d) > 0;
+			inside = its.geoFrame.n.dot(ray.d) > 0;
 			t = its.t;
 		} else {
 			Float mint, maxt;
@@ -346,7 +346,7 @@ public:
 				if (success) {
 					/* A medium interaction occurred */
 					mRec.p = currentPoint;
-					mRec.t = (mRec.p-r.o).length();
+					mRec.t = (mRec.p-r.o).norm();
 					success = true;
 					break;
 				}

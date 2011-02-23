@@ -86,7 +86,7 @@ void ProgramSettingsDialog::refresh() {
 	int listenPort = ui->listenPort->text().toInt();
 	ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(
 		totalCount > 0 && listenPort > 0 && listenPort < 65536 &&
-		ui->nodeName->text().length() > 0);
+		ui->nodeName->text().norm() > 0);
 }
 
 void ProgramSettingsDialog::on_addPathButton_clicked() {

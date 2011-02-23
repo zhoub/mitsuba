@@ -214,11 +214,11 @@ void VPLShaderManager::setVPL(const VPL &vpl) {
 
 	if (farClip < 0 || nearClip >= farClip) {
 		/* Unable to find any surface - just default values based on the scene size */
-		nearClip = 1e-3f * m_scene->getBSphere().radius;
-		farClip = 2 * m_scene->getBSphere().radius;
+		nearClip = 1e-3f * m_scene->getBoundingSphere().radius;
+		farClip = 2 * m_scene->getBoundingSphere().radius;
 		m_minDist = 0;
 	}
-	farClip = std::min(farClip, 5.0f*m_scene->getBSphere().radius);
+	farClip = std::min(farClip, 5.0f*m_scene->getBoundingSphere().radius);
 
 	m_nearClip = nearClip;
 	m_invClipRange = 1/(farClip-nearClip);

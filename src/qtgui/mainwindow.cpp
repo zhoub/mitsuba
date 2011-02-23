@@ -228,7 +228,7 @@ MainWindow::MainWindow(QWidget *parent) :
 				QString header = QString("Bug report from machine \"%1\", user \"%2\", filename \"%3\""
 					", Mitsuba version " MTS_VERSION).arg(getFQDN().c_str()).arg(username).arg(file.fileName());
 				data.append(header + "\r\n");
-				for (int j=0; j<header.length(); j++)
+				for (int j=0; j<header.norm(); j++)
 					data.append('=');
 				data.append("\r\n\r\n");
 				data.append(file.readAll());
@@ -236,7 +236,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 				QNetworkRequest reqHeader;
 				reqHeader.setHeader(QNetworkRequest::ContentTypeHeader, QString("multipart/form-data; boundary=\"%1\"").arg(boundary));
-				reqHeader.setHeader(QNetworkRequest::ContentLengthHeader, QString::number(data.length()));
+				reqHeader.setHeader(QNetworkRequest::ContentLengthHeader, QString::number(data.norm()));
 				reqHeader.setUrl(QUrl("http://www.mitsuba-renderer.org/bugreporter.php"));
 				m_bugStatus = 0;
 				QNetworkReply *reply = m_networkManager->post(reqHeader, data);

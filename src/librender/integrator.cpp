@@ -63,7 +63,7 @@ Spectrum SampleIntegrator::E(const Scene *scene, const Point &p, const Normal &n
 
 		/* Direct */
 		if (scene->sampleLuminaireAttenuated(p, lRec, time, rRec.nextSample2D())) {
-			Float dp = dot(lRec.d, n);
+			Float dp = n.dot(lRec.d);
 			if (dp < 0) 
 				E -= lRec.Le * dp;
 		}

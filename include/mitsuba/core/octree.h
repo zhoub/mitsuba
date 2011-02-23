@@ -83,14 +83,14 @@ public:
 	 * By default, the maximum tree depth is set to 16
 	 */
 
-	inline Octree(const AABB &aabb, int maxDepth = 16) 
+	inline Octree(const BoundingBox3 &aabb, int maxDepth = 16) 
 	 : m_aabb(aabb), m_maxDepth(maxDepth) {
 	}
 
 	/// Insert an item with the specified cell coverage
-	inline void insert(const T &value, const AABB &coverage) {
+	inline void insert(const T &value, const BoundingBox3 &coverage) {
 		insert(&m_root, m_aabb, value, coverage,
-			coverage.getExtents().lengthSquared(), 0);
+			coverage.getExtents().squaredNorm(), 0);
 	}
 
 	/// Execute operator() of <tt>functor</tt> on all records, which potentially overlap <tt>p</tt>
@@ -101,13 +101,13 @@ public:
 	}
 
 	/// Execute operator() of <tt>functor</tt> on all records, which potentially overlap <tt>bsphere</tt>
-	template <typename Functor> inline void searchSphere(const BSphere &sphere, Functor &functor) {
+	template <typename Functor> inline void searchSphere(const BoundingSphere &sphere, Functor &functor) {
 		if (!m_aabb.overlaps(sphere))
 			return;
 		searchSphere(&m_root, m_aabb, sphere, functor);
 	}
 	
-	inline const AABB &getAABB() const { return m_aabb; }
+	inline const BoundingBox3 &getBoundingBox3() const { return m_aabb; }
 private:
 	struct OctreeNode {
 	public:
@@ -127,32 +127,32 @@ private:
 		LockFreeList<T> data;
 	};
 
-	/// Return the AABB for a child of the specified index
-	inline AABB childBounds(int child, const AABB &nodeAABB, const Point &center) const {
-		AABB childAABB;
-		childAABB.min.x = (child & 4) ? center.x : nodeAABB.min.x;
-		childAABB.max.x = (child & 4) ? nodeAABB.max.x : center.x;
-		childAABB.min.y = (child & 2) ? center.y : nodeAABB.min.y;
-		childAABB.max.y = (child & 2) ? nodeAABB.max.y : center.y;
-		childAABB.min.z = (child & 1) ? center.z : nodeAABB.min.z;
-		childAABB.max.z = (child & 1) ? nodeAABB.max.z : center.z;
-		return childAABB;
+	/// Return the BoundingBox3 for a child of the specified index
+	inline BoundingBox3 childBounds(int child, const BoundingBox3 &nodeBoundingBox3, const Point &center) const {
+		BoundingBox3 childBoundingBox3;
+		childBoundingBox3.min.x = (child & 4) ? center.x : nodeBoundingBox3.min.x;
+		childBoundingBox3.max.x = (child & 4) ? nodeBoundingBox3.max.x : center.x;
+		childBoundingBox3.min.y = (child & 2) ? center.y : nodeBoundingBox3.min.y;
+		childBoundingBox3.max.y = (child & 2) ? nodeBoundingBox3.max.y : center.y;
+		childBoundingBox3.min.z = (child & 1) ? center.z : nodeBoundingBox3.min.z;
+		childBoundingBox3.max.z = (child & 1) ? nodeBoundingBox3.max.z : center.z;
+		return childBoundingBox3;
 	}
 
 
-	void insert(OctreeNode *node, const AABB &nodeAABB, const T &value, 
-			const AABB &coverage, Float diag2, int depth) {
+	void insert(OctreeNode *node, const BoundingBox3 &nodeBoundingBox3, const T &value, 
+			const BoundingBox3 &coverage, Float diag2, int depth) {
 		/* Add the data item to the current octree node if the max. tree
 		   depth is reached or the data item's coverage area is smaller
 		   than the current node size */
 		if (depth == m_maxDepth || 
-			(nodeAABB.getExtents().lengthSquared() < diag2)) {
+			(nodeBoundingBox3.getExtents().squaredNorm() < diag2)) {
 			node->data.append(value);
 			return;
 		}
 
 		/* Otherwise: test for overlap */
-		const Point center = nodeAABB.getCenter();
+		const Point center = nodeBoundingBox3.getCenter();
 
 		/* Otherwise: test for overlap */
 		bool x[2] = { coverage.min.x <= center.x, coverage.max.x > center.x };
@@ -172,16 +172,16 @@ private:
 				if (!atomicCompareAndExchangePtr<OctreeNode>(&node->children[child], newNode, NULL))
 					delete newNode;
 			}
-			const AABB childAABB(childBounds(child, nodeAABB, center));
-			insert(node->children[child], childAABB,
+			const BoundingBox3 childBoundingBox3(childBounds(child, nodeBoundingBox3, center));
+			insert(node->children[child], childBoundingBox3,
 				value, coverage, diag2, depth+1);
 		}
 	}
 
 	/// Internal lookup procedure - const version
 	template <typename Functor> inline void lookup(const OctreeNode *node, 
-			const AABB &nodeAABB, const Point &p, Functor &functor) const {
-		const Point center = nodeAABB.getCenter();
+			const BoundingBox3 &nodeBoundingBox3, const Point &p, Functor &functor) const {
+		const Point center = nodeBoundingBox3.getCenter();
 
 		const typename LockFreeList<T>::ListItem *item = node->data.head();
 		while (item) {
@@ -196,15 +196,15 @@ private:
 		OctreeNode *childNode = node->children[child];
 
 		if (childNode) {
-			const AABB childAABB(childBounds(child, nodeAABB, center));
-			lookup(node->children[child], childAABB, p, functor);
+			const BoundingBox3 childBoundingBox3(childBounds(child, nodeBoundingBox3, center));
+			lookup(node->children[child], childBoundingBox3, p, functor);
 		}
 	}
 
 	template <typename Functor> inline void searchSphere(OctreeNode *node, 
-			const AABB &nodeAABB, const BSphere &sphere, 
+			const BoundingBox3 &nodeBoundingBox3, const BoundingSphere &sphere, 
 			Functor &functor) {
-		const Point center = nodeAABB.getCenter();
+		const Point center = nodeBoundingBox3.getCenter();
 
 		const typename LockFreeList<T>::ListItem *item = node->data.head();
 		while (item) {
@@ -215,15 +215,15 @@ private:
 		// Potential for much optimization..
 		for (int child=0; child<8; ++child) { 
 			if (node->children[child]) {
-				const AABB childAABB(childBounds(child, nodeAABB, center));
-				if (childAABB.overlaps(sphere))
-					searchSphere(node->children[child], childAABB, sphere, functor);
+				const BoundingBox3 childBoundingBox3(childBounds(child, nodeBoundingBox3, center));
+				if (childBoundingBox3.overlaps(sphere))
+					searchSphere(node->children[child], childBoundingBox3, sphere, functor);
 			}
 		}
 	}
 private:
 	OctreeNode m_root;
-	AABB m_aabb;
+	BoundingBox3 m_aabb;
 	int m_maxDepth;
 };
 

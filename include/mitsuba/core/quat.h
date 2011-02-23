@@ -154,7 +154,7 @@ template <typename T> struct TQuaternion {
 	 * "Quaternion Calculus for Computer Graphics" by Ken Shoemake
 	 */
 	TQuaternion exp() const {
-		T theta = v.length();
+		T theta = v.norm();
 		T c = std::cos(theta);
 
 		if (theta > Epsilon) 
@@ -170,7 +170,7 @@ template <typename T> struct TQuaternion {
 	 * "Quaternion Calculus for Computer Graphics" by Ken Shoemake
 	 */
 	TQuaternion log() const {
-		T scale = v.length();
+		T scale = v.norm();
 		T theta = std::atan2(scale, w);
 
 		if (scale > 0)
@@ -200,10 +200,10 @@ template <typename T> struct TQuaternion {
 		} else if (dp < -(1-Epsilon)) {
 			// Use a better-conditioned method for opposite directions
 			Vector rotAxis = cross(from, Vector(1, 0, 0));
-			Float length = rotAxis.length();
+			Float length = rotAxis.norm();
 			if (length < Epsilon) {
 				rotAxis = cross(from, Vector(0, 1, 0));
-				length = rotAxis.length();
+				length = rotAxis.norm();
 			}
 			rotAxis /= length;
 			return TQuaternion(rotAxis, 0);

@@ -21,7 +21,7 @@
 
 #include <mitsuba/core/netobject.h>
 #include <mitsuba/core/pdf.h>
-#include <mitsuba/core/aabb.h>
+#include <mitsuba/core/bbox.h>
 #include <mitsuba/render/trimesh.h>
 #include <mitsuba/render/skdtree.h>
 #include <mitsuba/render/camera.h>
@@ -141,12 +141,12 @@ public:
 	}
 
 	/// Return an axis-aligned bounding box containing the whole scene
-	inline const AABB &getAABB() const {
+	inline const BoundingBox3 &getBoundingBox3() const {
 		return m_aabb;
 	}
 	
 	/// Return a bounding sphere containing the whole scene
-	inline const BSphere &getBSphere() const {
+	inline const BoundingSphere &getBoundingSphere() const {
 		return m_bsphere;
 	}
 
@@ -463,8 +463,8 @@ private:
 	fs::path m_sourceFile;
 	fs::path m_destinationFile;
 	DiscretePDF m_luminairePDF;
-	AABB m_aabb;
-	BSphere m_bsphere;
+	BoundingBox3 m_aabb;
+	BoundingSphere m_bsphere;
 	bool m_importanceSampleLuminaires;
 	ETestType m_testType;
 	Float m_testThresh;

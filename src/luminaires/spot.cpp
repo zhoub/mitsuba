@@ -119,7 +119,7 @@ public:
 	inline void sample(const Point &p, LuminaireSamplingRecord &lRec,
 		const Point2 &sample) const {
 		Vector lumToP = p - m_position;
-		Float invDist = 1.0f / lumToP.length();
+		Float invDist = 1.0f / lumToP.norm();
 		lRec.sRec.p = m_position;
 		lRec.d = lumToP * invDist;
 		lRec.pdf = 1.0f;
@@ -183,7 +183,7 @@ public:
 			<< "  intensity = " << m_intensity.toString() << "," << std::endl
 			<< "  texture = " << m_texture.toString() << "," << std::endl
 			<< "  position = " << m_position.toString() << "," << std::endl
-			<< "  direction = " << normalize(m_luminaireToWorld(Point(0,0,1))-m_luminaireToWorld(Point(0,0,0))).toString() << "," << std::endl
+			<< "  direction = " << (m_luminaireToWorld(Point(0,0,1))-m_luminaireToWorld(Point(0,0,0))).normalized().toString() << "," << std::endl
 			<< "  beamWidth = " << (m_beamWidth * 180/M_PI) << "," << std::endl
 			<< "  cutoffAngle = " << (m_cutoffAngle * 180/M_PI) << std::endl
 			<< "]";

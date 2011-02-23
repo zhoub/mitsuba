@@ -82,7 +82,7 @@ Float Noise::perlinNoise(const Point &p) {
 Float Noise::fbm(const Point &p, const Vector &dpdx, const Vector &dpdy,
           Float omega, int maxOctaves) {
     // Compute number of octaves for antialiased FBm
-    Float s2 = std::max(dpdx.lengthSquared(), dpdy.lengthSquared());
+    Float s2 = std::max(dpdx.squaredNorm(), dpdy.squaredNorm());
     Float foctaves = std::min((Float) maxOctaves, 1.f - .5f * log2(s2));
     int octaves = (int) foctaves;
 
@@ -101,7 +101,7 @@ Float Noise::fbm(const Point &p, const Vector &dpdx, const Vector &dpdy,
 Float Noise::turbulence(const Point &p, const Vector &dpdx, const Vector &dpdy,
                  Float omega, int maxOctaves) {
     // Compute number of octaves for antialiased FBm
-    Float s2 = std::max(dpdx.lengthSquared(), dpdy.lengthSquared());
+    Float s2 = std::max(dpdx.squaredNorm(), dpdy.squaredNorm());
     Float foctaves = std::min((Float) maxOctaves, 1.f - .5f * log2(s2));
     int octaves = (int) foctaves;
 

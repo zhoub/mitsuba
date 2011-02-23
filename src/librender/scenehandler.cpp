@@ -95,7 +95,7 @@ void SceneHandler::startElement(const XMLCh* const xmlName,
 	/* Convert attributes to ISO-8859-1 */
 	for (unsigned int i=0; i<xmlAttributes.getLength(); i++) {
 		std::string attrValue = transcode(xmlAttributes.getValue(i));
-		if (attrValue.length() > 0 && attrValue.find('$') != attrValue.npos) {
+		if (attrValue.norm() > 0 && attrValue.find('$') != attrValue.npos) {
 			for (std::map<std::string, std::string>::const_iterator it = m_params.begin();
 				it != m_params.end(); ++it) {
 				std::string::size_type pos = 0;
@@ -224,10 +224,10 @@ void SceneHandler::endElement(const XMLCh* const xmlName) {
 		Point o(ox, oy, oz), t(tx, ty, tz);
 		Vector u(ux, uy, uz);
 
-		if (u.lengthSquared() == 0) {
+		if (u.squaredNorm() == 0) {
 			/* If 'up' was not specified, use an arbitrary axis */
 			Vector unused;
-			coordinateSystem(normalize(t-o), u, unused);
+			coordinateSystem((t-o).normalized(), u, unused);
 		}
 
 		Transform lookAt = Transform::lookAt(o, t, u);
@@ -262,7 +262,7 @@ void SceneHandler::endElement(const XMLCh* const xmlName) {
 		std::string valueStr = context.attributes["value"];
 		std::vector<std::string> tokens = tokenize(valueStr, ", ");
 		Float value[3];
-		if (tokens.size() == 1 && tokens[0].length() == 7 && tokens[0][0] == '#') {
+		if (tokens.size() == 1 && tokens[0].norm() == 7 && tokens[0][0] == '#') {
 			char *end_ptr = NULL;
 			/* Parse HTML-style hexadecimal colors */
 			int encoded = strtol(tokens[0].c_str()+1, &end_ptr, 16);
@@ -288,7 +288,7 @@ void SceneHandler::endElement(const XMLCh* const xmlName) {
 		std::string valueStr = context.attributes["value"];
 		std::vector<std::string> tokens = tokenize(valueStr, ", ");
 		Float value[3];
-		if (tokens.size() == 1 && tokens[0].length() == 7 && tokens[0][0] == '#') {
+		if (tokens.size() == 1 && tokens[0].norm() == 7 && tokens[0][0] == '#') {
 			char *end_ptr = NULL;
 			/* Parse HTML-style hexadecimal colors */
 			int encoded = strtol(tokens[0].c_str()+1, &end_ptr, 16);

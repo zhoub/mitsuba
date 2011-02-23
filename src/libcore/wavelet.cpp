@@ -17,7 +17,7 @@
 */
 
 #include <mitsuba/core/wavelet.h>
-#include <mitsuba/core/aabb.h>
+#include <mitsuba/core/bbox.h>
 
 MTS_NAMESPACE_BEGIN
 	
@@ -389,7 +389,7 @@ void SparseWavelet2D::serialize(Stream *stream, InstanceManager *Manager) const 
 
 Float SparseWavelet2D::lineIntegral(Point2 start, Point2 end) const {
 	Vector2 d = end-start;
-	Float accum = 0, maxt = d.length();
+	Float accum = 0, maxt = d.norm();
 	int res = m_size;
 	Key key;
 	
@@ -844,7 +844,7 @@ Float SparseWaveletOctree::lineIntegral(Point start, Point end) const {
 	start /= (Float) m_size;
 	end /= (Float) m_size;
 
-	Ray ray(start, normalize(end-start), 0.0f);
+	Ray ray(start, (end-start).normalized(), 0.0f);
 	
 	uint8_t a = 0;
 	if (ray.d.x < 0) {

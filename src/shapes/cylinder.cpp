@@ -43,7 +43,7 @@ public:
 			Point p1 = props.getPoint("p1"), p2 = props.getPoint("p2");
 			Vector rel = p2 - p1;
 			Float radius = props.getFloat("radius");
-			Float length = rel.length();
+			Float length = rel.norm();
 
 			m_objectToWorld = 
 				Transform::translate(Vector(p1)) *
@@ -52,8 +52,8 @@ public:
 			m_length = length;
 		} else {
 			Transform objectToWorld = props.getTransform("toWorld", Transform());
-			m_radius = objectToWorld(Vector(1,0,0)).length();
-			m_length = objectToWorld(Vector(0,0,1)).length();
+			m_radius = objectToWorld(Vector(1,0,0)).norm();
+			m_length = objectToWorld(Vector(0,0,1)).norm();
 			// Remove the scale from the object-to-world trasnsform
 			m_objectToWorld = objectToWorld * Transform::scale(
 					Vector(1/m_radius, 1/m_radius, 1/m_length));
@@ -166,9 +166,9 @@ public:
 		Vector dpdv = Vector(0, 0, m_length);
 		its.dpdu = m_objectToWorld(dpdu);
 		its.dpdv = m_objectToWorld(dpdv);
-		its.geoFrame.n = Normal(normalize(m_objectToWorld(cross(dpdu, dpdv))));
-		its.geoFrame.s = normalize(its.dpdu);
-		its.geoFrame.t = normalize(its.dpdv);
+		its.geoFrame.n = Normal(m_objectToWorld(dpdu.cross(dpdv)).normalized());
+		its.geoFrame.s = its.dpdu.normalized();
+		its.geoFrame.t = its.dpdv.normalized();
 		its.shFrame = its.geoFrame;
 		its.wi = its.toLocal(-ray.d);
 		its.hasUVPartials = false;
@@ -180,16 +180,16 @@ public:
 			m_radius * std::sin(sample.y), 
 			sample.x * m_length);
 		sRec.p = m_objectToWorld(p);
-		sRec.n = normalize(m_objectToWorld(Normal(p.x, p.y, 0.0f)));
+		sRec.n = m_objectToWorld(Normal(p.x, p.y, 0.0f)).normalized();
 		return m_invSurfaceArea;
 	}
 
-	inline AABB getAABB() const {
+	inline BoundingBox3 getBoundingBox3() const {
 		Vector x1 = m_objectToWorld(Vector(m_radius, 0, 0));
 		Vector x2 = m_objectToWorld(Vector(0, m_radius, 0));
 		Point p0 = m_objectToWorld(Point(0, 0, 0));
 		Point p1 = m_objectToWorld(Point(0, 0, m_length));
-		AABB result;
+		BoundingBox3 result;
 
 		/* To bound the cylinder, it is sufficient to find the
 		   smallest box containing the two circles at the endpoints.
@@ -219,9 +219,9 @@ public:
 		if (absDot(planeNrml, cylD) < Epsilon)
 			return false;
 
-		Vector B, A = cylD - dot(cylD, planeNrml)*planeNrml;
+		Vector B, A = cylD - cylD.dot(planeNrml)*planeNrml;
 
-		Float length = A.length();
+		Float length = A.norm();
 		if (length != 0) {
 			A /= length;
 			B = cross(planeNrml, A);
@@ -230,15 +230,15 @@ public:
 		}
 
 		Vector delta = planePt - cylPt,
-			   deltaProj = delta - cylD*dot(delta, cylD);
+			   deltaProj = delta - cylD*delta.dot(cylD);
 
-		Float aDotD = dot(A, cylD);
-		Float bDotD = dot(B, cylD);
+		Float aDotD = A.dot(cylD);
+		Float bDotD = B.dot(cylD);
 		Float c0 = 1-aDotD*aDotD;
 		Float c1 = 1-bDotD*bDotD;
-		Float c2 = 2*dot(A, deltaProj);
-		Float c3 = 2*dot(B, deltaProj);
-		Float c4 = dot(delta, deltaProj) - radius*radius;
+		Float c2 = 2*A.dot(deltaProj);
+		Float c3 = 2*B.dot(deltaProj);
+		Float c4 = delta.dot(deltaProj) - radius*radius;
 
 		Float lambda = (c2*c2/(4*c0) + c3*c3/(4*c1) - c4)/(c0*c1);
 
@@ -254,7 +254,7 @@ public:
 		return true;
 	}
 
-	AABB intersectCylFace(int axis,
+	BoundingBox3 intersectCylFace(int axis,
 			const Point &min, const Point &max,
 			const Point &cylPt, const Vector &cylD) const {
 		int axis1 = (axis + 1) % 3;
@@ -267,16 +267,16 @@ public:
 		Vector ellipseAxes[2];
 		Float ellipseLengths[2];
 
-		AABB aabb;
+		BoundingBox3 aabb;
 		if (!intersectCylPlane(min, planeNrml, cylPt, cylD, m_radius, 
 			ellipseCenter, ellipseAxes, ellipseLengths)) {
-			/* Degenerate case -- return an invalid AABB. This is
+			/* Degenerate case -- return an invalid BoundingBox3. This is
 			   not a problem, since one of the other faces will provide
-			   enough information to arrive at a correct clipped AABB */
+			   enough information to arrive at a correct clipped BoundingBox3 */
 			return aabb;
 		}
 
-		/* Intersect the ellipse against the sides of the AABB face */
+		/* Intersect the ellipse against the sides of the BoundingBox3 face */
 		for (int i=0; i<4; ++i) {
 			Point p1, p2;
 			p1[axis] = p2[axis] = min[axis];
@@ -286,16 +286,16 @@ public:
 			p2[axis2] = ((i+1) & 2) ? min[axis2] : max[axis2];
 
 			Point2 p1l(
-				dot(p1 - ellipseCenter, ellipseAxes[0]) / ellipseLengths[0],
-				dot(p1 - ellipseCenter, ellipseAxes[1]) / ellipseLengths[1]);
+				(p1 - ellipseCenter).dot(ellipseAxes[0]) / ellipseLengths[0],
+				(p1 - ellipseCenter).dot(ellipseAxes[1]) / ellipseLengths[1]);
 			Point2 p2l(
-				dot(p2 - ellipseCenter, ellipseAxes[0]) / ellipseLengths[0],
-				dot(p2 - ellipseCenter, ellipseAxes[1]) / ellipseLengths[1]);
+				(p2 - ellipseCenter).dot(ellipseAxes[0]) / ellipseLengths[0],
+				(p2 - ellipseCenter).dot(ellipseAxes[1]) / ellipseLengths[1]);
 
 			Vector2 rel = p2l-p1l;
-			Float A = dot(rel, rel);
-			Float B = 2*dot(Vector2(p1l), rel);
-			Float C = dot(Vector2(p1l), Vector2(p1l))-1;
+			Float A = rel.squaredNorm();
+			Float B = 2*p1l.dot(rel);
+			Float C = p1l.squaredNorm()-1;
 
 			Float x0, x1;
 			if (solveQuadratic(A, B, C, x0, x1)) {
@@ -308,7 +308,7 @@ public:
 
 		ellipseAxes[0] *= ellipseLengths[0];
 		ellipseAxes[1] *= ellipseLengths[1];
-		AABB faceBounds(min, max);
+		BoundingBox3 faceBounds(min, max);
 
 		/* Find the componentwise maxima of the ellipse */
 		for (int i=0; i<2; ++i) {
@@ -329,49 +329,49 @@ public:
 		return aabb;
 	}
 
-	AABB getClippedAABB(const AABB &box) const {
+	BoundingBox3 getClippedBoundingBox3(const BoundingBox3 &box) const {
 		/* Compute a base bounding box */
-		AABB base(getAABB());
+		BoundingBox3 base(getBoundingBox3());
 		base.clip(box);
 		
 		Point cylPt = m_objectToWorld(Point(0, 0, 0));
 		Vector cylD(m_objectToWorld(Vector(0, 0, 1)));
 
 		/* Now forget about the cylinder ends and 
-		   intersect an infinite cylinder with each AABB face */
-		AABB clippedAABB;
-		clippedAABB.expandBy(intersectCylFace(0, 
+		   intersect an infinite cylinder with each BoundingBox3 face */
+		BoundingBox3 clippedBoundingBox3;
+		clippedBoundingBox3.expandBy(intersectCylFace(0, 
 				Point(base.min.x, base.min.y, base.min.z),
 				Point(base.min.x, base.max.y, base.max.z),
 				cylPt, cylD));
 
-		clippedAABB.expandBy(intersectCylFace(0,
+		clippedBoundingBox3.expandBy(intersectCylFace(0,
 				Point(base.max.x, base.min.y, base.min.z),
 				Point(base.max.x, base.max.y, base.max.z),
 				cylPt, cylD));
 
-		clippedAABB.expandBy(intersectCylFace(1, 
+		clippedBoundingBox3.expandBy(intersectCylFace(1, 
 				Point(base.min.x, base.min.y, base.min.z),
 				Point(base.max.x, base.min.y, base.max.z),
 				cylPt, cylD));
 
-		clippedAABB.expandBy(intersectCylFace(1,
+		clippedBoundingBox3.expandBy(intersectCylFace(1,
 				Point(base.min.x, base.max.y, base.min.z),
 				Point(base.max.x, base.max.y, base.max.z),
 				cylPt, cylD));
 
-		clippedAABB.expandBy(intersectCylFace(2, 
+		clippedBoundingBox3.expandBy(intersectCylFace(2, 
 				Point(base.min.x, base.min.y, base.min.z),
 				Point(base.max.x, base.max.y, base.min.z),
 				cylPt, cylD));
 
-		clippedAABB.expandBy(intersectCylFace(2,
+		clippedBoundingBox3.expandBy(intersectCylFace(2,
 				Point(base.min.x, base.min.y, base.max.z),
 				Point(base.max.x, base.max.y, base.max.z),
 				cylPt, cylD));
 
-		clippedAABB.clip(box);
-		return clippedAABB;
+		clippedBoundingBox3.clip(box);
+		return clippedBoundingBox3;
 	}
 
 	ref<TriMesh> createTriMesh() {
@@ -415,12 +415,12 @@ public:
 	}
 
 #if 0
-	AABB getAABB() const {
+	BoundingBox3 getBoundingBox3() const {
 		const Point a = m_objectToWorld(Point(0, 0, 0));
 		const Point b = m_objectToWorld(Point(0, 0, m_length));
 
 		const Float r = m_radius;
-		AABB result;
+		BoundingBox3 result;
 		result.expandBy(a - Vector(r, r, r));
 		result.expandBy(a + Vector(r, r, r));
 		result.expandBy(b - Vector(r, r, r));

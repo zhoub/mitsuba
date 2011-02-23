@@ -21,7 +21,7 @@
 
 MTS_NAMESPACE_BEGIN
 
-IrradianceOctree::IrradianceOctree(int maxDepth, Float threshold, const AABB &bounds) 
+IrradianceOctree::IrradianceOctree(int maxDepth, Float threshold, const BoundingBox3 &bounds) 
  : m_maxDepth(maxDepth), m_threshold(threshold) {
 	m_root = new OctreeNode(bounds);
 	m_numSamples = 0;
@@ -29,7 +29,7 @@ IrradianceOctree::IrradianceOctree(int maxDepth, Float threshold, const AABB &bo
 
 IrradianceOctree::IrradianceOctree(Stream *stream, InstanceManager *manager) : 
 		SerializableObject(stream, manager) {
-	m_root = new OctreeNode(AABB(stream));
+	m_root = new OctreeNode(BoundingBox3(stream));
 	m_threshold = stream->readFloat();
 	m_maxDepth = stream->readInt();
 	m_numSamples = 0;
@@ -91,9 +91,9 @@ void IrradianceOctree::addSample(OctreeNode *node, const IrradianceSample &sampl
 			(s.p.z > center.z ? 4 : 0);
 
 		if (!node->children[nodeId]) {
-			AABB childAABB(center, center);
-			childAABB.expandBy(node->aabb.getCorner(nodeId));
-			node->children[nodeId] = new OctreeNode(childAABB);
+			BoundingBox3 childBoundingBox3(center, center);
+			childBoundingBox3.expandBy(node->aabb.getCorner(nodeId));
+			node->children[nodeId] = new OctreeNode(childBoundingBox3);
 			++nodesCreated;
 		}
 

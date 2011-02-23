@@ -152,7 +152,7 @@ public:
 	/**
 	 * Create an empty irradiance of the given size
 	 */
-	IrradianceCache(const AABB &aabb);
+	IrradianceCache(const BoundingBox3 &aabb);
 	
 	/**
 	 * Unserialize an irradiance cache from a binary data stream
@@ -304,7 +304,7 @@ public:
 				return 0.0f;
 
 			/* Ad-hoc weight function (Tabellion & Lamorlette) */
-			Float ePI = (p-p2).length() / (.5f * R0);
+			Float ePI = (p-p2).norm() / (.5f * R0);
 			Float eNI = std::sqrt(1.0f - std::abs(dp))
 				/ 0.12326f;
 			Float weight = 1 - kappa*std::max(ePI, eNI);

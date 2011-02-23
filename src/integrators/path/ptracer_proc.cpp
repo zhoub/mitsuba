@@ -82,7 +82,7 @@ void CaptureParticleWorker::handleSurfaceInteraction(int, bool,
 
 		const BSDF *bsdf = its.shape->getBSDF();
 		Vector wo = cameraPosition - its.p;
-		Float dist = wo.length(); wo /= dist;
+		Float dist = wo.norm(); wo /= dist;
 
 		BSDFQueryRecord bRec(its, its.toLocal(wo));
 		bRec.quantity = EImportance;
@@ -95,8 +95,8 @@ void CaptureParticleWorker::handleSurfaceInteraction(int, bool,
 
 		Vector wi = its.toWorld(its.wi);
 		/* Prevent light leaks due to the use of shading normals -- [Veach, p. 158] */
-		Float wiDotGeoN = dot(its.geoFrame.n, wi),
-			  woDotGeoN = dot(its.geoFrame.n, wo);
+		Float wiDotGeoN = wi.dot(its.geoFrame.n),
+			  woDotGeoN = wo.dot(its.geoFrame.n);
 		if (wiDotGeoN * Frame::cosTheta(bRec.wi) <= 0 || 
 			woDotGeoN * Frame::cosTheta(bRec.wo) <= 0)
 			return;
@@ -126,7 +126,7 @@ void CaptureParticleWorker::handleMediumInteraction(int, bool,
 			return;
 
 		Vector wo = cameraPosition - mRec.p;
-		Float dist = wo.length(); wo /= dist;
+		Float dist = wo.norm(); wo /= dist;
 
 		Float importance; 
 		if (m_isPinholeCamera)

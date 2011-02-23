@@ -52,7 +52,7 @@ public:
 		if (!m_shapeGroup)
 			Log(EError, "A reference to a 'shapegroup' must be specified!");
 		const ShapeKDTree *kdtree = m_shapeGroup->getKDTree();
-		const AABB &aabb = kdtree->getAABB();
+		const BoundingBox3 &aabb = kdtree->getBoundingBox3();
 		Float minT, maxT;
 		m_transform->computeTimeBounds(minT, maxT);
 
@@ -68,7 +68,7 @@ public:
 		}
 	}
 
-	AABB getAABB() const {
+	BoundingBox3 getBoundingBox3() const {
 		return m_aabb;
 	}
 
@@ -117,10 +117,10 @@ public:
 		Transform objectToWorld;
 		m_transform->eval(ray.time, objectToWorld);
 		kdtree->fillIntersectionRecord<false>(ray, temp, its);
-		its.shFrame.n = normalize(objectToWorld(its.shFrame.n));
-		its.shFrame.s = normalize(objectToWorld(its.shFrame.s));
-		its.shFrame.t = normalize(objectToWorld(its.shFrame.t));
-		its.geoFrame = Frame(normalize(objectToWorld(its.geoFrame.n)));
+		its.shFrame.n = (objectToWorld(its.shFrame.n)).normalized();
+		its.shFrame.s = (objectToWorld(its.shFrame.s)).normalized();
+		its.shFrame.t = (objectToWorld(its.shFrame.t)).normalized();
+		its.geoFrame = Frame(objectToWorld(its.geoFrame.n).normalized());
 		its.wi = its.shFrame.toLocal(-ray.d);
 		its.dpdu = objectToWorld(its.dpdu);
 		its.dpdv = objectToWorld(its.dpdv);
@@ -130,7 +130,7 @@ public:
 private:
 	ref<ShapeGroup> m_shapeGroup;
 	ref<AnimatedTransform> m_transform;
-	AABB m_aabb;
+	BoundingBox3 m_aabb;
 	std::string m_name;
 };
 

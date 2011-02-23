@@ -21,7 +21,7 @@
 
 MTS_NAMESPACE_BEGIN
 
-SparseMipmap3D::SparseMipmap3D(const AABB &aabb, size_t size, const float *data, 
+SparseMipmap3D::SparseMipmap3D(const BoundingBox3 &aabb, size_t size, const float *data, 
 		Float maxError, Float offset)  : m_aabb(aabb), m_size(size) {
 	Assert(isPowerOfTwo(m_size));
 	m_levels = 1 + log2i(m_size);
@@ -152,7 +152,7 @@ SparseMipmap3D::SparseMipmap3D(const AABB &aabb, size_t size, const float *data,
 }
 
 SparseMipmap3D::SparseMipmap3D(Stream *stream, InstanceManager *manager) {
-	m_aabb = AABB(stream);
+	m_aabb = BoundingBox3(stream);
 	m_size = (size_t) stream->readUInt();
 	
 	size_t nodeCount = (size_t) stream->readULong();
@@ -260,7 +260,7 @@ inline int new_node(Float t1, int a, Float t2, int b, Float t3, int c) {
 }
 
 Float SparseMipmap3D::lineIntegral(const Ray &r) const {
-	Float length = r.d.length();
+	Float length = r.d.norm();
 
 	Ray ray(r(r.mint), r.d/length, 0, (r.maxt-r.mint)*length, 0.0f);
 
@@ -302,7 +302,7 @@ Float SparseMipmap3D::lineIntegral(const Ray &r) const {
 
 bool SparseMipmap3D::invertLineIntegral(const Ray &r, Float desiredDensity,
 		Float &accumDensity, Float &samplePos, Float &sampleDensity) const {
-	Float length = r.d.length();
+	Float length = r.d.norm();
 
 	Ray ray(r(r.mint), r.d/length, 0, (r.maxt-r.mint)*length, 0.0f);
 

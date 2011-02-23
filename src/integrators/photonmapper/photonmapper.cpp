@@ -141,7 +141,7 @@ public:
 
 		if (m_globalPhotonMap.get() == NULL && m_globalPhotons > 0) {
 			/* Adapt to scene extents */
-			m_globalLookupRadius = m_globalLookupRadiusRel * scene->getBSphere().radius;
+			m_globalLookupRadius = m_globalLookupRadiusRel * scene->getBoundingSphere().radius;
 
 			/* Generate the global photon map */
 			ref<GatherPhotonProcess> proc = new GatherPhotonProcess(
@@ -171,7 +171,7 @@ public:
 
 		if (m_causticPhotonMap.get() == NULL && m_causticPhotons > 0) {
 			/* Adapt to scene extents */
-			m_causticLookupRadius = m_causticLookupRadiusRel * scene->getBSphere().radius;
+			m_causticLookupRadius = m_causticLookupRadiusRel * scene->getBoundingSphere().radius;
 
 			/* Generate the caustic photon map */
 			ref<GatherPhotonProcess> proc = new GatherPhotonProcess(
@@ -200,7 +200,7 @@ public:
 
 		if (m_volumePhotonMap.get() == NULL && m_volumePhotons > 0) {
 			/* Adapt to scene extents */
-			m_volumeLookupRadius = m_volumeLookupRadiusRel * scene->getBSphere().radius;
+			m_volumeLookupRadius = m_volumeLookupRadiusRel * scene->getBoundingSphere().radius;
 
 			/* Generate the volume photon map */
 			ref<GatherPhotonProcess> proc = new GatherPhotonProcess(

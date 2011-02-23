@@ -106,7 +106,7 @@ void SceneLoader::run() {
 			m_result->scene = scene;
 			m_result->sceneResID = Scheduler::getInstance()->registerResource(scene);
 			m_result->renderJob = NULL;
-			m_result->movementScale = scene->getBSphere().radius / 2000.0f;
+			m_result->movementScale = scene->getBoundingSphere().radius / 2000.0f;
 			m_result->mode = EPreview;
 			m_result->framebuffer = new Bitmap(size.x, size.y, 128);
 			m_result->framebuffer->clear();

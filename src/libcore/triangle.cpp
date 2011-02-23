@@ -35,12 +35,12 @@ Point Triangle::sample(const Point *positions, const Normal *normals,
 		const Normal &n1 = normals[idx[1]];
 		const Normal &n2 = normals[idx[2]];
 
-		normal = Normal(normalize(
-			n0 * (1.0f - bary.x - bary.y) +
-			n1 * bary.x + n2 * bary.y
-		));
+		normal = Normal(
+			(n0 * (1.0f - bary.x - bary.y) +
+			n1 * bary.x + n2 * bary.y).normalized()
+		);
 	} else {
-		normal = Normal(normalize(cross(sideA, sideB)));
+		normal = Normal(sideA.cross(sideB).normalized());
 	}
 
 	return p;
@@ -51,7 +51,7 @@ Float Triangle::surfaceArea(const Point *positions) const {
 	const Point &p1 = positions[idx[1]];
 	const Point &p2 = positions[idx[2]];
 	Vector sideA = p1 - p0, sideB = p2 - p0;
-	return 0.5f * cross(sideA, sideB).length();
+	return 0.5f * sideA.cross(sideB).norm();
 }
 
 #define MAX_VERTS 10
@@ -103,13 +103,13 @@ static int sutherlandHodgman(Point3d *input, int inCount, Point3d *output, int a
 	return outCount;
 }
 
-AABB Triangle::getClippedAABB(const Point *positions, const AABB &aabb) const {
+BoundingBox3 Triangle::getClippedBoundingBox3(const Point *positions, const BoundingBox3 &aabb) const {
 	/* Reserve room for some additional vertices */
 	Point3d vertices1[MAX_VERTS], vertices2[MAX_VERTS];
 	int nVertices = 3;
 
 	/* The kd-tree code will frequently call this function with
-	   almost-collapsed AABBs. It's extremely important not to introduce
+	   almost-collapsed BoundingBox3s. It's extremely important not to introduce
 	   errors in such cases, otherwise the resulting tree will incorrectly
 	   remove triangles from the associated nodes. Hence, do the
 	   following computation in double precision! */
@@ -121,7 +121,7 @@ AABB Triangle::getClippedAABB(const Point *positions, const AABB &aabb) const {
 		nVertices = sutherlandHodgman(vertices2, nVertices, vertices1, axis, aabb.max[axis], false);
 	}
 
-	AABB result;
+	BoundingBox3 result;
 	for (int i=0; i<nVertices; ++i) {
 #if defined(SINGLE_PRECISION)
 		for (int j=0; j<3; ++j) {

@@ -20,7 +20,7 @@
 #define __PHOTONMAP_H
 
 #include <mitsuba/core/serialization.h>
-#include <mitsuba/core/aabb.h>
+#include <mitsuba/core/bbox.h>
 
 MTS_NAMESPACE_BEGIN
 
@@ -464,7 +464,7 @@ protected:
 		photon_iterator sortStart,
 		photon_iterator sortEnd,
 		std::vector<size_t> &heapPermutation,
-		AABB &aabb, size_t heapIndex) const;
+		BoundingBox3 &aabb, size_t heapIndex) const;
 
 	/// Heap access routines
 	inline size_t leftChild(size_t index) const { return 2*index; }
@@ -476,11 +476,11 @@ private:
     /*                        Protected attributes                           */
     /* ===================================================================== */
 	struct ThreadContext {
-		AABB aabb;
+		BoundingBox3 aabb;
 		size_t photonOffset;
 		size_t photonCount;
 		size_t maxPhotons;
-		uint8_t unused[128-sizeof(AABB)-sizeof(size_t)*3]; // Avoid false sharing
+		uint8_t unused[128-sizeof(BoundingBox3)-sizeof(size_t)*3]; // Avoid false sharing
 	};
 
 	/* Precomputed lookup tables */
@@ -492,7 +492,7 @@ private:
 	static bool m_precompTableReady;
 
 	Photon *m_photons;
-	AABB m_aabb;
+	BoundingBox3 m_aabb;
 	size_t m_photonCount;
 	size_t m_maxPhotons;
 	size_t m_minPhotons;

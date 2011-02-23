@@ -428,7 +428,7 @@ private:
  * This class defines the byte layout for KD-tree nodes and
  * provides methods for querying the tree structure.
  */
-template <typename AABBType> class KDTreeBase : public Object {
+template <typename BoundingBox3Type> class KDTreeBase : public Object {
 public:
 	/// Index number format (max 2^32 prims)
 	typedef uint32_t index_type;
@@ -601,17 +601,17 @@ public:
 	}
 
 	/// Return a (slightly enlarged) axis-aligned bounding box containing all primitives
-	inline const AABBType &getAABB() const { return m_aabb; }
+	inline const BoundingBox3Type &getBoundingBox3() const { return m_aabb; }
 	
 	/// Return a tight axis-aligned bounding box containing all primitives
-	inline const AABBType &getTightAABB() const { return m_tightAABB;}
+	inline const BoundingBox3Type &getTightBoundingBox3() const { return m_tightBoundingBox3;}
 
 	MTS_DECLARE_CLASS()
 protected:
 	virtual ~KDTreeBase() { }
 protected:
 	KDNode *m_nodes;
-	AABBType m_aabb, m_tightAABB;
+	BoundingBox3Type m_aabb, m_tightBoundingBox3;
 };
 
 #if defined(WIN32)
@@ -620,7 +620,7 @@ protected:
 #pragma float_control(precise, on)
 #endif
 
-#define KDLog(level, fmt, ...) Thread::getThread()->getLogger()->log(level, KDTreeBase<AABB>::m_theClass, \
+#define KDLog(level, fmt, ...) Thread::getThread()->getLogger()->log(level, KDTreeBase<BoundingBox3>::m_theClass, \
 	__FILE__, __LINE__, fmt, ## __VA_ARGS__)
 
 /**
@@ -641,10 +641,10 @@ protected:
  * inline size_type getPrimitiveCount() const;
  *
  * /// Return the axis-aligned bounding box of a certain primitive
- * inline AABB getAABB(index_type primIdx) const;
+ * inline BoundingBox3 getBoundingBox3(index_type primIdx) const;
  *
- * /// Return the AABB of a primitive when clipped to another AABB
- * inline AABB getClippedAABB(index_type primIdx, const AABBType &aabb) const;
+ * /// Return the BoundingBox3 of a primitive when clipped to another BoundingBox3
+ * inline BoundingBox3 getClippedBoundingBox3(index_type primIdx, const BoundingBox3Type &aabb) const;
  *
  * This class follows the "Curiously recurring template" design pattern 
  * so that the above functions can be inlined (in particular, no virtual 
@@ -654,7 +654,7 @@ protected:
  * heuristic every time a split plane has to be chosen. For ray tracing,
  * the heuristic is usually the surface area heuristic (SAH), but other
  * choices are possible as well. The tree construction heuristic must be 
- * passed as a template argument, which can use a supplied AABB and
+ * passed as a template argument, which can use a supplied BoundingBox3 and
  * split candidate to compute approximate probabilities of recursing into
  * the left and right subrees during a typical kd-tree query operation.
  * See \ref SurfaceAreaHeuristic for an example of the interface that
@@ -679,8 +679,8 @@ protected:
  *
  * \author Wenzel Jakob
  */
-template <typename AABBType, typename TreeConstructionHeuristic, typename Derived> 
-	class GenericKDTree : public KDTreeBase<AABBType> {
+template <typename BoundingBox3Type, typename TreeConstructionHeuristic, typename Derived> 
+	class GenericKDTree : public KDTreeBase<BoundingBox3Type> {
 protected:
 	// Some forward declarations
 	struct MinMaxBins;
@@ -688,12 +688,12 @@ protected:
 	struct EdgeEventOrdering;
 
 public:
-	typedef typename KDTreeBase<AABBType>::size_type  size_type;
-	typedef typename KDTreeBase<AABBType>::index_type index_type;
-	typedef typename KDTreeBase<AABBType>::KDNode     KDNode;
-	typedef typename AABBType::value_type             value_type;
-	typedef typename AABBType::point_type             point_type;
-	typedef typename AABBType::vector_type            vector_type;
+	typedef typename KDTreeBase<BoundingBox3Type>::size_type  size_type;
+	typedef typename KDTreeBase<BoundingBox3Type>::index_type index_type;
+	typedef typename KDTreeBase<BoundingBox3Type>::KDNode     KDNode;
+	typedef typename BoundingBox3Type::value_type             value_type;
+	typedef typename BoundingBox3Type::point_type             point_type;
+	typedef typename BoundingBox3Type::vector_type            vector_type;
 
 	/**
 	 * \brief Create a new kd-tree instance initialized with 
@@ -941,10 +941,10 @@ protected:
 		index_type *indices = leftAlloc.allocate<index_type>(primCount);
 
 		ref<Timer> timer = new Timer();
-		AABBType &aabb = this->m_aabb;
+		BoundingBox3Type &aabb = this->m_aabb;
 		aabb.reset();
 		for (index_type i=0; i<primCount; ++i) {
-			aabb.expandBy(cast()->getAABB(i));
+			aabb.expandBy(cast()->getBoundingBox3(i));
 			indices[i] = i;
 		}
 
@@ -1037,7 +1037,7 @@ protected:
 		KDLog(EDebug, "Optimizing memory layout ..");
 
 		std::stack<boost::tuple<const KDNode *, KDNode *, 
-				const BuildContext *, AABBType> > stack;
+				const BuildContext *, BoundingBox3Type> > stack;
 
 		Float expTraversalSteps = 0;
 		Float expLeavesVisited = 0;
@@ -1066,7 +1066,7 @@ protected:
 			const KDNode *node = boost::get<0>(stack.top());
 			KDNode *target = boost::get<1>(stack.top());
 			const BuildContext *context = boost::get<2>(stack.top());
-			AABBType aabb = boost::get<3>(stack.top());
+			BoundingBox3Type aabb = boost::get<3>(stack.top());
 			stack.pop();
 			typename std::map<const KDNode *, index_type>::const_iterator it 
 				= m_interface.threadMap.find(node);
@@ -1157,7 +1157,7 @@ protected:
 
 		/* Slightly enlarge the bounding box 
 		   (necessary e.g. when the scene is planar) */
-		this->m_tightAABB = aabb;
+		this->m_tightBoundingBox3 = aabb;
 		aabb.min -= (aabb.max-aabb.min) * Epsilon
 			+ vector_type(Epsilon);
 		aabb.max += (aabb.max-aabb.min) * Epsilon
@@ -1383,7 +1383,7 @@ protected:
 		/* Job description for building a subtree */
 		int depth;
 		KDNode *node;
-		AABBType nodeAABB;
+		BoundingBox3Type nodeBoundingBox3;
 		EdgeEvent *eventStart, *eventEnd;
 		size_type primCount;
 		int badRefines;
@@ -1429,7 +1429,7 @@ protected:
 				}
 				int depth = m_interface.depth;
 				KDNode *node = m_interface.node;
-				AABBType nodeAABB = m_interface.nodeAABB;
+				BoundingBox3Type nodeBoundingBox3 = m_interface.nodeBoundingBox3;
 				size_t eventCount = m_interface.eventEnd - m_interface.eventStart;
 				size_type primCount = m_interface.primCount;
 				int badRefines = m_interface.badRefines;
@@ -1444,7 +1444,7 @@ protected:
 
 				std::sort(eventStart, eventEnd, EdgeEventOrdering());
 				m_parent->buildTree(m_context, depth, node,
-					nodeAABB, eventStart, eventEnd, primCount, true, badRefines);
+					nodeBoundingBox3, eventStart, eventEnd, primCount, true, badRefines);
 				leftAlloc.release(eventStart);
 			}
 		}
@@ -1477,7 +1477,7 @@ protected:
 	 * accurate O(n log n) optimizier.
 	 */
 	boost::tuple<EdgeEvent *, EdgeEvent *, size_type> createEventList(
-			OrderedChunkAllocator &alloc, const AABBType &nodeAABB, 
+			OrderedChunkAllocator &alloc, const BoundingBox3Type &nodeBoundingBox3, 
 			index_type *prims, size_type primCount) {
 		size_type initialSize = primCount * 2 * point_type::dim, actualPrimCount = 0;
 		EdgeEvent *eventStart = alloc.allocate<EdgeEvent>(initialSize);
@@ -1485,13 +1485,13 @@ protected:
 
 		for (size_type i=0; i<primCount; ++i) {
 			index_type index = prims[i];
-			AABBType aabb;
+			BoundingBox3Type aabb;
 			if (m_clip) {
-				aabb = cast()->getClippedAABB(index, nodeAABB);
+				aabb = cast()->getClippedBoundingBox3(index, nodeBoundingBox3);
 				if (!aabb.isValid() || aabb.getSurfaceArea() == 0)
 					continue;
 			} else {
-				aabb = cast()->getAABB(index);
+				aabb = cast()->getBoundingBox3(index);
 			}
 
 			for (int axis=0; axis<point_type::dim; ++axis) {
@@ -1635,7 +1635,7 @@ protected:
 	 *     Current tree depth (1 == root node)
 	 * \param node
 	 *     KD-tree node entry to be filled
-	 * \param nodeAABB
+	 * \param nodeBoundingBox3
 	 *     Axis-aligned bounding box of the current node
 	 * \param indices
 	 *     Index list of all triangles in the current node (for min-max binning)
@@ -1654,18 +1654,18 @@ protected:
 	 *     Final cost of the node
 	 */
 	inline Float transitionToNLogN(BuildContext &ctx, unsigned int depth, KDNode *node, 
-			const AABBType &nodeAABB, index_type *indices,
+			const BoundingBox3Type &nodeBoundingBox3, index_type *indices,
 			size_type primCount, bool isLeftChild, size_type badRefines) {
 		OrderedChunkAllocator &alloc = isLeftChild 
 				? ctx.leftAlloc : ctx.rightAlloc;
 		boost::tuple<EdgeEvent *, EdgeEvent *, size_type> events  
-				= createEventList(alloc, nodeAABB, indices, primCount);
+				= createEventList(alloc, nodeBoundingBox3, indices, primCount);
 		Float cost;
 		if (m_parallelBuild) {
 			m_interface.mutex->lock();
 			m_interface.depth = depth;
 			m_interface.node = node;
-			m_interface.nodeAABB = nodeAABB;
+			m_interface.nodeBoundingBox3 = nodeBoundingBox3;
 			m_interface.eventStart = boost::get<0>(events);
 			m_interface.eventEnd = boost::get<1>(events);
 			m_interface.primCount = boost::get<2>(events);
@@ -1683,7 +1683,7 @@ protected:
 			std::sort(boost::get<0>(events), boost::get<1>(events), 
 					EdgeEventOrdering());
 
-			cost = buildTree(ctx, depth, node, nodeAABB,
+			cost = buildTree(ctx, depth, node, nodeBoundingBox3,
 				boost::get<0>(events), boost::get<1>(events), 
 				boost::get<2>(events), isLeftChild, badRefines);
 		}
@@ -1700,9 +1700,9 @@ protected:
 	 *     Current tree depth (1 == root node)
 	 * \param node
 	 *     KD-tree node entry to be filled
-	 * \param nodeAABB
+	 * \param nodeBoundingBox3
 	 *     Axis-aligned bounding box of the current node
-	 * \param tightAABB
+	 * \param tightBoundingBox3
 	 *     Tight bounding box of the contained geometry (for min-max binning)
 	 * \param indices
 	 *     Index list of all triangles in the current node (for min-max binning)
@@ -1721,9 +1721,9 @@ protected:
 	 *     Final cost of the node
 	 */
 	Float buildTreeMinMax(BuildContext &ctx, unsigned int depth, KDNode *node, 
-			const AABBType &nodeAABB, const AABBType &tightAABB, index_type *indices,
+			const BoundingBox3Type &nodeBoundingBox3, const BoundingBox3Type &tightBoundingBox3, index_type *indices,
 			size_type primCount, bool isLeftChild, size_type badRefines) {
-		KDAssert(nodeAABB.contains(tightAABB));
+		KDAssert(nodeBoundingBox3.contains(tightBoundingBox3));
 
 		Float leafCost = primCount * m_queryCost;
 		if (primCount <= m_stopPrims || depth >= m_maxDepth) {
@@ -1732,14 +1732,14 @@ protected:
 		}
 
 		if (primCount <= m_exactPrimThreshold) 
-			return transitionToNLogN(ctx, depth, node, nodeAABB, indices,
+			return transitionToNLogN(ctx, depth, node, nodeBoundingBox3, indices,
 				primCount, isLeftChild, badRefines);
 
 		/* ==================================================================== */
 	    /*                              Binning                                 */
 	    /* ==================================================================== */
 
-		ctx.minMaxBins.setAABB(tightAABB);
+		ctx.minMaxBins.setBoundingBox3(tightBoundingBox3);
 		ctx.minMaxBins.bin(cast(), indices, primCount);
 
 		/* ==================================================================== */
@@ -1750,7 +1750,7 @@ protected:
 
 		if (bestSplit.cost == std::numeric_limits<Float>::infinity()) {
 			/* This is bad: we have either run out of floating point precision to
-			   accurately represent split planes (e.g. 'tightAABB' is almost collapsed
+			   accurately represent split planes (e.g. 'tightBoundingBox3' is almost collapsed
 			   along an axis), or the compiler made overly liberal use of floating point 
 			   optimizations, causing the two stages of the min-max binning code to 
 			   become inconsistent. The two ways to proceed at this point are to
@@ -1758,8 +1758,8 @@ protected:
 			   optimization, which is done below */
 			KDLog(EWarn, "Min-max binning was unable to split %i primitives with %s "
 				"-- retrying with the O(n log n) greedy optimization",
-				primCount, tightAABB.toString().c_str());
-			return transitionToNLogN(ctx, depth, node, nodeAABB, indices,
+				primCount, tightBoundingBox3.toString().c_str());
+			return transitionToNLogN(ctx, depth, node, nodeBoundingBox3, indices,
 				primCount, isLeftChild, badRefines);
 		}
 
@@ -1777,7 +1777,7 @@ protected:
 	    /*                            Partitioning                              */
 	    /* ==================================================================== */
 
-		boost::tuple<AABBType, index_type *, AABBType, index_type *> partition = 
+		boost::tuple<BoundingBox3Type, index_type *, BoundingBox3Type, index_type *> partition = 
 			ctx.minMaxBins.partition(ctx, cast(), indices, bestSplit, 
 				isLeftChild, m_traversalCost, m_queryCost);
 
@@ -1805,24 +1805,24 @@ protected:
 		}
 		ctx.innerNodeCount++;
 
-		AABBType childAABB(nodeAABB);
-		childAABB.max[bestSplit.axis] = bestSplit.pos;
+		BoundingBox3Type childBoundingBox3(nodeBoundingBox3);
+		childBoundingBox3.max[bestSplit.axis] = bestSplit.pos;
 
 		Float leftCost = buildTreeMinMax(ctx, depth+1, children,
-				childAABB, boost::get<0>(partition), boost::get<1>(partition), 
+				childBoundingBox3, boost::get<0>(partition), boost::get<1>(partition), 
 				bestSplit.numLeft, true, badRefines);
 
-		childAABB.min[bestSplit.axis] = bestSplit.pos;
-		childAABB.max[bestSplit.axis] = nodeAABB.max[bestSplit.axis];
+		childBoundingBox3.min[bestSplit.axis] = bestSplit.pos;
+		childBoundingBox3.max[bestSplit.axis] = nodeBoundingBox3.max[bestSplit.axis];
 
 		Float rightCost = buildTreeMinMax(ctx, depth+1, children + 1,
-				childAABB, boost::get<2>(partition), boost::get<3>(partition), 
+				childBoundingBox3, boost::get<2>(partition), boost::get<3>(partition), 
 				bestSplit.numRight, false, badRefines);
 
-		TreeConstructionHeuristic tch(nodeAABB);
+		TreeConstructionHeuristic tch(nodeBoundingBox3);
 		std::pair<Float, Float> prob = tch(bestSplit.axis, 
-			bestSplit.pos - nodeAABB.min[bestSplit.axis],
-			nodeAABB.max[bestSplit.axis] - bestSplit.pos);
+			bestSplit.pos - nodeBoundingBox3.min[bestSplit.axis],
+			nodeBoundingBox3.max[bestSplit.axis] - bestSplit.pos);
 
 		/* Compute the final cost given the updated cost 
 		   values received from the children */
@@ -1863,7 +1863,7 @@ protected:
 	 *     Current tree depth (1 == root node)
 	 * \param node
 	 *     KD-tree node entry to be filled
-	 * \param nodeAABB
+	 * \param nodeBoundingBox3
 	 *     Axis-aligned bounding box of the current node
 	 * \param eventStart
 	 *     Pointer to the beginning of a sorted edge event list
@@ -1884,7 +1884,7 @@ protected:
 	 *     Final cost of the node
 	 */
 	Float buildTree(BuildContext &ctx, unsigned int depth, KDNode *node,
-		const AABBType &nodeAABB, EdgeEvent *eventStart, EdgeEvent *eventEnd, 
+		const BoundingBox3Type &nodeBoundingBox3, EdgeEvent *eventStart, EdgeEvent *eventEnd, 
 		size_type primCount, bool isLeftChild, size_type badRefines) {
 
 		Float leafCost = primCount * m_queryCost;
@@ -1916,7 +1916,7 @@ protected:
 		EdgeEvent *eventsByAxis[point_type::dim];
 		int eventsByAxisCtr = 1;
 		eventsByAxis[0] = eventStart;
-		TreeConstructionHeuristic tch(nodeAABB);
+		TreeConstructionHeuristic tch(nodeBoundingBox3);
 
 		/* Iterate over all events on the current axis */
 		for (EdgeEvent *event = eventStart; event < eventEnd; ) {
@@ -1960,13 +1960,13 @@ protected:
 			numRight[axis] -= numPlanar + numEnd;
 
 			/* Calculate a score using the tree construction heuristic */
-			if (EXPECT_TAKEN(pos > nodeAABB.min[axis] && pos < nodeAABB.max[axis])) {
+			if (EXPECT_TAKEN(pos > nodeBoundingBox3.min[axis] && pos < nodeBoundingBox3.max[axis])) {
 				const size_type nL = numLeft[axis], nR = numRight[axis];
 				const Float nLF = (Float) nL, nRF = (Float) nR;
 
 				std::pair<Float, Float> prob = tch(axis, 
-						pos - nodeAABB.min[axis],
-						nodeAABB.max[axis] - pos);
+						pos - nodeBoundingBox3.min[axis],
+						nodeBoundingBox3.max[axis] - pos);
 
 				if (numPlanar == 0) {
 					Float cost = m_traversalCost + m_queryCost
@@ -2011,8 +2011,8 @@ protected:
 				}
 			} else {
 				#if defined(MTS_KD_DEBUG)
-				if (m_clip && (pos < nodeAABB.min[axis] 
-							|| pos > nodeAABB.max[axis])) {
+				if (m_clip && (pos < nodeBoundingBox3.min[axis] 
+							|| pos > nodeBoundingBox3.max[axis])) {
 					/* When primitive clipping is active, this should  never happen! */
 					KDLog(EError, "Internal error: edge event is out of bounds");
 				}
@@ -2115,9 +2115,9 @@ protected:
 
 		EdgeEvent *leftEventsEnd = leftEventsStart, *rightEventsEnd = rightEventsStart;
 
-		AABBType leftNodeAABB = nodeAABB, rightNodeAABB = nodeAABB;
-		leftNodeAABB.max[bestSplit.axis] = bestSplit.pos;
-		rightNodeAABB.min[bestSplit.axis] = bestSplit.pos;
+		BoundingBox3Type leftNodeBoundingBox3 = nodeBoundingBox3, rightNodeBoundingBox3 = nodeBoundingBox3;
+		leftNodeBoundingBox3.max[bestSplit.axis] = bestSplit.pos;
+		rightNodeBoundingBox3.min[bestSplit.axis] = bestSplit.pos;
 
 		size_type prunedLeft = 0, prunedRight = 0;
 
@@ -2151,11 +2151,11 @@ protected:
 					   generate new events for each side */
 					const index_type index = event->index;
 
-					AABBType clippedLeft = cast()->getClippedAABB(index, leftNodeAABB);
-					AABBType clippedRight = cast()->getClippedAABB(index, rightNodeAABB);
+					BoundingBox3Type clippedLeft = cast()->getClippedBoundingBox3(index, leftNodeBoundingBox3);
+					BoundingBox3Type clippedRight = cast()->getClippedBoundingBox3(index, rightNodeBoundingBox3);
 
-					KDAssert(leftNodeAABB.contains(clippedLeft));
-					KDAssert(rightNodeAABB.contains(clippedRight));
+					KDAssert(leftNodeBoundingBox3.contains(clippedLeft));
+					KDAssert(rightNodeBoundingBox3.contains(clippedRight));
 
 					if (clippedLeft.isValid() && clippedLeft.getSurfaceArea() > 0) {
 						for (int axis=0; axis<point_type::dim; ++axis) {
@@ -2286,16 +2286,16 @@ protected:
 		ctx.innerNodeCount++;
 
 		Float leftCost = buildTree(ctx, depth+1, children,
-				leftNodeAABB, leftEventsStart, leftEventsEnd,
+				leftNodeBoundingBox3, leftEventsStart, leftEventsEnd,
 				bestSplit.numLeft - prunedLeft, true, badRefines);
 
 		Float rightCost = buildTree(ctx, depth+1, children+1,
-				rightNodeAABB, rightEventsStart, rightEventsEnd,
+				rightNodeBoundingBox3, rightEventsStart, rightEventsEnd,
 				bestSplit.numRight - prunedRight, false, badRefines);
 
 		std::pair<Float, Float> prob = tch(bestSplit.axis, 
-			bestSplit.pos - nodeAABB.min[bestSplit.axis],
-			nodeAABB.max[bestSplit.axis] - bestSplit.pos);
+			bestSplit.pos - nodeBoundingBox3.min[bestSplit.axis],
+			nodeBoundingBox3.max[bestSplit.axis] - bestSplit.pos);
 
 		/* Compute the final cost given the updated cost 
 		   values received from the children */
@@ -2349,7 +2349,7 @@ protected:
 		/**
 		 * \brief Prepare to bin for the specified bounds
 		 */
-		void setAABB(const AABBType &aabb) {
+		void setBoundingBox3(const BoundingBox3Type &aabb) {
 			m_aabb = aabb;
 			m_binSize = m_aabb.getExtents() / (Float) m_binCount;
 			for (int axis=0; axis<point_type::dim; ++axis) 
@@ -2359,7 +2359,7 @@ protected:
 		/**
 		 * \brief Run min-max binning
 		 *
-		 * \param derived Derived class to be used to determine the AABB for
+		 * \param derived Derived class to be used to determine the BoundingBox3 for
 		 *     a given list of primitives
 		 * \param indices Primitive indirection list
 		 * \param primCount Specifies the length of \a indices
@@ -2372,7 +2372,7 @@ protected:
 			const int64_t maxBin = m_binCount-1;
 
 			for (size_type i=0; i<m_primCount; ++i) {
-				const AABBType aabb = derived->getAABB(indices[i]);
+				const BoundingBox3Type aabb = derived->getBoundingBox3(indices[i]);
 				for (int axis=0; axis<point_type::dim; ++axis) {
 					int64_t minIdx = (int64_t) ((aabb.min[axis] - m_aabb.min[axis]) 
 							* m_invBinSize[axis]);
@@ -2503,14 +2503,14 @@ protected:
 		 * boxes for the left and right subtrees and return associated
 		 * primitive lists.
 		 */
-		boost::tuple<AABBType, index_type *, AABBType, index_type *> partition(
+		boost::tuple<BoundingBox3Type, index_type *, BoundingBox3Type, index_type *> partition(
 				BuildContext &ctx, const Derived *derived, index_type *primIndices,
 				SplitCandidate &split, bool isLeftChild, Float traversalCost, 
 				Float queryCost) {
 			const float splitPos = split.pos;
 			const int axis = split.axis;
 			size_type numLeft = 0, numRight = 0;
-			AABBType leftBounds, rightBounds;
+			BoundingBox3Type leftBounds, rightBounds;
 
 			index_type *leftIndices, *rightIndices;
 			if (isLeftChild) {
@@ -2525,7 +2525,7 @@ protected:
 
 			for (size_type i=0; i<m_primCount; ++i) {
 				const index_type primIndex = primIndices[i];
-				const AABBType aabb = derived->getAABB(primIndex);
+				const BoundingBox3Type aabb = derived->getBoundingBox3(primIndex);
 
 				if (aabb.max[axis] <= splitPos) {
 					KDAssert(numLeft < split.numLeft);
@@ -2562,7 +2562,7 @@ protected:
 
 			if (leftBounds.max[axis] != rightBounds.min[axis]) {
 				/* There is some space between the child nodes -- move
-				   the split plane onto one of the AABBs so that the
+				   the split plane onto one of the BoundingBox3s so that the
 				   heuristic cost is minimized */
 				TreeConstructionHeuristic tch(m_aabb);
 
@@ -2599,7 +2599,7 @@ protected:
 		size_type *m_maxBins;
 		size_type m_primCount;
 		int m_binCount;
-		AABBType m_aabb;
+		BoundingBox3Type m_aabb;
 		vector_type m_binSize;
 		vector_type m_invBinSize;
 	};
@@ -2629,12 +2629,12 @@ protected:
 #pragma float_control(precise, off)
 #endif
 
-template <typename AABBType>
-	Class *KDTreeBase<AABBType>::m_theClass 
+template <typename BoundingBox3Type>
+	Class *KDTreeBase<BoundingBox3Type>::m_theClass 
 		= new Class("KDTreeBase", true, "Object");
 
-template <typename AABBType>
-	const Class *KDTreeBase<AABBType>::getClass() const {
+template <typename BoundingBox3Type>
+	const Class *KDTreeBase<BoundingBox3Type>::getClass() const {
 	return m_theClass;
 }
 

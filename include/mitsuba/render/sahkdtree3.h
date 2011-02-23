@@ -41,7 +41,7 @@ public:
 	 * Precomputes some information so that traversal probabilities
 	 * of potential split planes can be evaluated efficiently
 	 */
-	inline SurfaceAreaHeuristic(const AABB &aabb) {
+	inline SurfaceAreaHeuristic(const BoundingBox3 &aabb) {
 		const Vector extents(aabb.getExtents());
 		const Float temp = 1.0f / (extents.x * extents.y 
 				+ extents.y*extents.z + extents.x*extents.z);
@@ -71,7 +71,7 @@ public:
 	 * Compute the underlying quantity used by the tree construction
 	 * heuristic. This is used to compute the final cost of a kd-tree.
 	 */
-	inline static Float getQuantity(const AABB &aabb) {
+	inline static Float getQuantity(const BoundingBox3 &aabb) {
 		return aabb.getSurfaceArea();
 	}
 private:
@@ -96,17 +96,17 @@ private:
  * \author Wenzel Jakob
  */
 template <typename Derived> 
-	class SAHKDTree3D : public GenericKDTree<AABB, SurfaceAreaHeuristic, Derived> {
+	class SAHKDTree3D : public GenericKDTree<BoundingBox3, SurfaceAreaHeuristic, Derived> {
 public:
-	typedef typename KDTreeBase<AABB>::size_type  size_type;
-	typedef typename KDTreeBase<AABB>::index_type index_type;
-	typedef typename KDTreeBase<AABB>::KDNode     KDNode;
+	typedef typename KDTreeBase<BoundingBox3>::size_type  size_type;
+	typedef typename KDTreeBase<BoundingBox3>::index_type index_type;
+	typedef typename KDTreeBase<BoundingBox3>::KDNode     KDNode;
 
 protected:
 	void buildInternal() {
 		size_type primCount = this->cast()->getPrimitiveCount();
 		KDLog(EInfo, "Constructing a SAH kd-tree (%i primitives) ..", primCount);
-		GenericKDTree<AABB, SurfaceAreaHeuristic, Derived>::buildInternal();
+		GenericKDTree<BoundingBox3, SurfaceAreaHeuristic, Derived>::buildInternal();
 	}
 
 	/**
@@ -560,7 +560,7 @@ public:
 	void findCosts(Float &traversalCost, Float &intersectionCost) {
 		ref<Random> random = new Random();
 		uint8_t temp[128];
-		BSphere bsphere = this->m_aabb.getBSphere();
+		BoundingSphere bsphere = this->m_aabb.getBoundingSphere();
 		int nRays = 10000000, warmup = nRays/4;
 		Vector *A = new Vector[nRays-warmup];
 		Float *b = new Float[nRays-warmup];

@@ -19,11 +19,12 @@
 #if !defined(__TESTCASE_H)
 #define __TESTCASE_H
 
-#include <mitsuba/render/util.h>
+#include <mitsuba/core/plugin.h>
 
 MTS_NAMESPACE_BEGIN
 
 #if defined(MTS_TESTCASE)
+
 /**
  * When a testcase is being compiled, define the following preprocessor macros for convenience
  */
@@ -71,27 +72,18 @@ protected:
 	/// Asserts that the two floating point values are equal
 	void assertEqualsImpl(Float expected, Float actual, Float epsilon, const char *file, int line);
 
-	/// Asserts that the two 2D vectors are equal
-	void assertEqualsImpl(const Vector2 &expected, const Vector2 &actual, Float epsilon, const char *file, int line);
-
-	/// Asserts that the two 3D vectors are equal
-	void assertEqualsImpl(const Vector &expected, const Vector &actual, Float epsilon, const char *file, int line);
-
-	/// Asserts that the two 4D vectors are equal
-	void assertEqualsImpl(const Vector4 &expected, const Vector4 &actual, Float epsilon, const char *file, int line);
-
-	/// Asserts that the two 2D points are equal
-	void assertEqualsImpl(const Point2 &expected, const Point2 &actual, Float epsilon, const char *file, int line);
-
-	/// Asserts that the two 3D points are equal
-	void assertEqualsImpl(const Point &expected, const Point &actual, Float epsilon, const char *file, int line);
-
-	/// Asserts that the two 4x4 matrices are equal
-	template<int M, int N> void assertEqualsImpl(const Matrix<M, N, Float> &expected, const Matrix<M, N, Float> &actual, Float epsilon, const char *file, int line) {
+	/// Asserts that the two fixed-size or dynamic matrices are equal
+	template<typename T, int M1, int N1, int M2, int N2> 
+			void assertEqualsImpl(const Eigen::Matrix<T, M1, N1> &expected,
+				const Eigen::Matrix<T, M2, N2> &actual, Float epsilon, const char *file, int line) {
 		bool match = true;
-		for (int i=0; i<M; ++i)
-			for (int j=0; j<N; ++j)
-				if (std::abs(expected.m[i][j]-actual.m[i][j]) > epsilon)
+		if (expected.rows() != actual.rows() || expected.cols() != actual.cols())
+			Thread::getThread()->getLogger()->log(EError, NULL, file, line, "Assertion failure: "
+				"mismatched matrix dimensions -- expected %ix%i, got %ix%i.", 
+				(int) expected.rows(), (int) expected.cols(), (int) actual.rows(), (int) actual.cols());
+		for (int i=0; i<expected.rows(); ++i)
+			for (int j=0; j<expected.cols(); ++j)
+				if (std::abs(expected(i, j)-actual(i, j)) > epsilon)
 					match = false;
 		if (!match)
 			Thread::getThread()->getLogger()->log(EError, NULL, file, line, "Assertion failure: "
@@ -105,39 +97,6 @@ protected:
 	void assertFalseImpl(bool condition, const char *expr, const char *file, int line);
 protected:
 	int m_executed, m_succeeded;
-};
-
-/**
- * The test supervisor is used when rendering a collection of testcases in the
- * form of scenes with analytic solutions. Reference output is compared against
- * the actual generated results and a user-specified type of test is executed
- * to decide between equality or inequality. Any problems are kept in a log, 
- * which can later be printed using <tt>printSummary()</tt>.
- */
-class MTS_EXPORT_RENDER TestSupervisor : public Object {
-public:
-	/// Initialize a test supervisor for a specified number of testcases
-	TestSupervisor(size_t total);
-
-	/// Analyze the output of a rendered scene
-	void analyze(const Scene *scene);
-
-	/// Summarize the executed testcases
-	void printSummary() const;
-
-	MTS_DECLARE_CLASS()
-protected:
-	virtual ~TestSupervisor() { }
-private:
-	struct TestResult {
-		bool success;
-		fs::path input, output;
-		std::string message;
-	};
-
-	size_t m_total, m_numFailed, m_numSucceeded;
-	std::vector<TestResult> m_results;
-	mutable ref<Mutex> m_mutex;
 };
 
 MTS_NAMESPACE_END

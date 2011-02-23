@@ -19,21 +19,22 @@
 #if !defined(__KDTREE_H)
 #define __KDTREE_H
 
-#include <mitsuba/core/aabb.h>
+#include <mitsuba/core/bbox.h>
 #include <boost/foreach.hpp>
 
 MTS_NAMESPACE_BEGIN
 
 /**
- * \brief Basic point node for use with \ref TKDTree.
+ * \brief Basic point node for use with \ref PointKDTree.
  *
  * \tparam PointType Underlying point data type (e.g. \ref TPoint3<float>)
  * \tparam DataRecord Custom payload to be attached to each node
  *
  * \ingroup libcore
  */
-template <typename PointType, typename DataRecord> struct BasicKDNode {
-	typedef PointType point_type;
+template <typename _PointType, typename _DataRecord> struct BasicKDNode {
+	typedef _PointType  PointType;
+	typedef _DataRecord DataRecord;
 
 	PointType position;
 	uint32_t right;
@@ -98,13 +99,17 @@ template <typename PointType, typename DataRecord> struct BasicKDNode {
  *
  * \ingroup libcore
  */
-template <typename KDNode> class TKDTree {
+template <typename _KDNode> class PointKDTree {
 public:
-	typedef KDNode                           node_type;
-	typedef typename KDNode::point_type      point_type;
-	typedef typename point_type::value_type  value_type;
-	typedef typename point_type::vector_type vector_type;
-	typedef TAABB<point_type>                aabb_type;
+	enum {
+		Dimension = _KDNode::PointType::RowsAtCompileTime
+	};
+
+	typedef _KDNode                                      KDNode;
+	typedef typename KDNode::PointType                   PointType;
+	typedef typename PointType::Scalar                   Scalar;
+	typedef typename Eigen::Matrix<Scalar, Dimension, 1> VectorType;
+	typedef BoundingBox<PointType>                       BoundingBoxType;
 
 	/// Supported tree construction heuristics
 	enum EHeuristic {
@@ -164,7 +169,7 @@ public:
 	 * \brief Create an empty KD-tree that can hold the specified
 	 * number of points
 	 */
-	inline TKDTree(size_t nodes, EHeuristic heuristic = ESlidingMidpoint)
+	inline PointKDTree(size_t nodes, EHeuristic heuristic = ESlidingMidpoint)
 		: m_nodes(nodes), m_heuristic(heuristic), m_depth(0) { }
 
 	/// Return one of the KD-tree nodes by index
@@ -172,8 +177,8 @@ public:
 	/// Return one of the KD-tree nodes by index (const version)
 	inline const KDNode &operator[](size_t idx) const { return m_nodes[idx]; }
 
-	/// Return the AABB of the underlying point data
-	inline const aabb_type &getAABB() const { return m_aabb; }
+	/// Return the BoundingBox3 of the underlying point data
+	inline const BoundingBoxType &getBoundingBox3() const { return m_bbox; }
 	/// Return the depth of the constructed KD-tree
 	inline size_t getDepth() const { return m_depth; }
 	/// Return the size of the kd-tree
@@ -181,10 +186,10 @@ public:
 
 	/// Construct the KD-tree hierarchy
 	void build() {
-		m_aabb.reset();
+		m_bbox.reset();
 
 		BOOST_FOREACH(KDNode &node, m_nodes) {
-			m_aabb.expandBy(node.getPosition());
+			m_bbox.expandBy(node.getPosition());
 		}
 
 		m_depth = 0;
@@ -201,7 +206,7 @@ public:
 	 *      restrict the knn query to a subset of the data)
 	 * \return The number of used traversal steps
 	 */
-	size_t nnSearch(const point_type &p, size_t k, std::vector<SearchResult> &results, 
+	size_t nnSearch(const PointType &p, size_t k, std::vector<SearchResult> &results, 
 			Float searchRadius = std::numeric_limits<Float>::infinity()) const {
 		uint32_t *stack = (uint32_t *) alloca((m_depth+1) * sizeof(uint32_t));
 		size_t index = 0, stackPos = 1, traversalSteps = 0;
@@ -248,7 +253,7 @@ public:
 			}
 	
 			/* Check if the current point is within the query's search radius */
-			const Float pointDistSquared = (node.getPosition() - p).lengthSquared();
+			const Float pointDistSquared = (node.getPosition() - p).squaredNorm();
 	
 			if (pointDistSquared < distSquared) {
 				/* Switch to a max-heap when the available search 
@@ -292,7 +297,7 @@ public:
 	 * \param searchRadius Search radius 
 	 * \return The number of used traversal steps
 	 */
-	template <typename Functor> size_t executeModifier(const point_type &p,
+	template <typename Functor> size_t executeModifier(const PointType &p,
 			Float searchRadius, Functor &functor) {
 		uint32_t *stack = (uint32_t *) alloca((m_depth+1) * sizeof(uint32_t));
 		size_t index = 0, stackPos = 1, traversalSteps = 0;
@@ -335,7 +340,7 @@ public:
 			}
 	
 			/* Check if the current point is within the query's search radius */
-			const Float pointDistSquared = (node.getPosition() - p).lengthSquared();
+			const Float pointDistSquared = (node.getPosition() - p).squaredNorm();
 	
 			if (pointDistSquared < distSquared)
 				functor(node);
@@ -356,7 +361,7 @@ public:
 	 * \param searchRadius  Search radius 
 	 * \return The number of used traversal steps
 	 */
-	template <typename Functor> size_t executeQuery(const point_type &p,
+	template <typename Functor> size_t executeQuery(const PointType &p,
 			Float searchRadius, Functor &functor) const {
 		uint32_t *stack = (uint32_t *) alloca((m_depth+1) * sizeof(uint32_t));
 		size_t index = 0, stackPos = 1, traversalSteps = 0;
@@ -399,7 +404,7 @@ public:
 			}
 	
 			/* Check if the current point is within the query's search radius */
-			const Float pointDistSquared = (node.getPosition() - p).lengthSquared();
+			const Float pointDistSquared = (node.getPosition() - p).squaredNorm();
 	
 			if (pointDistSquared < distSquared)
 				functor(node);
@@ -418,7 +423,7 @@ public:
 	 * \param searchRadius  Search radius 
 	 * \return The number of used traversal steps
 	 */
-	size_t search(const point_type &p, Float searchRadius, std::vector<uint32_t> &results) const {
+	size_t search(const PointType &p, Float searchRadius, std::vector<uint32_t> &results) const {
 		uint32_t *stack = (uint32_t *) alloca((m_depth+1) * sizeof(uint32_t));
 		size_t index = 0, stackPos = 1, traversalSteps = 0;
 		Float distSquared = searchRadius*searchRadius;
@@ -462,7 +467,7 @@ public:
 			}
 	
 			/* Check if the current point is within the query's search radius */
-			const Float pointDistSquared = (node.getPosition() - p).lengthSquared();
+			const Float pointDistSquared = (node.getPosition() - p).squaredNorm();
 	
 			if (pointDistSquared < distSquared) 
 				results.push_back(index);
@@ -485,13 +490,13 @@ protected:
 
 	struct LessThanOrEqual : public std::unary_function<KDNode, bool> {
 	public:
-		inline LessThanOrEqual(int axis, value_type value) : m_axis(axis), m_value(value) { }
+		inline LessThanOrEqual(int axis, Scalar value) : m_axis(axis), m_value(value) { }
 		inline bool operator()(const KDNode &n1) const {
 			return n1.getPosition()[m_axis] <= m_value;
 		}
 	private:
 		int m_axis;
-		value_type m_value;
+		Scalar m_value;
 	};
 
 	void build(size_t depth,
@@ -513,7 +518,7 @@ protected:
 			case EBalanced: {
 					/* Split along the median */
 					split = rangeStart + (rangeEnd-rangeStart)/2;
-					axis = m_aabb.getLargestAxis();
+					axis = m_bbox.getLongestDimension();
 					std::nth_element(rangeStart, split, rangeEnd, CoordinateOrdering(axis));
 				};
 				break;
@@ -538,7 +543,7 @@ protected:
 						p = (p >> 1) + remaining;
 					}
 
-					axis = m_aabb.getLargestAxis();
+					axis = m_bbox.getLongestDimension();
 					
 					split = rangeStart + (p - 1);
 					std::nth_element(rangeStart, split, rangeEnd,
@@ -548,10 +553,10 @@ protected:
 
 			case ESlidingMidpoint: {
 					/* Sliding midpoint rule: find a split that is close to the spatial median */
-					axis = m_aabb.getLargestAxis();
+					axis = m_bbox.getLongestDimension();
 
-					value_type midpoint = (value_type) 0.5f 
-						* (m_aabb.max[axis]+m_aabb.min[axis]);
+					Scalar midpoint = (Scalar) 0.5f 
+						* (m_bbox.max[axis]+m_bbox.min[axis]);
 
 					size_t nLT = std::count_if(rangeStart, rangeEnd,
 							LessThanOrEqual(axis, midpoint));
@@ -572,19 +577,19 @@ protected:
 			case EVoxelVolume: {
 					Float bestCost = std::numeric_limits<Float>::infinity();
 
-					for (int dim=0; dim<point_type::dim; ++dim) {
+					for (int dim=0; dim<Dimension; ++dim) {
 						std::sort(rangeStart, rangeEnd, CoordinateOrdering(dim));
 
 						size_t numLeft = 1, numRight = rangeEnd-rangeStart-2;
-						aabb_type leftAABB(m_aabb), rightAABB(m_aabb);
-						Float invVolume = 1.0f / m_aabb.getVolume();
+						BoundingBoxType leftBoundingBox3(m_bbox), rightBoundingBox3(m_bbox);
+						Float invVolume = 1.0f / m_bbox.getVolume();
 						for (typename std::vector<KDNode>::iterator it = rangeStart+1; it != rangeEnd; ++it) {
 							++numLeft; --numRight;
-							leftAABB.max[dim] = it->getPosition()[dim];
-							rightAABB.min[dim] = it->getPosition()[dim];
+							leftBoundingBox3.max[dim] = it->getPosition()[dim];
+							rightBoundingBox3.min[dim] = it->getPosition()[dim];
 
-							Float cost = (numLeft * leftAABB.getVolume()
-								+ numRight * rightAABB.getVolume()) * invVolume;
+							Float cost = (numLeft * leftBoundingBox3.getVolume()
+								+ numRight * rightBoundingBox3.getVolume()) * invVolume;
 							if (cost < bestCost) {
 								bestCost = cost;
 								axis = dim;
@@ -598,7 +603,7 @@ protected:
 				break;
 		}
 
-		value_type splitPos = split->getPosition()[axis];
+		Scalar splitPos = split->getPosition()[axis];
 		split->setAxis(axis);
 		if (split+1 != rangeEnd) 
 			split->setRightIndex(rangeStart - m_nodes.begin(), (uint32_t) (split + 1 - m_nodes.begin()));
@@ -610,21 +615,21 @@ protected:
 		std::iter_swap(rangeStart, split);
 
 		/* Recursively build the children */
-		value_type temp = m_aabb.max[axis];
-		m_aabb.max[axis] = splitPos;
+		Scalar temp = m_bbox.max[axis];
+		m_bbox.max[axis] = splitPos;
 		build(depth+1, rangeStart+1, split+1);
-		m_aabb.max[axis] = temp;
+		m_bbox.max[axis] = temp;
 
 		if (split+1 != rangeEnd) {
-			temp = m_aabb.min[axis];
-			m_aabb.min[axis] = splitPos;
+			temp = m_bbox.min[axis];
+			m_bbox.min[axis] = splitPos;
 			build(depth+1, split+1, rangeEnd);
-			m_aabb.min[axis] = temp;
+			m_bbox.min[axis] = temp;
 		}
 	}
 protected:
 	std::vector<KDNode> m_nodes;
-	aabb_type m_aabb;
+	BoundingBoxType m_bbox;
 	EHeuristic m_heuristic;
 	size_t m_depth;
 };

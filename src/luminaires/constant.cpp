@@ -34,7 +34,7 @@ public:
 	ConstantLuminaire(Stream *stream, InstanceManager *manager) 
 		: Luminaire(stream, manager) {
 		m_intensity = Spectrum(stream);
-		m_bsphere = BSphere(stream);
+		m_bsphere = BoundingSphere(stream);
 		m_surfaceArea = 4 * m_bsphere.radius * m_bsphere.radius * M_PI;
 		m_invSurfaceArea = 1/m_surfaceArea;
 	}
@@ -50,11 +50,11 @@ public:
 		/* Get the scene's bounding sphere and slightly enlarge it */
 		if (m_bsphere.isEmpty()) {
 			/* Get the scene's bounding sphere and slightly enlarge it */
-			m_bsphere = scene->getBSphere();
+			m_bsphere = scene->getBoundingSphere();
 			m_bsphere.radius *= 1.01f;
 		}
 		if (scene->getCamera()) {
-			BSphere old = m_bsphere;
+			BoundingSphere old = m_bsphere;
 			m_bsphere.expandBy(scene->getCamera()->getPosition());
 			if (old != m_bsphere)
 				m_bsphere.radius *= 1.01f;
@@ -83,7 +83,7 @@ public:
 		if (m_bsphere.contains(p) && m_bsphere.rayIntersect(Ray(p, d, 0.0f), nearHit, farHit)) {
 			lRec.sRec.p = p + d * nearHit;
 			lRec.pdf = 1.0f / (4*M_PI);
-			lRec.sRec.n = normalize(m_bsphere.center - lRec.sRec.p);
+			lRec.sRec.n = (m_bsphere.center - lRec.sRec.p).normalized();
 			lRec.d = -d;
 			lRec.Le = m_intensity;
 		} else {
@@ -123,7 +123,7 @@ public:
 		eRec.sRec.n = Normal(-d);
 		Point p2 = m_bsphere.center + squareToSphere(sample2) * m_bsphere.radius;
 		eRec.d = p2 - eRec.sRec.p;
-		Float length = eRec.d.length();
+		Float length = eRec.d.norm();
 
 		if (length == 0) {
 			eRec.P = Spectrum(0.0f);
@@ -133,7 +133,7 @@ public:
 
 		eRec.d /= length;
 		eRec.pdfArea = m_invSurfaceArea;
-		eRec.pdfDir = INV_PI * dot(eRec.sRec.n, eRec.d);
+		eRec.pdfDir = INV_PI * eRec.sRec.n.dot(eRec.d);
 		eRec.P = m_intensity;
 	}
 
@@ -156,7 +156,7 @@ public:
 			radius *= 1.5f;
 		Point p2 = m_bsphere.center + squareToSphere(sample) * radius;
 		eRec.d = p2 - eRec.sRec.p;
-		Float length = eRec.d.length();
+		Float length = eRec.d.norm();
 
 		if (length == 0.0f) {
 			eRec.pdfDir = 1.0f;
@@ -164,13 +164,13 @@ public:
 		}
 		
 		eRec.d /= length;
-		eRec.pdfDir = INV_PI * dot(eRec.sRec.n, eRec.d);
+		eRec.pdfDir = INV_PI * eRec.sRec.n.dot(eRec.d);
 		return Spectrum(INV_PI);
 	}
 
 	void pdfEmission(EmissionRecord &eRec, bool delta) const {
 		Assert(eRec.type == EmissionRecord::ENormal);
-		Float dp = dot(eRec.sRec.n, eRec.d);
+		Float dp = eRec.sRec.n.dot(eRec.d);
 		if (dp > 0)
 			eRec.pdfDir = delta ? 0.0f : INV_PI * dp;
 		else
@@ -188,10 +188,10 @@ public:
 
 		eRec.type = EmissionRecord::ENormal;
 		eRec.sRec.p = ray(nearHit);
-		eRec.sRec.n = normalize(m_bsphere.center - eRec.sRec.p);
+		eRec.sRec.n = (m_bsphere.center - eRec.sRec.p).normalized();
 		eRec.d = -ray.d;
 		eRec.pdfArea = m_invSurfaceArea;
-		eRec.pdfDir = INV_PI * dot(eRec.sRec.n, eRec.d);
+		eRec.pdfDir = INV_PI * eRec.sRec.n.dot(eRec.d);
 		eRec.P = m_intensity;
 		eRec.luminaire = this;
 		return true;
@@ -224,7 +224,7 @@ public:
 	MTS_DECLARE_CLASS()
 private:
 	Spectrum m_intensity;
-	BSphere m_bsphere;
+	BoundingSphere m_bsphere;
 	Float m_surfaceArea;
 	Float m_invSurfaceArea;
 };

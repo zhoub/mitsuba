@@ -88,7 +88,7 @@ template <typename Distr> struct FlakePhaseFunctor {
 	FlakePhaseFunctor(Distr d) : d(d) { }
 
 	inline Float operator()(const Vector &wi, const Vector &wo) const {
-		Vector H = normalize(wi + wo);
+		Vector H = (wi + wo).normalized();
 		return d(H) + d(-H);
 	}
 };
@@ -309,9 +309,9 @@ public:
 
 		if (m_shapes.size() > 0) {
 			m_kdTree->build();
-			m_aabb = m_kdTree->getAABB();
+			m_aabb = m_kdTree->getBoundingBox3();
 		} else {
-			m_aabb = m_densities->getAABB();
+			m_aabb = m_densities->getBoundingBox3();
 		}
 	}
 
@@ -364,7 +364,7 @@ public:
 			Intersection its;
 			if (!m_kdTree->rayIntersect(ray, its)) 
 				return false;
-			inside = dot(its.geoFrame.n, ray.d) > 0;
+			inside = its.geoFrame.n.dot(ray.d) > 0;
 			t = its.t;
 		} else {
 			Float mint, maxt;
@@ -380,7 +380,7 @@ public:
 
 	inline Vector lookupOrientation(const Point &p) const {
 		Vector orientation = m_orientations->lookupVector(p);
-		Float lengthSqr = orientation.lengthSquared();
+		Float lengthSqr = orientation.squaredNorm();
 		if (lengthSqr != 0)
 			return orientation / std::sqrt(lengthSqr);
 		else
@@ -571,7 +571,7 @@ public:
 				if (success) {
 					/* A medium interaction occurred */
 					mRec.p = currentPoint;
-					mRec.t = (mRec.p-r.o).length();
+					mRec.t = (mRec.p-r.o).norm();
 					success = true;
 					break;
 				}
@@ -664,7 +664,7 @@ Spectrum FlakePhaseFunction::f(const PhaseFunctionQueryRecord &pRec) const {
 	/* Evaluate the real phase function */
 	Float sigmaT = m_sigmaT.evalAzimuthallyInvariant(wi);
 	Vector H = wi + wo;
-	Float length = H.length();
+	Float length = H.norm();
 
 	if (length == 0)
 		return Spectrum(0.0f);

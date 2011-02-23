@@ -53,7 +53,7 @@ public:
 		: Luminaire(stream, manager) {
 		m_intensityScale = stream->readFloat();
 		m_path = stream->readString();
-		m_bsphere = BSphere(stream);
+		m_bsphere = BoundingSphere(stream);
 		Log(EInfo, "Unserializing environment map \"%s\"", m_path.leaf().c_str());
 		uint32_t size = stream->readUInt();
 		ref<MemoryStream> mStream = new MemoryStream(size);
@@ -114,11 +114,11 @@ public:
 	void preprocess(const Scene *scene) {
 		if (m_bsphere.isEmpty()) {
 			/* Get the scene's bounding sphere and slightly enlarge it */
-			m_bsphere = scene->getBSphere();
+			m_bsphere = scene->getBoundingSphere();
 			m_bsphere.radius *= 1.01f;
 		}
 		if (scene->getCamera()) {
-			BSphere old = m_bsphere;
+			BoundingSphere old = m_bsphere;
 			m_bsphere.expandBy(scene->getCamera()->getPosition());
 			if (old != m_bsphere)
 				m_bsphere.radius *= 1.01f;
@@ -163,7 +163,7 @@ public:
 	}
 
 	inline Spectrum Le(const Ray &ray) const {
-		return Le(normalize(ray.d));
+		return Le(ray.d.normalized());
 	}
 
 	Spectrum Le(const LuminaireSamplingRecord &lRec) const {
@@ -231,7 +231,7 @@ public:
 		eRec.sRec.n = Normal(-d);
 		Point p2 = m_bsphere.center + squareToSphere(sample2) * m_bsphere.radius;
 		eRec.d = p2 - eRec.sRec.p;
-		Float length = eRec.d.length();
+		Float length = eRec.d.norm();
 
 		if (length == 0) {
 			eRec.P = Spectrum(0.0f);
@@ -241,7 +241,7 @@ public:
 
 		eRec.d /= length;
 		eRec.pdfArea = m_invSurfaceArea;
-		eRec.pdfDir = INV_PI * dot(eRec.sRec.n, eRec.d);
+		eRec.pdfDir = INV_PI * eRec.sRec.n.dot(eRec.d);
 		eRec.P = Le(-eRec.d);
 	}
 
@@ -270,7 +270,7 @@ public:
 			radius *= 1.5f;
 		Point p2 = m_bsphere.center + squareToSphere(sample) * radius;
 		eRec.d = p2 - eRec.sRec.p;
-		Float length = eRec.d.length();
+		Float length = eRec.d.norm();
 
 		if (length == 0.0f) {
 			eRec.pdfDir = 1.0f;
@@ -278,7 +278,7 @@ public:
 		}
 
 		eRec.d /= length;
-		eRec.pdfDir = INV_PI * dot(eRec.sRec.n, eRec.d);
+		eRec.pdfDir = INV_PI * eRec.sRec.n.dot(eRec.d);
 		if (eRec.type == EmissionRecord::ENormal)
 			return Le(-eRec.d) * INV_PI;
 		else
@@ -287,7 +287,7 @@ public:
 
 	void pdfEmission(EmissionRecord &eRec, bool delta) const {
 		Assert(eRec.type == EmissionRecord::ENormal);
-		Float dp = dot(eRec.sRec.n, eRec.d);
+		Float dp = eRec.sRec.n.dot(eRec.d);
 		if (dp > 0)
 			eRec.pdfDir = delta ? 0.0f : INV_PI * dp;
 		else
@@ -319,7 +319,7 @@ public:
 		eRec.sRec.p = ray(nearHit);
 		eRec.sRec.n = normalize(m_bsphere.center - eRec.sRec.p);
 		eRec.pdfArea = m_invSurfaceArea;
-		eRec.pdfDir = INV_PI * dot(eRec.sRec.n, eRec.d);
+		eRec.pdfDir = INV_PI * eRec.sRec.n.dot(eRec.d);
 		eRec.d = -ray.d;
 		eRec.P = Le(ray.d);
 		eRec.luminaire = this;
@@ -347,7 +347,7 @@ public:
 	MTS_DECLARE_CLASS()
 private:
 	Spectrum m_average;
-	BSphere m_bsphere;
+	BoundingSphere m_bsphere;
 	Float m_intensityScale;
 	Float m_surfaceArea;
 	Float m_invSurfaceArea;

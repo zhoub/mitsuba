@@ -20,7 +20,7 @@
 #define __VOLUME_H
 
 #include <mitsuba/core/cobject.h>
-#include <mitsuba/core/aabb.h>
+#include <mitsuba/core/bbox.h>
 
 MTS_NAMESPACE_BEGIN
 
@@ -33,7 +33,7 @@ public:
 	virtual void serialize(Stream *stream, InstanceManager *manager) const;
 
 	/// Return the bounding box
-	inline const AABB &getAABB() const {
+	inline const BoundingBox3 &getBoundingBox3() const {
 		return m_aabb;
 	}
 
@@ -72,7 +72,7 @@ protected:
 	/// Unserialize from a binary data stream
 	VolumeDataSource(Stream *stream, InstanceManager *manager); 
 protected:
-	AABB m_aabb;
+	BoundingBox3 m_aabb;
 };
 
 MTS_NAMESPACE_END

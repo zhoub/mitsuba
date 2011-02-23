@@ -63,7 +63,7 @@ public:
 	struct ClampedCos {
 		Vector axis;
 		ClampedCos(Vector axis) : axis(axis) { }
-		Float operator()(const Vector &w) const { return std::max((Float) 0, dot(w, axis)); }
+		Float operator()(const Vector &w) const { return std::max((Float) 0, w.dot(axis)); }
 	};
 
 	void test02_shSampler() {
@@ -71,7 +71,7 @@ public:
 		   distribution and verify the returned probabilities */
 		int bands = 13, numSamples = 100, depth = 12;
 
-		Vector v = normalize(Vector(1, 2, 3));
+		Vector v = Vector(1, 2, 3).normalized();
 		ref<Random> random = new Random();
 		SHVector clampedCos = SHVector(bands);
 		clampedCos.project(ClampedCos(v), numSamples);
@@ -87,7 +87,7 @@ public:
 		for (int i=0; i<=nsamples; ++i) {
 			Point2 sample(random->nextFloat(), random->nextFloat());
 			Float pdf1 = sampler->warp(clampedCos, sample);
-			Float pdf2 = dot(v, sphericalDirection(sample.x, sample.y))/M_PI;
+			Float pdf2 = v.dot(sphericalDirection(sample.x, sample.y))/M_PI;
 			Float relerr = std::abs(pdf1-pdf2)/pdf2;
 			if (pdf2 > 0.01) {
 				accum += relerr; ++nInAvg;

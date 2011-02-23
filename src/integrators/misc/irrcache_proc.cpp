@@ -71,7 +71,7 @@ public:
 			createObject(Sampler::m_theClass, props));
 		m_subIntegrator->wakeup(m_resources);
 
-		m_irrCache = new IrradianceCache(m_scene->getAABB());
+		m_irrCache = new IrradianceCache(m_scene->getBoundingBox3());
 		m_irrCache->clampNeighbor(m_clampNeighbor);
 		m_irrCache->clampScreen(m_clampScreen);
 		m_irrCache->clampInfluence(m_influenceMin, m_influenceMax);

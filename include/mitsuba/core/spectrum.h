@@ -115,216 +115,50 @@ private:
  *
  * \ingroup libcore
  */
-struct MTS_EXPORT_CORE Spectrum {
+struct MTS_EXPORT_CORE Spectrum : public Eigen::Array<Float, SPECTRUM_SAMPLES, 1> {
 public:
+	typedef Eigen::Array<Float, SPECTRUM_SAMPLES, 1> Base;
+
 	/// Create a new spectral power distribution, but don't initialize the contents
 #if !defined(MTS_DEBUG_UNINITIALIZED)
-	inline Spectrum() { }
+	inline Spectrum() : Base() { }
 #else
-	inline Spectrum() {
-		for (int i=0; i<SPECTRUM_SAMPLES; i++)
-			s[i] = std::numeric_limits<double>::quiet_NaN();
+	inline Spectrum() : Base() {
+		setConstant(s[i] = std::numeric_limits<double>::quiet_NaN());
 	}
 #endif
-
 
 	/// Create a new spectral power distribution with all samples set to the given value
-	explicit inline Spectrum(Float v) {
-		for (int i=0; i<SPECTRUM_SAMPLES; i++)
-			s[i] = v;
+	explicit inline Spectrum(Float v) : Base() {
+		setConstant(v);
 	}
 
-	/// Copy a spectral power distribution
-	explicit inline Spectrum(Float spd[SPECTRUM_SAMPLES]) {
-		for (int i=0; i<SPECTRUM_SAMPLES; i++)
-			s[i] = spd[i];
-	}
+	/// Generic copy constructor
+    template<typename OtherDerived> Spectrum(
+		const Eigen::ArrayBase<OtherDerived>& other) : Base(other) {}
 
 	/// Unserialize a spectral power distribution from a binary data stream
-	explicit inline Spectrum(Stream *stream) {
-		stream->readFloatArray(s, SPECTRUM_SAMPLES);
-	}
+	explicit inline Spectrum(Stream *stream) : Base(stream) { }
 
-	/// Add two spectral power distributions
-	inline Spectrum operator+(const Spectrum &spd) const {
-		Spectrum value = *this;
-		for (int i=0; i<SPECTRUM_SAMPLES; i++)
-			value.s[i] += spd.s[i];
-		return value;
-	}
-
-	/// Add a spectral power distribution to this instance
-	inline Spectrum& operator+=(const Spectrum &spd) {
-		for (int i=0; i<SPECTRUM_SAMPLES; i++)
-			s[i] += spd.s[i];
+    template<typename OtherDerived> Normal &operator=
+			(const Eigen::ArrayBase<OtherDerived>& other) {
+		this->Base::operator=(other);
 		return *this;
+    }
+
+	/// Returns \c true if the spectrum contains NaN-valued samples
+	inline bool hasNaN() const {
+		return isnan().any();
 	}
 
-	/// Subtract a spectral power distribution
-	inline Spectrum operator-(const Spectrum &spd) const {
-		Spectrum value = *this;
-		for (int i=0; i<SPECTRUM_SAMPLES; i++)
-			value.s[i] -= spd.s[i];
-		return value;
-	}
-
-	/// Subtract a spectral power distribution from this instance
-	inline Spectrum& operator-=(const Spectrum &spd) {
-		for (int i=0; i<SPECTRUM_SAMPLES; i++)
-			s[i] -= spd.s[i];
-		return *this;
-	}
-
-	/// Multiply by a scalar
-	inline Spectrum operator*(Float f) const {
-		Spectrum value = *this;
-		for (int i=0; i<SPECTRUM_SAMPLES; i++)
-			value.s[i] *= f;
-		return value;
-	}
-
-	/// Multiply by a scalar
-	inline friend Spectrum operator*(Float f, Spectrum &spd) {
-		return spd * f;
-	}
-
-	/// Multiply by a scalar
-	inline Spectrum& operator*=(Float f) {
-		for (int i=0; i<SPECTRUM_SAMPLES; i++)
-			s[i] *= f;
-		return *this;
-	}
-
-	/// Perform a component-wise multiplication by another spectrum
-	inline Spectrum operator*(const Spectrum &spd) const {
-		Spectrum value = *this;
-		for (int i=0; i<SPECTRUM_SAMPLES; i++)
-			value.s[i] *= spd.s[i];
-		return value;
-	}
-
-	/// Perform a component-wise multiplication by another spectrum
-	inline Spectrum& operator*=(const Spectrum &spd) {
-		for (int i=0; i<SPECTRUM_SAMPLES; i++)
-			s[i] *= spd.s[i];
-		return *this;
-	}
-	
-	/// Perform a component-wise division by another spectrum
-	inline Spectrum& operator/=(const Spectrum &spd) {
-		for (int i=0; i<SPECTRUM_SAMPLES; i++)
-			s[i] /= spd.s[i];
-		return *this;
-	}
-	
-	/// Perform a component-wise division by another spectrum
-	inline Spectrum operator/(Spectrum spd) const {
-		Spectrum value = *this;
-		for (int i=0; i<SPECTRUM_SAMPLES; i++)
-			value.s[i] /= spd.s[i];
-		return value;
-	}
-
-	/// Divide by a scalar
-	inline Spectrum operator/(Float f) const {
-		Spectrum value = *this;
-#ifdef MTS_DEBUG
-		if (f == 0) {
-			SLog(EWarn, "Spectrum: Division by zero!");
-		//	exit(-1);
-		}
-#endif
-		Float recip = 1.0f / f;
-		for (int i=0; i<SPECTRUM_SAMPLES; i++)
-			value.s[i] *= recip;
-		return value;
-	}
-
-	/// Equality test
-	inline bool operator==(Spectrum spd) const {
-		for (int i=0; i<SPECTRUM_SAMPLES; i++) {
-			if (s[i] != spd.s[i])
-				return false;
-		}
-		return true;
-	}
-
-	/// Inequality test
-	inline bool operator!=(Spectrum spd) const {
-		return !operator==(spd);
-	}
-
-	/// Divide by a scalar
-	inline friend Spectrum operator/(Float f, Spectrum &spd) {
-		return spd / f;
-	}
-
-	/// Divide by a scalar
-	inline Spectrum& operator/=(Float f) {
-#ifdef MTS_DEBUG
-		if (f == 0) {
-			SLog(EWarn, "Spectrum: Division by zero!");
-			//exit(-1);
-		}
-#endif
-		Float recip = 1.0f / f;
-		for (int i=0; i<SPECTRUM_SAMPLES; i++)
-			s[i] *= recip;
-		return *this;
-	}
-
-	/// Check for NaNs
-	inline bool isNaN() const {
-		for (int i=0; i<SPECTRUM_SAMPLES; i++)
-			if (mts_isnan(s[i]))
-				return true;
-		return false;
-	}
-
-	/// Returns whether the spectrum only contains valid (non-NaN, nonnegative) samples
+	/// Returns \c true if the spectrum only contains valid (non-NaN, nonnegative) samples
 	inline bool isValid() const {
-		for (int i=0; i<SPECTRUM_SAMPLES; i++)
-			if (mts_isnan(s[i]) || s[i] < 0.0f)
-				return false;
-		return true;
-	}
-
-	/// Multiply-accumulate operation, adds \a weight * \a spd
-	inline void addWeighted(Float weight, const Spectrum &spd) {
-		for (int i=0; i<SPECTRUM_SAMPLES; i++)
-			s[i] += weight * spd.s[i];
+		return positive().all();
 	}
 
 	/// Return the average over all wavelengths
 	inline Float average() const {
-		Float result = 0.0f;
-		for (int i=0; i<SPECTRUM_SAMPLES; i++)
-			result += s[i];
-		return result / SPECTRUM_SAMPLES;
-	}
-
-	/// Component-wise square root
-	inline Spectrum sqrt() const {
-		Spectrum value;
-		for (int i=0; i<SPECTRUM_SAMPLES; i++)
-			value.s[i] = std::sqrt(s[i]);
-		return value;
-	}
-
-	/// Component-wise exponentation
-	inline Spectrum exp() const {
-		Spectrum value;
-		for (int i=0; i<SPECTRUM_SAMPLES; i++)
-			value.s[i] = std::exp(s[i]);
-		return value;
-	}
-
-	/// Component-wise power
-	inline Spectrum pow(Float f) const {
-		Spectrum value;
-		for (int i=0; i<SPECTRUM_SAMPLES; i++)
-			value.s[i] = std::pow(s[i], f);
-		return value;
+		return sum() / SPECTRUM_SAMPLES;
 	}
 
 	/// Clamp negative values
@@ -333,47 +167,9 @@ public:
 			s[i] = std::max((Float) 0.0f, s[i]);
 	}
 
-	/// Return the highest-valued spectral sample
-	inline Float max() const {
-		Float result = s[0];
-		for (int i=1; i<SPECTRUM_SAMPLES; i++)
-			result = std::max(result, s[i]);
-		return result;
-	}
-
-	/// Return the lowest-valued spectral sample
-	inline Float min() const {
-		Float result = s[0];
-		for (int i=1; i<SPECTRUM_SAMPLES; i++)
-			result = std::min(result, s[i]);
-		return result;
-	}
-
-	/// Negate
-	inline Spectrum operator-() const {
-		Spectrum value;
-		for (int i=0; i<SPECTRUM_SAMPLES; i++)
-			value.s[i] = -s[i];
-		return value;
-	}
-
-	/// Indexing operator
-	inline Float &operator[](int entry) {
-		return s[entry];
-	}
-
-	/// Indexing operator
-	inline Float operator[](int entry) const {
-		return s[entry];
-	}
-
 	/// Check if this spectrum is zero at all wavelengths
 	inline bool isZero() const {
-		for (int i=0; i<SPECTRUM_SAMPLES; i++) {
-			if (s[i] != 0.0f)
-				return false;
-		}	
-		return true;
+		return operator==(Spectrum::Zero()).all();
 	}
 
 	/**
@@ -385,7 +181,7 @@ public:
 	/// Return the luminance in candelas.
 #if SPECTRUM_SAMPLES == 3
 	inline Float getLuminance() const {
-		return s[0] * 0.212671f + s[1] * 0.715160f + s[2] * 0.072169f;
+		return coeff(0) * 0.212671f + coeff(1) * 0.715160f + coeff(2) * 0.072169f;
 	}
 #else
 	Float getLuminance() const;
@@ -400,16 +196,16 @@ public:
 #if SPECTRUM_SAMPLES == 3
 	/// Convert to linear RGB
 	inline void toLinearRGB(Float &r, Float &g, Float &b) const {
-		r = s[0];
-		g = s[1];
-		b = s[2];
+		r = coeff(0);
+		g = coeff(1);
+		b = coeff(2);
 	}
 
 	/// Convert from linear RGB
 	inline void fromLinearRGB(Float r, Float g, Float b) {
-		s[0] = r;
-		s[1] = g;
-		s[2] = b;
+		s[0] = coeff(0);
+		s[1] = coeff(1);
+		s[2] = coeff(2);
 	}
 #else
 	/// Convert to linear RGB
@@ -433,11 +229,6 @@ public:
 
 	/// Initialize with spectral values from a smooth spectrum representation
 	void fromSmoothSpectrum(const SmoothSpectrum *smooth);
-
-	/// Serialize this spectrum to a stream
-	inline void serialize(Stream *stream) const {
-		stream->writeFloatArray(s, SPECTRUM_SAMPLES);
-	}
 
 	/// Return the wavelength corresponding to an index
 	inline static Float getWavelength(int index) {

@@ -159,7 +159,7 @@ public:
 			return false;
 
 		ref<Scheduler> sched = Scheduler::getInstance();
-		m_irrCache = new IrradianceCache(scene->getAABB());
+		m_irrCache = new IrradianceCache(scene->getBoundingBox3());
 		m_irrCache->clampNeighbor(m_clampNeighbor);
 		m_irrCache->clampScreen(m_clampScreen);
 		m_irrCache->clampInfluence(m_influenceMin, m_influenceMax);
@@ -299,7 +299,7 @@ public:
 			rRec.newQuery(RadianceQueryRecord::ERadianceNoEmission);
 
 			if (scene->sampleLuminaireAttenuated(p, lRec, time, rRec.nextSample2D())) {
-				Float dp = dot(lRec.d, n);
+				Float dp = lRec.d.dot(n);
 				if (dp < 0) 
 					EDir -= lRec.Le * dp;
 			}

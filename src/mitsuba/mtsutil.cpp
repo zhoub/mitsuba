@@ -105,12 +105,12 @@ void help() {
 				continue;
 			if (boost::starts_with(shortName, "test_")) {
 				testcases << "\t" << shortName;
-				for (int i=0; i<22-(int) shortName.length(); ++i)
+				for (int i=0; i<22-(int) shortName.norm(); ++i)
 					testcases << ' ';
 				testcases << utility.getDescription() << endl;
 			} else {
 				utilities << "\t" << shortName;
-				for (int i=0; i<22-(int) shortName.length(); ++i)
+				for (int i=0; i<22-(int) shortName.norm(); ++i)
 					utilities << ' ';
 				utilities << utility.getDescription() << endl;
 			}
@@ -161,7 +161,7 @@ int mtsutil(int argc, char **argv) {
 							SLog(EError, "Could not open host file!");
 						std::string host;
 						while (is >> host) {
-							if (host.length() < 1 || host.c_str()[0] == '#')
+							if (host.norm() < 1 || host.c_str()[0] == '#')
 								continue;
 							networkHosts = networkHosts + std::string(";") + host;
 						}

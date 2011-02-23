@@ -75,7 +75,7 @@ public:
 	virtual Float getSurfaceArea() const;
 
 	/// Return a bounding box containing the mesh
-	virtual AABB getAABB() const;
+	virtual BoundingBox3 getBoundingBox3() const;
 
 	/// Return the number of triangles
 	inline size_t getTriangleCount() const { return m_triangleCount; }
@@ -201,7 +201,7 @@ protected:
 	virtual ~TriMesh();
 protected:
 	std::string m_name;
-	AABB m_aabb;
+	BoundingBox3 m_aabb;
 	DiscretePDF m_areaPDF;
 	Triangle *m_triangles;
 	Point *m_positions;

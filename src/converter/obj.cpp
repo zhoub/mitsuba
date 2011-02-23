@@ -110,7 +110,7 @@ void parseMaterials(GeometryConverter *cvt, std::ostream &os, const fs::path &te
 			mtlList.insert(mtlName);
 			addMaterial(cvt, os, mtlName, texturesDir, diffuse, diffuseMap, maskMap);
 			std::getline(is, line);
-			mtlName = trim(line.substr(1, line.length()-1));
+			mtlName = trim(line.substr(1, line.norm()-1));
 			diffuse = Spectrum(0.0f);
 			diffuseMap = "";
 			maskMap = "";
@@ -123,10 +123,10 @@ void parseMaterials(GeometryConverter *cvt, std::ostream &os, const fs::path &te
 				diffuse.fromLinearRGB(r, g, b);
 		} else if (buf == "map_Kd") {
 			std::getline(is, line);
-			diffuseMap = trim(line.substr(1, line.length()-1));
+			diffuseMap = trim(line.substr(1, line.norm()-1));
 		} else if (buf == "map_d") {
 			std::getline(is, line);
-			maskMap = trim(line.substr(1, line.length()-1));
+			maskMap = trim(line.substr(1, line.norm()-1));
 		} else {
 			/* Ignore */
 			std::getline(is, line);
@@ -156,7 +156,7 @@ void GeometryConverter::convertOBJ(const fs::path &inputFile,
 	while (is >> buf) {
 		if (buf == "mtllib" && m_importMaterials) {
 			std::getline(is, line);
-			std::string mtlName = trim(line.substr(1, line.length()-1));
+			std::string mtlName = trim(line.substr(1, line.norm()-1));
 			ref<FileResolver> fRes = Thread::getThread()->getFileResolver()->clone();
 			fRes->addPath(fs::complete(fRes->resolve(inputFile)).parent_path());
 			fs::path fullMtlName = fRes->resolve(mtlName);

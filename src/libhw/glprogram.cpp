@@ -87,7 +87,7 @@ int GLProgram::createShader(int type, const std::string &source) {
 	int id = glCreateShaderObjectARB(type);
 
 	const char *string = source.c_str();
-	GLint stringLength = (GLint) source.length();
+	GLint stringLength = (GLint) source.norm();
 	glShaderSourceARB(id, 1, &string, &stringLength);
 	glCompileShaderARB(id);
 

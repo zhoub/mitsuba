@@ -7,7 +7,6 @@
 	This module contains the rendering-related API of Mitsuba
  */
 
-
 /**
 	\mainpage Mitsuba Renderer API Documentation
 
@@ -17,15 +16,25 @@
 
 	<table width=1000 border=0 style="border: 0px solid #EEEEEE"><tr><td>
 
-	<div class="featuretitle">Basic Information</div>
+	<h3>Introduction</h3>
+		This page provides API documentation for the <a href="http://www.mitsuba-renderer.org">Mitsuba rendering system</a>.
+		It should mainly be of interest to those who wish to extend Mitsuba in some form. There is
+		also a separate reference manual which should be seen as complementary to this document.
+
+	<h3>Basic Information</h3>
     - <a href="http://www.mitsuba-renderer.org/documentation.pdf">Reference Manual (PDF)</a>
 
-    <div class="featuretitle">API Documentation</div>
+	<h3>API documentation grouped by libraries</h3>
+	- <a href="group__libcore.html">Core API</a>
+	- <a href="group__librender.html">Rendering-related API</a>
+	- <a href="group__libhw.html">Hardware acceleration API</a>
+
+    <h3>API Documentation</h3>
     - <a href="annotated.html">Annotated Class List</a>
     - <a href="classes.html">Alphabetical Class List</a>
     - <a href="hierarchy.html">Class Hierarchy</a>
 
-	<div class="featuretitle">Community</div>
+	<h3>Community</h3>
     - <a href="http://www.mitsuba-renderer.org/devblog">Development Blog</a>
     - <a href="https://www.mitsuba-renderer.org/bugtracker/projects/mitsuba">Bug Tracker</a>
     - <a href="https://www.mitsuba-renderer.org/hg">List of repositories</a>

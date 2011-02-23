@@ -40,47 +40,47 @@ public:
 		Triangle t;
 		t.idx[0] = 0; t.idx[1] = 1; t.idx[2] = 2;
 
-		/* Split the triangle in half and verify the clipped AABB */
-		AABB clippedAABB = t.getClippedAABB(vertices, AABB(
+		/* Split the triangle in half and verify the clipped BoundingBox3 */
+		BoundingBox3 clippedBoundingBox3 = t.getClippedBoundingBox3(vertices, BoundingBox3(
 			Point(0, .5, -1),
 			Point(1, 1, 1)
 		));
 
-		assertEquals(Point(.5, .5, 0), clippedAABB.min);
-		assertEquals(Point(1, 1, 0), clippedAABB.max);
+		assertEquals(Point(.5, .5, 0), clippedBoundingBox3.min);
+		assertEquals(Point(1, 1, 0), clippedBoundingBox3.max);
 
 		/* Verify that a triangle can be completely clipped away */
-		clippedAABB = t.getClippedAABB(vertices, AABB(
+		clippedBoundingBox3 = t.getClippedBoundingBox3(vertices, BoundingBox3(
 			Point(2, 2, 2),
 			Point(3, 3, 3)
 		));
-		assertFalse(clippedAABB.isValid());
+		assertFalse(clippedBoundingBox3.isValid());
 
 		/* Verify that a no clipping whatsoever happens when 
-		   the AABB fully contains a triangle */
-		clippedAABB = t.getClippedAABB(vertices, AABB(
+		   the BoundingBox3 fully contains a triangle */
+		clippedBoundingBox3 = t.getClippedBoundingBox3(vertices, BoundingBox3(
 			Point(-1, -1, -1),
 			Point(1, 1, 1)
 		));
-		assertEquals(Point(0, 0, 0), clippedAABB.min);
-		assertEquals(Point(1, 1, 0), clippedAABB.max);
+		assertEquals(Point(0, 0, 0), clippedBoundingBox3.min);
+		assertEquals(Point(1, 1, 0), clippedBoundingBox3.max);
 
 		/* Verify that a triangle within a flat cell won't be clipped away */
-		clippedAABB = t.getClippedAABB(vertices, AABB(
+		clippedBoundingBox3 = t.getClippedBoundingBox3(vertices, BoundingBox3(
 			Point(-100,-100, 0),
 			Point( 100, 100, 0)
 		));
-		assertEquals(Point(0, 0, 0), clippedAABB.min);
-		assertEquals(Point(1, 1, 0), clippedAABB.max);
+		assertEquals(Point(0, 0, 0), clippedBoundingBox3.min);
+		assertEquals(Point(1, 1, 0), clippedBoundingBox3.max);
 
-		/* Verify that a triangle just touching the clip AABB leads to a
-		   collapsed point AABB */
-		clippedAABB = t.getClippedAABB(vertices, AABB(
+		/* Verify that a triangle just touching the clip BoundingBox3 leads to a
+		   collapsed point BoundingBox3 */
+		clippedBoundingBox3 = t.getClippedBoundingBox3(vertices, BoundingBox3(
 			Point(0,1, 0),
 			Point(1,2, 0)
 		));
-		assertEquals(Point(1, 1, 0), clippedAABB.min);
-		assertEquals(Point(1, 1, 0), clippedAABB.max);
+		assertEquals(Point(1, 1, 0), clippedBoundingBox3.min);
+		assertEquals(Point(1, 1, 0), clippedBoundingBox3.max);
 	}
 
 	void test02_bunnyBenchmark() {
@@ -93,9 +93,9 @@ public:
 		ref<ShapeKDTree> tree = new ShapeKDTree();
 		tree->addShape(mesh);
 		tree->build();
-		BSphere bsphere(tree->getBSphere());
+		BoundingSphere bsphere(tree->getBoundingSphere());
 
-		bsphere = BSphere(Point(-0.016840, 0.110154, -0.001537), .2f);
+		bsphere = BoundingSphere(Point(-0.016840, 0.110154, -0.001537), .2f);
 
 		Log(EInfo, "Bunny benchmark (http://homepages.paradise.net.nz/nickamy/benchmark.html):");
 		ref<Timer> timer = new Timer();
@@ -112,7 +112,7 @@ public:
 					sample2(random->nextFloat(), random->nextFloat());
 				Point p1 = bsphere.center + squareToSphere(sample1) * bsphere.radius;
 				Point p2 = bsphere.center + squareToSphere(sample2) * bsphere.radius;
-				Ray r(p1, normalize(p2-p1), 0.0f);
+				Ray r(p1, (p2-p1).normalized(), 0.0f);
 				Intersection its;
 
 				if (tree->rayIntersect(r))
@@ -129,7 +129,7 @@ public:
 	}
 	
 	void test03_pointKDTree() {
-		typedef TKDTree< BasicKDNode<Point2, Float> > KDTree2;
+		typedef PointKDTree< BasicKDNode<Point2, Float> > KDTree2;
 		size_t nPoints = 50000, nTries = 20;
 		ref<Random> random = new Random();
 
@@ -164,7 +164,7 @@ public:
 					nTraversals += kdtree.nnSearch(p, k, results);
 					resultsBF.clear();
 					for (size_t j=0; j<nPoints; ++j)
-						resultsBF.push_back(KDTree2::SearchResult((kdtree[j].getPosition()-p).lengthSquared(), j));
+						resultsBF.push_back(KDTree2::SearchResult((kdtree[j].getPosition()-p).squaredNorm(), j));
 					std::sort(results.begin(), results.end(), KDTree2::SearchResultComparator());
 					std::sort(resultsBF.begin(), resultsBF.end(), KDTree2::SearchResultComparator());
 					for (int j=0; j<k; ++j) 

@@ -159,7 +159,7 @@ int ubi_main(int argc, char **argv) {
 							SLog(EError, "Could not open host file!");
 						std::string host;
 						while (is >> host) {
-							if (host.length() < 1 || host.c_str()[0] == '#')
+							if (host.norm() < 1 || host.c_str()[0] == '#')
 								continue;
 							networkHosts = networkHosts + std::string(";") + host;
 						}
@@ -344,7 +344,7 @@ int ubi_main(int argc, char **argv) {
 			ref<Scene> scene = handler->getScene();
 
 			scene->setSourceFile(filename.file_string());
-			scene->setDestinationFile(destFile.length() > 0 ? destFile 
+			scene->setDestinationFile(destFile.norm() > 0 ? destFile 
 				: baseName.file_string());
 			scene->setBlockSize(blockSize);
 

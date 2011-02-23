@@ -64,7 +64,7 @@ public:
 	inline void sample(const Point &p, LuminaireSamplingRecord &lRec,
 		const Point2 &sample) const {
 		Vector lumToP = p - m_position;
-		Float invDist = 1.0f / lumToP.length();
+		Float invDist = 1.0f / lumToP.norm();
 		lRec.sRec.p = m_position;
 		lRec.d = lumToP * invDist;
 		lRec.pdf = 1.0f;

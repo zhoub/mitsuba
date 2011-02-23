@@ -48,9 +48,9 @@ struct AnisotropicDipoleQuery {
 	inline void operator()(const IrradianceSample &sample) {
 		/* Project onto slab */
 		Vector toP = frame.toLocal(sample.p - p);
-		Float length = toP.length();
+		Float length = toP.norm();
 		toP.z = 0;
-		toP = toP / toP.length() * length;
+		toP = toP / toP.norm() * length;
 		Spectrum dMo;
 		Float temp[3];
 
@@ -60,13 +60,13 @@ struct AnisotropicDipoleQuery {
 				for (int l=0; l<3; ++l)
 						xp[k] += P[i](k, l) * x[l];
 
-			Float dr = xp.length(); 
+			Float dr = xp.norm(); 
 			x = toP - xv[i]; xp = Vector();
 			for (int k=0; k<3; ++k)
 				for (int l=0; l<3; ++l)
 						xp[k] += P[i](k, l) * x[l];
 
-			Float dv = xp.length();
+			Float dv = xp.norm();
 
 			Float zr = -xr[i].z, zv = xv[i].z;
 
@@ -240,7 +240,7 @@ public:
 		m_A = (1 + m_Fdr) / m_Fdt;
 
 
-		Vector centralAxis = normalize(Vector(1,1,0));
+		Vector centralAxis = Vector(1,1,0).normalized();
 		for (int i=0; i<SPECTRUM_SAMPLES; ++i) {
 			ublas::identity_matrix<Float> I(3);
 			ublas::symmetric_matrix<Float> M = 9*4*m_sigmaT[i]/16.0f * (
@@ -304,7 +304,7 @@ public:
 		}
 
 		m_octree = new IrradianceOctree(m_maxDepth, m_minDelta, 
-			scene->getKDTree()->getAABB());
+			scene->getKDTree()->getBoundingBox3());
 
 		Float sa = 0;
 		for (std::vector<Shape *>::iterator it = m_shapes.begin(); 

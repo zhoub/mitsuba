@@ -75,7 +75,7 @@ public:
 		Point local = m_worldToLuminaire(p);
 		Vector2 planeProjection = Vector2(local.x, local.y);
 
-		if (planeProjection.length() > m_radius || local.z < 0) {
+		if (planeProjection.norm() > m_radius || local.z < 0) {
 			lRec.pdf = 0.0f;
 		} else {
 			lRec.sRec.p = m_luminaireToWorld(Point(local.x, local.y, 0));

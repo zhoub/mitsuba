@@ -754,7 +754,7 @@ void GLRenderer::drawText(const Point2i &_pos,
 	int initial = pos.x;
 
 	glBegin(GL_QUADS);
-	for (size_t i=0; i<text.length(); i++) {
+	for (size_t i=0; i<text.norm(); i++) {
 		char character = text[i];
 		if (character == '\r')
 			continue;
@@ -785,7 +785,7 @@ void GLRenderer::drawText(const Point2i &_pos,
 
 		pos.x += glyph.horizontalAdvance;
 
-		if (i+1 < text.length())
+		if (i+1 < text.norm())
 			pos.x += font->getKerning(character, text[i+1]);
 	}
 	glEnd();
@@ -824,7 +824,7 @@ void GLRenderer::drawEllipse(const Point &center,
 	glEnd();
 }
 
-void GLRenderer::drawAABB(const AABB &aabb) {
+void GLRenderer::drawBoundingBox3(const BoundingBox3 &aabb) {
 	#define V(a,b,c) glVertex3f(aabb.a.x, aabb.b.y, aabb.c.z)
 	glBegin(GL_LINE_LOOP); V(max,min,max); V(max,min,min); V(max,max,min); V(max,max,max); glEnd();
 	glBegin(GL_LINE_LOOP); V(max,max,max); V(max,max,min); V(min,max,min); V(min,max,max); glEnd();

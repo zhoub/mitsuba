@@ -27,30 +27,22 @@ MTS_NAMESPACE_BEGIN
  *
  * \ingroup libcore
  */
-struct BSphere {
+struct BoundingSphere {
 	Point center;
 	Float radius;
 
 	/// Construct a bounding sphere at the origin having radius zero
-	inline BSphere() {
-		radius = 0.0f;
-	}
+	inline BoundingSphere() : center(0.0f, 0.0f, 0.0f), radius(0.0f) { }
 
 	/// Unserialize a bounding sphere from a binary data stream
-	inline BSphere(Stream *stream) {
+	inline BoundingSphere(Stream *stream) {
 		center = Point(stream);
 		radius = stream->readFloat();
 	}
 
 	/// Create a bounding sphere from a given center point and radius
-	inline BSphere(const Point &center, Float radius)
-		: center(center), radius(radius) {
-	}
-
-	/// Copy constructor
-	inline BSphere(const BSphere &boundingSphere) 
-		: center(boundingSphere.center), radius(boundingSphere.radius) {
-	}
+	inline BoundingSphere(const Point &center, Float radius)
+		: center(center), radius(radius) { }
 
 	/// Return whether this bounding sphere has a radius of zero or less.
 	inline bool isEmpty() const {
@@ -59,22 +51,21 @@ struct BSphere {
 
 	/// Expand the bounding sphere radius to contain another point.
 	inline void expandBy(const Point p) {
-		Vector dir = p - center;
-		radius = std::max(radius, (p-center).length());
+		radius = std::max(radius, (p-center).norm());
 	}
-	
+
 	/// Check whether the specified point is inside or on the sphere
 	inline bool contains(const Point p) const {
-		return (p - center).length() <= radius;
+		return (p - center).norm() <= radius;
 	}
 
 	/// Equality test
-	inline bool operator==(const BSphere &boundingSphere) const {
+	inline bool operator==(const BoundingSphere &boundingSphere) const {
 		return center == boundingSphere.center && radius == boundingSphere.radius;
 	}
 
 	/// Inequality test
-	inline bool operator!=(const BSphere &boundingSphere) const {
+	inline bool operator!=(const BoundingSphere &boundingSphere) const {
 		return center != boundingSphere.center || radius != boundingSphere.radius;
 	}
 
@@ -84,8 +75,8 @@ struct BSphere {
 	 */
 	inline bool rayIntersect(const Ray &ray, Float &nearHit, Float &farHit) const {
 		Vector originToCenter = center - ray.o;
-		Float distToRayClosest = dot(originToCenter, ray.d);
-		Float tmp1 = originToCenter.lengthSquared() - radius*radius;
+		Float distToRayClosest = originToCenter.dot(ray.d);
+		Float tmp1 = originToCenter.squaredNorm() - radius*radius;
 
 		if (tmp1 <= 0.0f) {
 			/* Inside the sphere */
@@ -99,7 +90,7 @@ struct BSphere {
 		if (distToRayClosest < 0.0f)
 			return false;
 
-		Float sqrOriginToCenterLength = originToCenter.lengthSquared();
+		Float sqrOriginToCenterLength = originToCenter.squaredNorm();
 		Float sqrHalfChordDist = radius * radius - sqrOriginToCenterLength
 			+ distToRayClosest * distToRayClosest;
 
@@ -126,7 +117,7 @@ struct BSphere {
 	/// Return a string representation of the bounding sphere
 	inline std::string toString() const {
 		std::ostringstream oss;
-		oss << "BSphere[center = " << center.toString()
+		oss << "BoundingSphere[center = " << center.toString()
 			<< ", radius = " << radius << "]";
 		return oss.str();
 	}

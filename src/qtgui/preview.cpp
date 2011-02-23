@@ -542,19 +542,19 @@ void PreviewThread::oglRenderVPL(PreviewQueueEntry &target, const VPL &vpl) {
 	}
 }
 		
-void PreviewThread::oglRenderKDTree(const KDTreeBase<AABB> *kdtree) {
-	std::stack<boost::tuple<const KDTreeBase<AABB>::KDNode *, AABB, uint32_t> > stack;
+void PreviewThread::oglRenderKDTree(const KDTreeBase<BoundingBox3> *kdtree) {
+	std::stack<boost::tuple<const KDTreeBase<BoundingBox3>::KDNode *, BoundingBox3, uint32_t> > stack;
 
-	stack.push(boost::make_tuple(kdtree->getRoot(), kdtree->getTightAABB(), 0));
+	stack.push(boost::make_tuple(kdtree->getRoot(), kdtree->getTightBoundingBox3(), 0));
 	Float brightness = 10.0f;
 
 	while (!stack.empty()) {
-		const KDTreeBase<AABB>::KDNode *node = boost::get<0>(stack.top());
-		AABB aabb = boost::get<1>(stack.top());
+		const KDTreeBase<BoundingBox3>::KDNode *node = boost::get<0>(stack.top());
+		BoundingBox3 aabb = boost::get<1>(stack.top());
 		int level = boost::get<2>(stack.top());
 		stack.pop();
 		m_renderer->setColor(Spectrum(brightness));
-		m_renderer->drawAABB(aabb);
+		m_renderer->drawBoundingBox3(aabb);
 
 		if (!node->isLeaf()) {
 			int axis = node->getAxis();
@@ -572,7 +572,7 @@ void PreviewThread::oglRenderKDTree(const KDTreeBase<AABB> *kdtree) {
 				Spectrum color;
 				color.fromLinearRGB(0, 0, 2*brightness);
 				m_renderer->setColor(color);
-				m_renderer->drawAABB(aabb);
+				m_renderer->drawBoundingBox3(aabb);
 			}
 		}
 	}
@@ -607,8 +607,8 @@ void PreviewThread::rtrtRenderVPL(PreviewQueueEntry &target, const VPL &vpl) {
 
 	if (nearClip >= farClip) {
 		/* Unable to find any surface - just default values based on the scene size */
-		nearClip = 1e-3 * m_context->scene->getBSphere().radius;
-		farClip = 1e3 * m_context->scene->getBSphere().radius;
+		nearClip = 1e-3 * m_context->scene->getBoundingSphere().radius;
+		farClip = 1e3 * m_context->scene->getBoundingSphere().radius;
 		minDist = 0;
 	}
 

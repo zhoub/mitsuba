@@ -65,9 +65,8 @@ struct Ray {
 #ifdef MTS_DEBUG_FP
 		bool state = disableFPExceptions();
 #endif
-		dRcp.x = (Float) 1.0f / _d.x;
-		dRcp.y = (Float) 1.0f / _d.y;
-		dRcp.z = (Float) 1.0f / _d.z;
+		for (int i=0; i<3; ++i)
+			dRcp[i] = (Float) 1.0f / _d[i];
 #ifdef MTS_DEBUG_FP
 		restoreFPExceptions(state);
 #endif
@@ -79,9 +78,8 @@ struct Ray {
 #ifdef MTS_DEBUG_FP
 		bool state = disableFPExceptions();
 #endif
-		dRcp.x = (Float) 1.0f / _d.x;
-		dRcp.y = (Float) 1.0f / _d.y;
-		dRcp.z = (Float) 1.0f / _d.z;
+		for (int i=0; i<3; ++i)
+			dRcp[i] = (Float) 1.0f / _d[i];
 #ifdef MTS_DEBUG_FP
 		restoreFPExceptions(state);
 #endif
@@ -99,16 +97,15 @@ struct Ray {
 #ifdef MTS_DEBUG_FP
 		bool state = disableFPExceptions();
 #endif
-		dRcp.x = (Float) 1.0f / dVal.x;
-		dRcp.y = (Float) 1.0f / dVal.y;
-		dRcp.z = (Float) 1.0f / dVal.z;
+		for (int i=0; i<3; ++i)
+			dRcp[i] = (Float) 1.0f / dVal[i];
 #ifdef MTS_DEBUG_FP
 		restoreFPExceptions(state);
 #endif
 	}
 
 	/// Return 3d coordinates of a point on the ray
-	inline Point operator() (Float t) const { return o + t * d; }
+	inline Point operator() (Float t) const { return o + d * t; }
 
 	/// Return a string representation of this ray
 	inline std::string toString() const {
@@ -143,7 +140,7 @@ struct RayDifferential : public Ray {
 	inline RayDifferential(const RayDifferential &ray) 
 		: Ray(ray), hasDifferentials(ray.hasDifferentials), rx(ray.rx), ry(ray.ry) {
 	}
-    
+
 	void scaleDifferential(Float amount) {
 		rx.setOrigin(o + (rx.o - o) * amount);
 		ry.setOrigin(o + (ry.o - o) * amount);

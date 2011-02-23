@@ -26,9 +26,9 @@ MTS_NAMESPACE_BEGIN
 /**
  * \brief Stores a three-dimensional orthonormal coordinate frame
  *
- * This class is mostly used to quickly convert between different
- * cartesian coordinate systems and to efficiently compute certain
- * quantities (e.g. \ref cosTheta(), \ref tanTheta, ..).
+ * This class is used to quickly convert between different
+ * cartesian coordinate systems, and to efficiently compute certain
+ * quantities within them (e.g. \ref cosTheta(), \ref tanTheta, ..).
  *
  * \ingroup libcore
  */
@@ -41,8 +41,7 @@ struct Frame {
 
 	/// Given a normal and tangent vectors, construct a new coordinate frame
 	inline Frame(const Vector &s, const Vector &t, const Normal &n)
-	 : s(s), t(t), n(n) {
-	}
+	 : s(s), t(t), n(n) { }
 
 	/// Construct a frame from the given orthonormal vectors
 	inline Frame(const Vector &x, const Vector &y, const Vector &z)
@@ -71,21 +70,19 @@ struct Frame {
 	/// Convert from world coordinates to local coordinates
 	inline Vector toLocal(const Vector &v) const {
 		return Vector(
-			dot(v, s),
-			dot(v, t),
-			dot(v, n)
+			v.dot(s), v.dot(t), v.dot(n)
 		);
 	}
 
 	/// Convert from local coordinates to world coordinates
 	inline Vector toWorld(const Vector &v) const {
-		return s * v.x + t * v.y + n * v.z;
+		return s * v.x() + t * v.y() + n * v.z();
 	}
 
 	/** \brief Assuming that the given direction is in the local coordinate 
 	 * system, return the cosine of the angle between the normal and v */
 	inline static Float cosTheta(const Vector &v) {
-		return v.z;
+		return v.z();
 	}
 
 	/** \brief Assuming that the given direction is in the local coordinate
@@ -100,16 +97,16 @@ struct Frame {
 	/** \brief Assuming that the given direction is in the local coordinate
 	 * system, return the tangent of the angle between the normal and v */
 	inline static Float tanTheta(const Vector &v) {
-		Float temp = 1 - v.z*v.z;
+		Float temp = 1 - v.z()*v.z();
 		if (temp <= 0.0f)
 			return 0.0f;
-		return std::sqrt(temp)/v.z;
+		return std::sqrt(temp)/v.z();
 	}
 
 	/** \brief Assuming that the given direction is in the local coordinate
 	 * system, return the squared sine of the angle between the normal and v */
 	inline static Float sinTheta2(const Vector &v) {
-		return 1.0f - v.z * v.z;
+		return 1.0f - v.z() * v.z();
 	}
 
 	/// Return a string representation of this frame

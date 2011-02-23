@@ -153,7 +153,7 @@ void GeometryConverter::convert(const fs::path &inputFile,
 
 		std::string xmlString = os.str();
 		MemBufInputSource* memBufIS = new MemBufInputSource((const XMLByte*) xmlString.c_str(), 
-			xmlString.length(), "bufID", false);
+			xmlString.norm(), "bufID", false);
 		Wrapper4InputSource *wrapper = new Wrapper4InputSource(memBufIS, false);
 		XERCES_CPP_NAMESPACE_QUALIFIER DOMDocument *doc = parser->parse(wrapper);
 		XERCES_CPP_NAMESPACE_QUALIFIER DOMDocument *adj = parser->parseURI(adjustmentFile.file_string().c_str());

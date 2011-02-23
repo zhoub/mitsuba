@@ -385,4 +385,28 @@ template <> inline void Stream::writeArray(const uint64_t *array, size_t count) 
 
 MTS_NAMESPACE_END
 
+namespace Eigen {
+	template<typename _Scalar, int _Rows, int _Cols, int _Options, int _MaxRows, int _MaxCols>
+			Matrix<_Scalar, _Rows, _Cols, _Options, _MaxRows, _MaxCols>::Matrix(mitsuba::Stream *stream) {
+		Base::_check_template_params();
+		stream->readArray(this->data(), RowsAtCompileTime * ColsAtCompileTime);
+	}
+
+	template<typename _Scalar, int _Rows, int _Cols, int _Options, int _MaxRows, int _MaxCols>
+			void Matrix<_Scalar, _Rows, _Cols, _Options, _MaxRows, _MaxCols>::serialize(mitsuba::Stream *stream) const {
+		stream->writeArray(this->data(), RowsAtCompileTime * ColsAtCompileTime);
+	}
+
+	template<typename _Scalar, int _Rows, int _Cols, int _Options, int _MaxRows, int _MaxCols>
+			Array<_Scalar, _Rows, _Cols, _Options, _MaxRows, _MaxCols>::Array(mitsuba::Stream *stream) {
+		Base::_check_template_params();
+		stream->readArray(this->data(), RowsAtCompileTime * ColsAtCompileTime);
+	}
+
+	template<typename _Scalar, int _Rows, int _Cols, int _Options, int _MaxRows, int _MaxCols>
+			void Array<_Scalar, _Rows, _Cols, _Options, _MaxRows, _MaxCols>::serialize(mitsuba::Stream *stream) const {
+		stream->writeArray(this->data(), RowsAtCompileTime * ColsAtCompileTime);
+	}
+};
+
 #endif /* __STREAM_H */

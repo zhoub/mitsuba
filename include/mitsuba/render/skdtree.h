@@ -63,7 +63,7 @@ MTS_NAMESPACE_BEGIN
  */
 
 class MTS_EXPORT_RENDER ShapeKDTree : public SAHKDTree3D<ShapeKDTree> {
-	friend class GenericKDTree<AABB, SurfaceAreaHeuristic, ShapeKDTree>;
+	friend class GenericKDTree<BoundingBox3, SurfaceAreaHeuristic, ShapeKDTree>;
 	friend class SAHKDTree3D<ShapeKDTree>;
 	friend class Instance;
 	friend class AnimatedInstance;
@@ -80,10 +80,10 @@ public:
 	/**
 	 * \brief Return an axis-aligned bounding box containing all primitives
 	 */
-	inline const AABB &getAABB() const { return m_aabb; }
+	inline const BoundingBox3 &getBoundingBox3() const { return m_aabb; }
 	
 	/// Return an bounding sphere containing all primitives
-	inline const BSphere &getBSphere() const { return m_bsphere; }
+	inline const BoundingSphere &getBoundingSphere() const { return m_bsphere; }
 
 	/// Build the kd-tree (needs to be called before tracing any rays)
 	void build();
@@ -134,26 +134,26 @@ protected:
 	}
 
  	/// Return the axis-aligned bounding box of a certain primitive
-	FINLINE AABB getAABB(index_type idx) const {
+	FINLINE BoundingBox3 getBoundingBox3(index_type idx) const {
 		index_type shapeIdx = findShape(idx);
 		const Shape *shape = m_shapes[shapeIdx];
 		if (m_triangleFlag[shapeIdx]) {
 			const TriMesh *mesh = static_cast<const TriMesh *>(shape);
-			return mesh->getTriangles()[idx].getAABB(mesh->getVertexPositions());
+			return mesh->getTriangles()[idx].getBoundingBox3(mesh->getVertexPositions());
 		} else {
-			return shape->getAABB();
+			return shape->getBoundingBox3();
 		}
 	}
 
- 	/// Return the AABB of a primitive when clipped to another AABB
-	FINLINE AABB getClippedAABB(index_type idx, const AABB &aabb) const {
+ 	/// Return the BoundingBox3 of a primitive when clipped to another BoundingBox3
+	FINLINE BoundingBox3 getClippedBoundingBox3(index_type idx, const BoundingBox3 &aabb) const {
 		index_type shapeIdx = findShape(idx);
 		const Shape *shape = m_shapes[shapeIdx];
 		if (m_triangleFlag[shapeIdx]) {
 			const TriMesh *mesh = static_cast<const TriMesh *>(shape);
-			return mesh->getTriangles()[idx].getClippedAABB(mesh->getVertexPositions(), aabb);
+			return mesh->getTriangles()[idx].getClippedBoundingBox3(mesh->getVertexPositions(), aabb);
 		} else {
-			return shape->getClippedAABB(aabb);
+			return shape->getClippedBoundingBox3(aabb);
 		}
 	}
 
@@ -302,7 +302,7 @@ protected:
 				its.p = ray(its.t);
 
 			Normal faceNormal(cross(p1-p0, p2-p0));
-			Float length = faceNormal.length();
+			Float length = faceNormal.norm();
 			if (!faceNormal.isZero())
 				faceNormal /= length;
 
@@ -396,7 +396,7 @@ private:
 #if !defined(MTS_KD_CONSERVE_MEMORY)
 	TriAccel *m_triAccel;
 #endif
-	BSphere m_bsphere;
+	BoundingSphere m_bsphere;
 };
 
 MTS_NAMESPACE_END

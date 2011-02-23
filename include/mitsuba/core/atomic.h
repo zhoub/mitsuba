@@ -31,12 +31,7 @@ MTS_NAMESPACE_BEGIN
 #include <intrin.h>
 #endif
 
-/**
- * The following implementations are based on PBRT
- *
- * \addtogroup libcore
- */
-
+/*! \addtogroup libcore */
 /*! @{ */
 
 /**
@@ -49,7 +44,8 @@ MTS_NAMESPACE_BEGIN
  * \return \c true if \c *v was equal to \c oldValue and the exchange
  *         was successful.
  */
-template <typename T> inline bool atomicCompareAndExchangePtr(T **v, T *newValue, T *oldValue) {
+template <typename T> inline static 
+	bool compareAndExchangePtr(T **v, T *newValue, T *oldValue) {
 #if defined(WIN32)
     return InterlockedCompareExchangePointer(
 		reinterpret_cast<volatile PVOID *>(v), newValue, oldValue) == oldValue;
@@ -79,8 +75,7 @@ template <typename T> inline bool atomicCompareAndExchangePtr(T **v, T *newValue
  * \return \c true if \c *v was equal to \c oldValue and the exchange
  *         was successful.
  */
-
-inline bool atomicCompareAndExchange(volatile int32_t *v, int32_t newValue, int32_t oldValue) {
+inline static bool compareAndExchange(volatile int32_t *v, int32_t newValue, int32_t oldValue) {
 #if defined(WIN32)
     return InterlockedCompareExchange(
 		reinterpret_cast<volatile LONG *>(v), newValue, oldValue) == oldValue;
@@ -99,7 +94,7 @@ inline bool atomicCompareAndExchange(volatile int32_t *v, int32_t newValue, int3
  *         was successful.
  */
 
-inline bool atomicCompareAndExchange(volatile int64_t *v, int64_t newValue, int64_t oldValue) {
+inline static bool compareAndExchange(volatile int64_t *v, int64_t newValue, int64_t oldValue) {
 #if defined(WIN32)
     return _InterlockedCompareExchange64(
 		reinterpret_cast<volatile LONGLONG *>(v), newValue, oldValue) == oldValue;
@@ -113,16 +108,17 @@ inline bool atomicCompareAndExchange(volatile int64_t *v, int64_t newValue, int6
  *
  * \return The final value written to \a dst
  */
-inline float atomicAdd(volatile float *dst, float delta) {
+inline float add(volatile float *dst, float delta) {
 	/* Atomic FP addition from PBRT */
 	union bits { float f; int32_t i; };
 	bits oldVal, newVal;
 	do {
+		// From PBRT:
         // On IA32/x64, adding a PAUSE instruction in compare/exchange loops
         // is recommended to improve performance.  (And it does!)
-#if (defined(__i386__) || defined(__amd64__))
+	#if (defined(__i386__) || defined(__amd64__))
         __asm__ __volatile__ ("pause\n");
-#endif
+	#endif
 		oldVal.f = *dst;
 		newVal.f = oldVal.f + delta;
 	} while (!atomicCompareAndExchange((volatile int32_t *) dst, newVal.i, oldVal.i));
@@ -134,11 +130,12 @@ inline float atomicAdd(volatile float *dst, float delta) {
  *
  * \return The final value written to \a dst
  */
-inline double atomicAdd(volatile double *dst, double delta) {
+inline static double add(volatile double *dst, double delta) {
 	/* Atomic FP addition from PBRT */
 	union bits { double f; int64_t i; };
 	bits oldVal, newVal;
 	do {
+		// From PBRT:
         // On IA64/x64, adding a PAUSE instruction in compare/exchange loops
         // is recommended to improve performance.  (And it does!)
 #if (defined(__i386__) || defined(__amd64__))
@@ -155,8 +152,7 @@ inline double atomicAdd(volatile double *dst, double delta) {
  *
  * \return The final value written to \a dst
  */
-
-inline int32_t atomicAdd(volatile int32_t *dst, int32_t delta) {
+inline static int32_t add(volatile int32_t *dst, int32_t delta) {
 #if defined(WIN32)
 	return InterlockedExchangeAdd(dst, delta) + delta;
 #else
@@ -169,8 +165,7 @@ inline int32_t atomicAdd(volatile int32_t *dst, int32_t delta) {
  *
  * \return The final value written to \a dst
  */
-
-inline int64_t atomicAdd(volatile int64_t *dst, int64_t delta) {
+inline static int64_t add(volatile int64_t *dst, int64_t delta) {
 #if defined(WIN64)
 	return _InterlockedExchangeAdd64(dst, delta) + delta;
 #elif defined(WIN32)
@@ -181,8 +176,8 @@ inline int64_t atomicAdd(volatile int64_t *dst, int64_t delta) {
 #endif
 }
 
-/*! }@ */
+/*! @} */
 
 MTS_NAMESPACE_END
-
+	
 #endif /* __ATOMIC_H */

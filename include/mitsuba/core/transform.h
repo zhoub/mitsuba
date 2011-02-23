@@ -19,45 +19,45 @@
 #if !defined(__TRANSFORM_H)
 #define __TRANSFORM_H
 
-#include <mitsuba/core/matrix.h>
 #include <mitsuba/core/ray.h>
+#include <Eigen/LU>
 
 MTS_NAMESPACE_BEGIN
 
 /**
- * \brief Encapsulates a 4x4 linear transformation and its inverse
+ * \brief Encapsulates a 4x4 transformation in homogeneous coordinates
+ * and its inverse.
+ *
  * \ingroup libcore
  */
 struct MTS_EXPORT_CORE Transform {
 public:
 	/// Create an identity transformation
-	Transform() {
-		m_transform.setIdentity();
-		m_invTransform.setIdentity();
-	}
-	
+	inline Transform() : m_transform(Matrix4x4::Identity()),
+			m_invTransform(Matrix4x4::Identity()) { }
+
 	/// Unserialize a transformation from a stream
 	inline Transform(Stream *stream) { 
 		m_transform = Matrix4x4(stream);
 		m_invTransform = Matrix4x4(stream);
 	}
 
-	/** \brief Create a transform from the given matrix
-	 * and calculate the inverse
+	/** \brief Create a transformation from the given matrix
+	 * and internally compute the inverse
 	 */
-	Transform(const Matrix4x4 &trafo)
+	explicit Transform(const Matrix4x4 &trafo)
 		: m_transform(trafo) {
-		bool success = m_transform.invert(m_invTransform);
+		bool success = false;
+		trafo.computeInverseWithCheck(m_invTransform, success);
 		if (!success)
 			SLog(EError, "Unable to invert singular matrix %s", trafo.toString().c_str());
 	}
 
-	/// Create a transform from the given matrices
-	Transform(const Matrix4x4 &trafo, const Matrix4x4 &invTrafo)
-		: m_transform(trafo), m_invTransform(invTrafo) {
-	}
+	/// Create a transformation from the given matrices
+	inline Transform(const Matrix4x4 &trafo, const Matrix4x4 &invTrafo)
+		: m_transform(trafo), m_invTransform(invTrafo) { }
 
-	/// Return the inverse transform
+	/// Return the inverse transformation
 	Transform inverse() const {
 		return Transform(m_invTransform, m_transform);
 	}
@@ -67,20 +67,20 @@ public:
 
 	/// Return the determinant of the upper left 3x3 submatrix
 	inline Float det3x3() const {
-		return m_transform.det3x3();
+		return m_transform.topLeftCorner<3, 3>().determinant();
 	}
 
 	/// Test for a scale component
 	inline bool hasScale() const {
 		for (int i=0; i<3; ++i) {
 			for (int j=i; j<3; ++j) {
-				Float sum = 0;
-				for (int k=0; k<3; ++k)
-					sum += m_transform.m[i][k] * m_transform.m[j][k];
+				Float dp = 
+					m_transform.row(i).head<3>().dot(
+					m_transform.col(j ).head<3>());
 
-				if (i == j && std::abs(sum-1) > Epsilon)
+				if (i == j && std::abs(dp-1) > Epsilon)
 					return true;
-				else if (i != j && std::abs(sum) > Epsilon)
+				else if (i != j && std::abs(dp) > Epsilon)
 					return true;
 			}
 		}
@@ -89,133 +89,74 @@ public:
 
 	/// Test if this is the identity matrix
 	inline bool isIdentity() const {
-		for (int i=0; i<4; ++i) {
-			for (int j=0; j<4; ++j) {
-				if (m_transform.m[i][j] != ((i==j) ? 1 : 0))
-					return false;
-			}
-		}
-		return true;
+		return m_transform == Matrix4x4::Identity();
 	}
 
-	/// Matrix-vector multiplication for points in 3d space
+	/// Transform a point by an arbitrary matrix in homogeneous coordinates
 	inline Point operator()(const Point &p) const {
-		Float x = m_transform.m[0][0] * p.x + m_transform.m[0][1] * p.y
-				+ m_transform.m[0][2] * p.z + m_transform.m[0][3];
-		Float y = m_transform.m[1][0] * p.x + m_transform.m[1][1] * p.y
-				+ m_transform.m[1][2] * p.z + m_transform.m[1][3];
-		Float z = m_transform.m[2][0] * p.x + m_transform.m[2][1] * p.y
-				+ m_transform.m[2][2] * p.z + m_transform.m[2][3];
-		Float w = m_transform.m[3][0] * p.x + m_transform.m[3][1] * p.y
-				+ m_transform.m[3][2] * p.z + m_transform.m[3][3];
+		Vector4 result = m_transform * Vector4(p[0], p[1], p[2], (Float) 1.0f);
+
 #ifdef MTS_DEBUG
-		if (w == 0)
+		if (result.w() == 0)
 			SLog(EWarn, "w==0 in Transform::operator(Point &)");
 #endif
-		if (w == 1.0f)
-			return Point(x, y, z);
+
+		if (result.w() == 1.0f)
+			return result.head<3>();
 		else
-			return Point(x, y, z) / w;
+			return result.head<3>() / result.w();
 	}
 
-	/// Transform a point by a affine / non-projective matrix
+	/// Transform a point by an affine / non-projective matrix
 	inline Point transformAffine(const Point &p) const {
-		Float x = m_transform.m[0][0] * p.x + m_transform.m[0][1] * p.y
-				+ m_transform.m[0][2] * p.z + m_transform.m[0][3];
-		Float y = m_transform.m[1][0] * p.x + m_transform.m[1][1] * p.y
-				+ m_transform.m[1][2] * p.z + m_transform.m[1][3];
-		Float z = m_transform.m[2][0] * p.x + m_transform.m[2][1] * p.y
-				+ m_transform.m[2][2] * p.z + m_transform.m[2][3];
-		return Point(x,y,z);
+		return (m_transform * Vector4(p[0], p[1], p[2], (Float) 1.0f)).head<3>();
 	}
 
-	/// Matrix-vector multiplication for points in 3d space (no temporaries)
+	/// Transform a point by an arbitrary matrix in homogeneous coordinates
     inline void operator()(const Point &p, Point &dest) const {
-		dest.x = m_transform.m[0][0] * p.x + m_transform.m[0][1] * p.y
-			   + m_transform.m[0][2] * p.z + m_transform.m[0][3];
-		dest.y = m_transform.m[1][0] * p.x + m_transform.m[1][1] * p.y
-			   + m_transform.m[1][2] * p.z + m_transform.m[1][3];
-		dest.z = m_transform.m[2][0] * p.x + m_transform.m[2][1] * p.y
-			   + m_transform.m[2][2] * p.z + m_transform.m[2][3];
-		Float w = m_transform.m[3][0] * p.x + m_transform.m[3][1] * p.y
-				+ m_transform.m[3][2] * p.z + m_transform.m[3][3];
+		Vector4 result = m_transform * Vector4(p[0], p[1], p[2], (Float) 1.0f);
 
 #ifdef MTS_DEBUG
-		if (w == 0)
+		if (result.w() == 0)
 			SLog(EWarn, "w==0 in Transform::operator(Point &, Point &)");
 #endif
-		if (w != 1.0f)
-			dest /= w;
+		if (result.w() != 1.0f)
+			dest = result.head<3>() / result.w();
+		else
+			dest = result.head<3>();
 	}
 
-	/// Matrix-vector multiplication for vectors in 3d space
+	/// Transform a vector by the upper left 3x3 submatrix
     inline Vector operator()(const Vector &v) const {
-		Float x = m_transform.m[0][0] * v.x + m_transform.m[0][1] * v.y
-				+ m_transform.m[0][2] * v.z;
-		Float y = m_transform.m[1][0] * v.x + m_transform.m[1][1] * v.y
-				+ m_transform.m[1][2] * v.z;
-		Float z = m_transform.m[2][0] * v.x + m_transform.m[2][1] * v.y
-				+ m_transform.m[2][2] * v.z;
-		return Vector(x, y, z);
+		return m_transform.topLeftCorner<3, 3>() * v;
 	}
 
-	/// Matrix-vector multiplication for vectors in 3d space (no temporaries)
+	/// Transform a vector by the upper left 3x3 submatrix
     inline void operator()(const Vector &v, Vector &dest) const {
-		dest.x = m_transform.m[0][0] * v.x + m_transform.m[0][1] * v.y
-			   + m_transform.m[0][2] * v.z;
-		dest.y = m_transform.m[1][0] * v.x + m_transform.m[1][1] * v.y
-			   + m_transform.m[1][2] * v.z;
-		dest.z = m_transform.m[2][0] * v.x + m_transform.m[2][1] * v.y
-			   + m_transform.m[2][2] * v.z;
+		dest = m_transform.topLeftCorner<3, 3>() * v;
 	}
 
-	/// Matrix-normal multiplication
-    inline Normal operator()(const Normal &v) const {
-		Float x = m_invTransform.m[0][0] * v.x + m_invTransform.m[1][0] * v.y
-				+ m_invTransform.m[2][0] * v.z;
-		Float y = m_invTransform.m[0][1] * v.x + m_invTransform.m[1][1] * v.y
-				+ m_invTransform.m[2][1] * v.z;
-		Float z = m_invTransform.m[0][2] * v.x + m_invTransform.m[1][2] * v.y
-				+ m_invTransform.m[2][2] * v.z;
-		return Normal(x, y, z);
+	/// Transform a normal vector by the inverse transpose matrix
+    inline Normal operator()(const Normal &n) const {
+		return m_invTransform.topLeftCorner<3, 3>().transpose() * n;
 	}
 
-	/// Matrix-normal multiplication (no temporaries)
-    inline void operator()(const Normal &v, Normal &dest) const {
-		dest.x = m_invTransform.m[0][0] * v.x + m_invTransform.m[1][0] * v.y
-			   + m_invTransform.m[2][0] * v.z;
-		dest.y = m_invTransform.m[0][1] * v.x + m_invTransform.m[1][1] * v.y
-			   + m_invTransform.m[2][1] * v.z;
-		dest.z = m_invTransform.m[0][2] * v.x + m_invTransform.m[1][2] * v.y
-			   + m_invTransform.m[2][2] * v.z;
+	/// Transform a normal vector by the inverse transpose matrix
+    inline void operator()(const Normal &n, Normal &dest) const {
+		dest = m_invTransform.topLeftCorner<3, 3>().transpose() * n;
 	}
-	
+
 	/// 4D matrix-vector multiplication
 	inline Vector4 operator()(const Vector4 &v) const {
-		Float x = m_transform.m[0][0] * v.x + m_transform.m[0][1] * v.y
-				+ m_transform.m[0][2] * v.z + m_transform.m[0][3] * v.w;
-		Float y = m_transform.m[1][0] * v.x + m_transform.m[1][1] * v.y
-				+ m_transform.m[1][2] * v.z + m_transform.m[1][3] * v.w;
-		Float z = m_transform.m[2][0] * v.x + m_transform.m[2][1] * v.y
-				+ m_transform.m[2][2] * v.z + m_transform.m[2][3] * v.w;
-		Float w = m_transform.m[3][0] * v.x + m_transform.m[3][1] * v.y
-				+ m_transform.m[3][2] * v.z + m_transform.m[3][3] * v.w;
-		return Vector4(x,y,z,w);
+		return m_transform * v;
 	}
 
 	/// 4D matrix-vector multiplication
 	inline void operator()(const Vector4 &v, Vector4 &dest) const {
-		dest.x = m_transform.m[0][0] * v.x + m_transform.m[0][1] * v.y
-			   + m_transform.m[0][2] * v.z + m_transform.m[0][3] * v.w;
-		dest.y = m_transform.m[1][0] * v.x + m_transform.m[1][1] * v.y
-			   + m_transform.m[1][2] * v.z + m_transform.m[1][3] * v.w;
-		dest.z = m_transform.m[2][0] * v.x + m_transform.m[2][1] * v.y
-			   + m_transform.m[2][2] * v.z + m_transform.m[2][3] * v.w;
-		dest.w = m_transform.m[3][0] * v.x + m_transform.m[3][1] * v.y
-			   + m_transform.m[3][2] * v.z + m_transform.m[3][3] * v.w;
+		dest = m_transform * v;
 	}
 
-	/// Transform a ray. Assumes that there is no scaling
+	/// Transform a ray
 	inline void operator()(const Ray &a, Ray &b) const {
 		b.mint = a.mint;
 		b.maxt = a.maxt;
@@ -225,9 +166,7 @@ public:
 		bool state = disableFPExceptions();
 #endif
 		/* Re-compute the reciprocal */
-		b.dRcp.x = 1.0f / b.d.x;
-		b.dRcp.y = 1.0f / b.d.y;
-		b.dRcp.z = 1.0f / b.d.z;
+		b.dRcp = b.d.cwiseInverse();
 		b.time = a.time;
 #ifdef MTS_DEBUG_FP
 		restoreFPExceptions(state);

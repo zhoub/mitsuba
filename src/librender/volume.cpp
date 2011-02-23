@@ -30,7 +30,7 @@ VolumeDataSource::VolumeDataSource(const Properties &props) : ConfigurableObject
 
 VolumeDataSource::VolumeDataSource(Stream *stream, InstanceManager *manager) :
 	ConfigurableObject(stream, manager) {
-	m_aabb = AABB(stream);
+	m_aabb = BoundingBox3(stream);
 }
 
 VolumeDataSource::~VolumeDataSource() {

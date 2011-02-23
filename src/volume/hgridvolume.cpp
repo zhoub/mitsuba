@@ -74,7 +74,7 @@ public:
 		stream->setByteOrder(Stream::ELittleEndian);
 		Float xmin = stream->readSingle(), ymin = stream->readSingle(), zmin = stream->readSingle();
 		Float xmax = stream->readSingle(), ymax = stream->readSingle(), zmax = stream->readSingle();
-		m_aabb = AABB(Point(xmin, ymin, zmin), Point(xmax, ymax, zmax));
+		m_aabb = BoundingBox3(Point(xmin, ymin, zmin), Point(xmax, ymax, zmax));
 		m_res = Vector3i(stream);
 		m_filename = filename;
 		size_t nCells = m_res.x*m_res.y*m_res.z;

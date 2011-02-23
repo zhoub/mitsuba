@@ -20,7 +20,7 @@
 #define __IRRTREE_H
 
 #include <mitsuba/mitsuba.h>
-#include <mitsuba/core/aabb.h>
+#include <mitsuba/core/bbox.h>
 #include <fstream>
 #include "irrproc.h"
 
@@ -36,10 +36,10 @@ private:
 		OctreeNode *children[8];
 		sample_vector samples;
 		IrradianceSample cluster;
-		AABB aabb;
+		BoundingBox3 aabb;
 		bool leaf;
 
-		inline OctreeNode(const AABB &_aabb) : aabb(_aabb) {
+		inline OctreeNode(const BoundingBox3 &_aabb) : aabb(_aabb) {
 			for (int i=0; i<8; i++)
 				children[i] = NULL;
 			leaf = true;
@@ -72,7 +72,7 @@ private:
 	};
 public:
 	/// Construct an empty octree
-	IrradianceOctree(int maxDepth, Float threshold, const AABB &bounds); 
+	IrradianceOctree(int maxDepth, Float threshold, const BoundingBox3 &bounds); 
 
 	/// Unserialize an octree from a binary data stream
 	IrradianceOctree(Stream *stream, InstanceManager *manager);
@@ -112,7 +112,7 @@ protected:
 				it != node->samples.end(); ++it)
 				query(*it);
 		} else {
-			Float approxSolidAngle = node->cluster.area / (query.p - node->cluster.p).lengthSquared();
+			Float approxSolidAngle = node->cluster.area / (query.p - node->cluster.p).squaredNorm();
 			if (!node->aabb.contains(query.p) && approxSolidAngle < m_threshold) {
 				query(node->cluster);
 			} else {

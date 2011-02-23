@@ -35,9 +35,9 @@ public:
 			Log(EError, "Please specify either a direction or a luminaire "
 				"to world space transformation");
 		else if (props.hasProperty("direction"))
-			m_direction = normalize(props.getVector("direction"));
+			m_direction = (props.getVector("direction")).normalized();
 		else 
-			m_direction = normalize(m_luminaireToWorld(Vector(0, 0, 1)));
+			m_direction = (m_luminaireToWorld(Vector(0, 0, 1))).normalized();
 	}
 
 	DirectionalLuminaire(Stream *stream, InstanceManager *manager) 
@@ -64,7 +64,7 @@ public:
 
 	void preprocess(const Scene *scene) {
 		/* Get the scene's bounding sphere and slightly enlarge it */
-		BSphere bsphere = scene->getBSphere();
+		BoundingSphere bsphere = scene->getBoundingSphere();
 		m_diskRadius = bsphere.radius;
 		m_diskOrigin = bsphere.center - m_direction * bsphere.radius;
 

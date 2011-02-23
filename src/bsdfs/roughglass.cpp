@@ -100,7 +100,7 @@ public:
 	 * @param v An arbitrary direction
 	 */
 	Float smithBeckmannG1(const Vector &v, const Vector &m) const {
-		if (dot(v, m)*Frame::cosTheta(v) <= 0)
+		if (v.dot(m)*Frame::cosTheta(v) <= 0)
 			return 0.0;
 
 		const Float tanTheta = std::abs(Frame::tanTheta(v));
@@ -118,7 +118,7 @@ public:
 	}
 
 	inline Vector reflect(const Vector &wi, const Normal &n) const {
-		return Vector(n*(2.0f*dot(n, wi))) - wi;
+		return Vector(n*(2.0f*n.dot(wi))) - wi;
 	}
 
 	inline Float signum(Float value) const {
@@ -176,11 +176,11 @@ public:
 
 		/* Calculate the reflection half-vector (and possibly flip it
 		   so that it lies inside the hemisphere around the normal) */
-		Vector Hr = normalize(bRec.wo+bRec.wi) 
+		Vector Hr = (bRec.wo+bRec.wi).normalized() 
 			* signum(Frame::cosTheta(bRec.wo));
 
 		/* Fresnel factor */
-		Float F = fresnel(dot(bRec.wi, Hr), m_extIOR, m_intIOR);
+		Float F = fresnel(bRec.wi.dot(Hr), m_extIOR, m_intIOR);
 
 		/* Microsurface normal distribution */
 		Float D = beckmannD(Hr, m_alphaB);
@@ -204,10 +204,10 @@ public:
 			std::swap(etaI, etaO);
 
 		/* Calculate the transmission half-vector */
-		Vector Ht = -normalize(bRec.wi*etaI+bRec.wo*etaO);
+		Vector Ht = -(bRec.wi*etaI+bRec.wo*etaO).normalized();
 
 		/* Fresnel factor */
-		Float F = 1.0f - fresnel(dot(bRec.wi, Ht), m_extIOR, m_intIOR);
+		Float F = 1.0f - fresnel(bRec.wi.dot(Ht), m_extIOR, m_intIOR);
 
 		/* Microsurface normal distribution */
 		Float D = beckmannD(Ht, m_alphaB);
@@ -220,14 +220,14 @@ public:
 			G = smithBeckmannG1(bRec.wi, -Ht) * smithBeckmannG1(bRec.wo, -Ht);
 
 		/* Calculate the total amount of transmission */
-		Float value = F * D * G * std::abs((dot(bRec.wi, Ht)*dot(bRec.wo, Ht)) / 
+		Float value = F * D * G * std::abs((bRec.wi.dot(Ht)*bRec.wo.dot(Ht)) / 
 			(Frame::cosTheta(bRec.wi) * Frame::cosTheta(bRec.wo)));
 
 		if (bRec.quantity == ERadiance)
 			value *= (etaI*etaI)/(etaO*etaO);
 
 		/* Half-angle Jacobian for refraction */
-		Float sqrtDenom = etaI * dot(bRec.wi, Ht) + etaO * dot(bRec.wo, Ht);
+		Float sqrtDenom = etaI * bRec.wi.dot(Ht) + etaO * bRec.wo.dot(Ht);
 		value *= (etaO*etaO)/(sqrtDenom*sqrtDenom);
 
 		return m_specularTransmittance * value;
@@ -257,7 +257,7 @@ public:
 		if (Frame::cosTheta(bRec.wi) * Frame::cosTheta(bRec.wo) < 0)
 			return 0.0f;
 
-		Vector Hr = normalize(bRec.wo+bRec.wi) 
+		Vector Hr = (bRec.wo+bRec.wi).normalized()
 			* signum(Frame::cosTheta(bRec.wi));
 
 		/* Jacobian of the half-direction transform */
@@ -275,10 +275,10 @@ public:
 		if (Frame::cosTheta(bRec.wi) < 0)
 			std::swap(etaI, etaO);
 
-		Vector Ht = -normalize(bRec.wi*etaI+bRec.wo*etaO);
+		Vector Ht = -(bRec.wi*etaI+bRec.wo*etaO).normalized();
 
 		/* Jacobian of the half-direction transform. */
-		Float sqrtDenom = etaI * dot(bRec.wi, Ht) + etaO * dot(bRec.wo, Ht);
+		Float sqrtDenom = etaI * bRec.wi.dot(Ht) + etaO * bRec.wo.dot(Ht);
 		Float dwht_dwo = (etaO*etaO * absDot(bRec.wo, Ht)) / (sqrtDenom*sqrtDenom);
 
 		return beckmannD(Ht, alphaB) * std::abs(Frame::cosTheta(Ht)) * dwht_dwo;

@@ -38,8 +38,8 @@ public:
 		ESouth,
 		EWest
 	};
-	typedef TVector2<T> VectorType;
-	typedef TPoint2<T>  PointType;
+	typedef Eigen::Matrix<T, 2, 1>  VectorType;
+	typedef TPoint<T, 2>            PointType;
 
 	/// Create an empty Hilbert curve
 	inline HilbertCurve2D() : m_size(0), m_pos(0) { }

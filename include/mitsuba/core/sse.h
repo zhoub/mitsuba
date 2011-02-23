@@ -25,15 +25,15 @@
 #define FINLINE                inline __attribute__((always_inline))
 #define NOINLINE               __attribute__((noinline))
 #define MM_ALIGN16             __attribute__ ((aligned (16)))
-#define EXPECT_TAKEN(a)        __builtin_expect(!!(a), true)
-#define EXPECT_NOT_TAKEN(a)    __builtin_expect(!!(a), false)
+#define EXPECT_TAKEN(a)        __builtin_expect(a, true)
+#define EXPECT_NOT_TAKEN(a)    __builtin_expect(a, false)
 #define BREAKPOINT()            do { __asm__("int3"); } while(0)
 #elif defined(__OSX__) && defined(__GNUC__)
 #define FINLINE                inline __attribute__((always_inline))
 #define NOINLINE               __attribute__((noinline))
 #define MM_ALIGN16             __attribute__ ((aligned (16)))
-#define EXPECT_TAKEN(a)        __builtin_expect(!!(a), true)
-#define EXPECT_NOT_TAKEN(a)    __builtin_expect(!!(a), false)
+#define EXPECT_TAKEN(a)        __builtin_expect(a, true)
+#define EXPECT_NOT_TAKEN(a)    __builtin_expect(a, false)
 #define BREAKPOINT()            do { __asm__("int3"); } while(0)
 #elif defined(__MSVC__)
 #define FINLINE                __forceinline
@@ -193,18 +193,9 @@ static FINLINE uint64_t rdtsc(void) {
 }
 #endif
 #else
-#ifndef _WIN64
-__declspec(naked) static FINLINE unsigned __int64 __cdecl rdtsc(void) {
-	__asm {
-		rdtsc
-		ret
-	}
-}
-#else
 static FINLINE __int64 rdtsc(void) {
 	return __rdtsc();
 }
-#endif
 #endif
 
 #endif /* __MTS_SSE_H */

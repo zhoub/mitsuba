@@ -16,8 +16,8 @@
     along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#if !defined(__AABB_SSE_H)
-#define __AABB_SSE_H
+#if !defined(__BOUNDING_BOX_SSE_H)
+#define __BOUNDING_BOX_SSE_H
 
 MTS_NAMESPACE_BEGIN
 
@@ -25,13 +25,13 @@ MTS_NAMESPACE_BEGIN
  * NaN-aware slab test using SSE by Thierry Berger-Perrin (Intersects against
  * 4 rays simultaneously). Returns false if none of the rays intersect.
  */
-FINLINE bool AABB::rayIntersectPacket(const RayPacket4 &ray, 
+FINLINE bool BoundingBox3::rayIntersectPacket(const RayPacket4 &ray, 
 								   RayInterval4 &interval) const {
 	const __m128
 		xl1 = _mm_mul_ps(ray.dRcp[0].ps,
-			_mm_sub_ps(_mm_set1_ps(min.x), ray.o[0].ps)),
+			_mm_sub_ps(_mm_set1_ps(min[0]), ray.o[0].ps)),
 		xl2 = _mm_mul_ps(ray.dRcp[0].ps, 
-			_mm_sub_ps(_mm_set1_ps(max.x), ray.o[0].ps)),
+			_mm_sub_ps(_mm_set1_ps(max[0]), ray.o[0].ps)),
 		xl1a = _mm_min_ps(xl1, SSEConstants::p_inf.ps),
 		xl2a = _mm_min_ps(xl2, SSEConstants::p_inf.ps),
 		xl1b = _mm_max_ps(xl1, SSEConstants::n_inf.ps),
@@ -43,9 +43,9 @@ FINLINE bool AABB::rayIntersectPacket(const RayPacket4 &ray,
 
 	const __m128
 		yl1 = _mm_mul_ps(ray.dRcp[1].ps, 
-			_mm_sub_ps(_mm_set1_ps(min.y), ray.o[1].ps)),
+			_mm_sub_ps(_mm_set1_ps(min[1]), ray.o[1].ps)),
 		yl2 = _mm_mul_ps(ray.dRcp[1].ps, 
-			_mm_sub_ps(_mm_set1_ps(max.y), ray.o[1].ps)),
+			_mm_sub_ps(_mm_set1_ps(max[1]), ray.o[1].ps)),
 		yl1a = _mm_min_ps(yl1, SSEConstants::p_inf.ps),
 		yl2a = _mm_min_ps(yl2, SSEConstants::p_inf.ps),
 		yl1b = _mm_max_ps(yl1, SSEConstants::n_inf.ps),
@@ -56,9 +56,9 @@ FINLINE bool AABB::rayIntersectPacket(const RayPacket4 &ray,
 
 	const __m128
 		zl1 = _mm_mul_ps(ray.dRcp[2].ps, 
-			_mm_sub_ps(_mm_set1_ps(min.z), ray.o[2].ps)),
+			_mm_sub_ps(_mm_set1_ps(min[2]), ray.o[2].ps)),
 		zl2 = _mm_mul_ps(ray.dRcp[2].ps, 
-			_mm_sub_ps(_mm_set1_ps(max.z), ray.o[2].ps)),
+			_mm_sub_ps(_mm_set1_ps(max[2]), ray.o[2].ps)),
 		zl1a = _mm_min_ps(zl1, SSEConstants::p_inf.ps), 
 		zl2a = _mm_min_ps(zl2, SSEConstants::p_inf.ps),
 		zl1b = _mm_max_ps(zl1, SSEConstants::n_inf.ps),
@@ -79,4 +79,4 @@ FINLINE bool AABB::rayIntersectPacket(const RayPacket4 &ray,
 
 MTS_NAMESPACE_END
 
-#endif /* __AABB_SSE_H */
+#endif /* __BOUNDING_BOX_SSE_H */

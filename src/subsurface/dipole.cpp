@@ -35,7 +35,7 @@ struct IsotropicDipoleQuery {
 	}
 
 	inline void operator()(const IrradianceSample &sample) {
-		Spectrum rSqr = Spectrum((p - sample.p).lengthSquared());
+		Spectrum rSqr = Spectrum((p - sample.p).squaredNorm());
 		/* Distance to the real source */
 		Spectrum dr = (rSqr + zr*zr).sqrt();
 		/* Distance to the image point source */
@@ -70,7 +70,7 @@ struct IsotropicDipoleQuery {
 
 	inline void operator()(const IrradianceSample &sample) {
 		/* Distance to the positive point source of the dipole */
-		const __m128 lengthSquared = _mm_set1_ps((p - sample.p).lengthSquared()),
+		const __m128 lengthSquared = _mm_set1_ps((p - sample.p).squaredNorm()),
 			drSqr = _mm_add_ps(zrSqr, lengthSquared), 
 			dvSqr = _mm_add_ps(zvSqr, lengthSquared),
 			dr = _mm_sqrt_ps(drSqr), dv = _mm_sqrt_ps(dvSqr), 
@@ -265,7 +265,7 @@ public:
 		}
 
 		m_octree = new IrradianceOctree(m_maxDepth, m_minDelta, 
-			scene->getKDTree()->getAABB());
+			scene->getKDTree()->getBoundingBox3());
 
 		Float sa = 0;
 		for (std::vector<Shape *>::iterator it = m_shapes.begin(); 

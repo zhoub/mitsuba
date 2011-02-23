@@ -140,9 +140,9 @@ public:
 	}
 
 	inline Float pdfSpec(const BSDFQueryRecord &bRec) const {
-		Vector H = normalize(bRec.wi+bRec.wo);
+		Vector H = (bRec.wi+bRec.wo).normalized();
 		Float factor1 = 1.0f / (4.0f * M_PI * m_alphaX * m_alphaY * 
-			dot(H, bRec.wi) * std::pow(Frame::cosTheta(H), 3));
+			H.dot(bRec.wi) * std::pow(Frame::cosTheta(H), 3));
 		Float factor2 = H.x / m_alphaX, factor3 = H.y / m_alphaY;
 
 		Float exponent = -(factor2*factor2+factor3*factor3)/(H.z*H.z);
@@ -186,7 +186,7 @@ public:
 				(sinPhiH*sinPhiH)/(m_alphaY*m_alphaY)
 		))));
 		Vector H = sphericalDirection(thetaH, phiH);
-		bRec.wo = H * (2.0f * dot(bRec.wi, H)) - bRec.wi;
+		bRec.wo = H * (2.0f * bRec.wi.dot(H)) - bRec.wi;
 
 		bRec.sampledComponent = 1;
 		bRec.sampledType = EGlossyReflection;

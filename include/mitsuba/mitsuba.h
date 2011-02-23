@@ -52,6 +52,7 @@ using std::endl;
  * Include a basic subset of the core classes
  */
 #include <mitsuba/core/constants.h>
+#include <mitsuba/core/vector.h>
 #include <mitsuba/core/fwd.h>
 #include <mitsuba/render/fwd.h>
 #include <mitsuba/core/stl.h>
@@ -61,9 +62,7 @@ using std::endl;
 #include <mitsuba/core/tls.h>
 #include <mitsuba/core/logger.h>
 #include <mitsuba/core/thread.h>
-#include <mitsuba/core/vector.h>
-#include <mitsuba/core/point.h>
-#include <mitsuba/core/normal.h>
+#include <mitsuba/core/stream.h>
 #include <mitsuba/core/spectrum.h>
 #include <mitsuba/core/util.h>
 

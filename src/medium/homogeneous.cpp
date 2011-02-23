@@ -151,7 +151,7 @@ public:
 		if (m_shapes.size() == 0)
 			Log(EError, "This medium requires one or more Shape instance as a child");
 		m_kdTree->build();
-		m_aabb = m_kdTree->getAABB();
+		m_aabb = m_kdTree->getBoundingBox3();
 	}
 
 	Float getCoveredLength(const Ray &r) const {
@@ -162,7 +162,7 @@ public:
 		int iterations = 0;
 
 		while (remaining > 0 && m_kdTree->rayIntersect(ray, its)) {
-			bool inside = dot(its.geoFrame.n, ray.d) > 0;
+			bool inside = its.geoFrame.n.dot(ray.d) > 0;
 			if (inside)
 				coveredLength += std::min(remaining, its.t);
 			remaining -= its.t;
@@ -218,7 +218,7 @@ public:
 		bool success = false;
 
 		while (m_kdTree->rayIntersect(ray, its)) {
-			bool inside = dot(its.geoFrame.n, ray.d) > 0;
+			bool inside = its.geoFrame.n.dot(ray.d) > 0;
 			if (inside) {
 				/* Moving through the medium */
 				if (its.t > distMed && distMed < distSurf) {

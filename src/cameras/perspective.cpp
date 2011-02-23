@@ -144,7 +144,7 @@ public:
 			localRay.d = itsFocal - localRay.o;
 		}
 
-		localRay.d = normalize(localRay.d);
+		localRay.d.normalize();
 		Float invZ = 1.0f / localRay.d.z;
 		localRay.mint = m_nearClip * invZ;
 		localRay.maxt = m_farClip * invZ;

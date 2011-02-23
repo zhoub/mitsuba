@@ -113,7 +113,7 @@ public:
 				&& (bRec.component == -1 || bRec.component == 1);
 
 		Vector R = Vector(-bRec.wi.x, -bRec.wi.y, bRec.wi.z);
-		Float alpha = dot(R, bRec.wo);
+		Float alpha = R.dot(bRec.wo);
 
 		if (hasGlossy) {
 			Float specRef;
@@ -132,7 +132,7 @@ public:
 
 	inline Float pdfSpec(const BSDFQueryRecord &bRec) const {
 		Vector R = Vector(-bRec.wi.x, -bRec.wi.y, bRec.wi.z);
-		Float alpha = dot(R, bRec.wo);
+		Float alpha = R.dot(bRec.wo);
 		Float specPdf = std::pow(alpha, m_exponent) * 
 			(m_exponent + 1.0f) / (2.0f * M_PI);
 		if (alpha <= 0) 

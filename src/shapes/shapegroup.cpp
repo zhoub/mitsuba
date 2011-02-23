@@ -47,8 +47,8 @@ void ShapeGroup::configure() {
 		m_kdtree->build();
 }
 
-AABB ShapeGroup::getAABB() const {
-	return AABB();
+BoundingBox3 ShapeGroup::getBoundingBox3() const {
+	return BoundingBox3();
 }
 
 Float ShapeGroup::getSurfaceArea() const {

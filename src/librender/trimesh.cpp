@@ -81,7 +81,7 @@ enum ETriMeshFlags {
 TriMesh::TriMesh(Stream *stream, InstanceManager *manager) 
 	: Shape(stream, manager), m_tangents(NULL) {
 	m_name = stream->readString();
-	m_aabb = AABB(stream);
+	m_aabb = BoundingBox3(stream);
 
 	uint32_t flags = stream->readUInt();
 	m_vertexCount = (size_t) stream->readULong();
@@ -254,7 +254,7 @@ std::string TriMesh::getName() const {
 	return m_name;
 }
 
-AABB TriMesh::getAABB() const {
+BoundingBox3 TriMesh::getBoundingBox3() const {
 	return m_aabb;
 }
 
@@ -391,7 +391,7 @@ void TriMesh::rebuildTopology(Float maxAngle) {
 		Point v0 = m_positions[tri.idx[0]];
 		Point v1 = m_positions[tri.idx[1]];
 		Point v2 = m_positions[tri.idx[2]];
-		faceNormals[i] = Normal(normalize(cross(v1 - v0, v2 - v0)));
+		faceNormals[i] = Normal((v1 - v0).cross(v2 - v0).normalized());
 		for (int j=0; j<3; ++j)
 			newTriangles[i].idx[j] = 0xFFFFFFFFU;
 	}
@@ -423,7 +423,7 @@ void TriMesh::rebuildTopology(Float maxAngle) {
 					continue;
 				Normal n2(faceNormals[t2.idx]);
 
-				if (n1 == n2 || dot(n1, n2) > dpThresh) {
+				if (n1 == n2 || n1.dot(n2) > dpThresh) {
 					const Triangle &tri = m_triangles[t2.idx];
 					Triangle &newTri = newTriangles[t2.idx];
 					for (int i=0; i<3; ++i) {
@@ -509,20 +509,20 @@ void TriMesh::computeNormals() {
 					const Point &v2 = m_positions[tri.idx[(i+2)%3]];
 					Vector sideA(v1-v0), sideB(v2-v0);
 					if (i==0) {
-						n = cross(sideA, sideB);
-						Float length = n.length();
+						n = sideA.cross(sideB);
+						Float length = n.norm();
 						if (length == 0)
 							break;
 						n /= length;
 					}
-					Float angle = unitAngle(normalize(sideA), normalize(sideB));
+					Float angle = unitAngle(sideA.normalized(), sideB.normalized());
 					m_normals[tri.idx[i]] += n * angle;
 				}
 			}
 
 			for (size_t i=0; i<m_vertexCount; i++) {
 				Normal &n = m_normals[i];
-				Float length = n.length();
+				Float length = n.norm();
 				if (m_flipNormals)
 					length *= -1;
 				if (length != 0) {
@@ -593,14 +593,14 @@ bool TriMesh::computeTangentSpaceBasis() {
 		Vector dpdu = ( dUV2.y * dP1 - dUV1.y * dP2) * invDet;
 		Vector dpdv = (-dUV2.x * dP1 + dUV1.x * dP2) * invDet;
 
-		if (dpdu.length() == 0.0f) {
+		if (dpdu.norm() == 0.0f) {
 			/* Recovery - required to recover from invalid geometry */
-			Normal n = Normal(cross(v1 - v0, v2 - v0));
-			Float length = n.length();
+			Normal n = Normal((v1 - v0).cross(v2 - v0));
+			Float length = n.norm();
 			if (length != 0) {
 				n /= length;
-				dpdu = cross(n, dpdv);
-				if (dpdu.length() == 0.0f) {
+				dpdu = n.cross(dpdv);
+				if (dpdu.norm() == 0.0f) {
 					/* At least create some kind of tangent space basis 
 					(fair enough for isotropic BxDFs) */
 					coordinateSystem(n, dpdu, dpdv);
@@ -610,13 +610,13 @@ bool TriMesh::computeTangentSpaceBasis() {
 			}
 		}
 
-		if (dpdv.length() == 0.0f) {
-			Normal n = Normal(cross(v1 - v0, v2 - v0));
-			Float length = n.length();
+		if (dpdv.norm() == 0.0f) {
+			Normal n = Normal((v1 - v0).cross(v2 - v0));
+			Float length = n.norm();
 			if (length != 0) {
 				n /= length;
-				dpdv = cross(dpdu, n);
-				if (dpdv.length() == 0.0f) {
+				dpdv = dpdu.cross(n);
+				if (dpdv.norm() == 0.0f) {
 					/* At least create some kind of tangent space basis 
 						(fair enough for isotropic BxDFs) */
 					coordinateSystem(n, dpdu, dpdv);
@@ -640,7 +640,7 @@ bool TriMesh::computeTangentSpaceBasis() {
 		Vector &dpdu = m_tangents[i].dpdu;
 		Vector &dpdv = m_tangents[i].dpdv;
 
-		if (dpdu.lengthSquared() == 0.0f || dpdv.lengthSquared() == 0.0f) {
+		if (dpdu.squaredNorm() == 0.0f || dpdv.squaredNorm() == 0.0f) {
 			/* At least create some kind of tangent space basis 
 				(fair enough for isotropic BxDFs) */
 			coordinateSystem(m_normals[i], dpdu, dpdv);

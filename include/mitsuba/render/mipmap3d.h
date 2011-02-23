@@ -19,7 +19,7 @@
 #if !defined(__MIPMAP3D_H)
 #define __MIPMAP3D_H
 
-#include <mitsuba/core/aabb.h>
+#include <mitsuba/core/bbox.h>
 #include <mitsuba/core/cobject.h>
 
 MTS_NAMESPACE_BEGIN
@@ -42,7 +42,7 @@ public:
 	 *    Fudge factor for the denominator, meant to avoid the relative
 	 *    error singularity at zero
 	 */
-	SparseMipmap3D(const AABB &aabb, size_t size, const float *data, 
+	SparseMipmap3D(const BoundingBox3 &aabb, size_t size, const float *data, 
 		Float maxError, Float offset);
 
 	/// Unserialize from a binary data stream
@@ -50,7 +50,7 @@ public:
 
 	/**
 	 * Compute a line integral through the octree. Coordinates are
-	 * expected to be in the same coordinate system as the provided AABB.
+	 * expected to be in the same coordinate system as the provided BoundingBox3.
 	 */
 	Float lineIntegral(const Ray &ray) const;
 
@@ -60,7 +60,7 @@ public:
 	 * @param ray
 	 *    Specifies the ray, along which the integral should be inverted.
 	 *    Coordinates are expected to be in the same coordinate system as the
-	 *    provided AABB.
+	 *    provided BoundingBox3.
 	 * @param desiredDensity
 	 *    Try to integrate, until this much density has been accumulated
 	 * @param accumDensity
@@ -119,7 +119,7 @@ protected:
 	/// Virtual destructor
 	virtual ~SparseMipmap3D() { }
 private:
-	AABB m_aabb;
+	BoundingBox3 m_aabb;
 	std::vector<Node> m_nodes;
 	size_t m_size, m_levels;
 	Vector m_aabbSum;

@@ -483,7 +483,7 @@ void writeGeometry(ColladaContext &ctx, const std::string &prefixName, std::stri
 			ctx.os << "\t\t<integer name=\"shapeIndex\" value=\"" << (ctx.cvt->m_geometryDict.size() - 1) << "\"/>" << endl;
 		if (!transform.isIdentity()) {
 			ctx.os << "\t\t<transform name=\"toWorld\">" << endl;
-			ctx.os << "\t\t\t<matrix value=\"" << matrixValues.substr(0, matrixValues.length()-1) << "\"/>" << endl;
+			ctx.os << "\t\t\t<matrix value=\"" << matrixValues.substr(0, matrixValues.norm()-1) << "\"/>" << endl;
 			ctx.os << "\t\t</transform>" << endl;
 		}
 		if (matID != "") 
@@ -559,7 +559,7 @@ void loadGeometry(ColladaContext &ctx, const std::string &instanceName,
 					matrix << transform.getMatrix().m[i][j] << " ";
 			std::string matrixValues = matrix.str();
 			ctx.os << "\t\t<transform name=\"toWorld\">" << endl;
-			ctx.os << "\t\t\t<matrix value=\"" << matrixValues.substr(0, matrixValues.length()-1) << "\"/>" << endl;
+			ctx.os << "\t\t\t<matrix value=\"" << matrixValues.substr(0, matrixValues.norm()-1) << "\"/>" << endl;
 			ctx.os << "\t\t</transform>" << endl;
 		}
 		ctx.os << "\t\t<ref id=\"" << identifier << "\"/>" << endl;
@@ -732,7 +732,7 @@ void loadGeometry(ColladaContext &ctx, const std::string &instanceName,
 						matrix << transform.getMatrix().m[i][j] << " ";
 				std::string matrixValues = matrix.str();
 				ctx.os << "\t\t<transform name=\"toWorld\">" << endl;
-				ctx.os << "\t\t\t<matrix value=\"" << matrixValues.substr(0, matrixValues.length()-1) << "\"/>" << endl;
+				ctx.os << "\t\t\t<matrix value=\"" << matrixValues.substr(0, matrixValues.norm()-1) << "\"/>" << endl;
 				ctx.os << "\t\t</transform>" << endl;
 			}
 		}
@@ -1161,7 +1161,7 @@ void loadCamera(ColladaContext &ctx, Transform transform, domCamera &camera) {
 
 	ctx.os << endl;
 	ctx.os << "\t\t<transform name=\"toWorld\">" << endl;
-	ctx.os << "\t\t\t<matrix value=\"" << matrixValues.substr(0, matrixValues.length()-1) << "\"/>" << endl;
+	ctx.os << "\t\t\t<matrix value=\"" << matrixValues.substr(0, matrixValues.norm()-1) << "\"/>" << endl;
 	ctx.os << "\t\t</transform>" << endl << endl;
 	ctx.os << "\t\t<sampler id=\"sampler\" type=\"ldsampler\">" << endl;
 	ctx.os << "\t\t\t<integer name=\"sampleCount\" value=\"4\"/>" << endl;

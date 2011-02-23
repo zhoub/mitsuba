@@ -24,11 +24,14 @@
 
 MTS_NAMESPACE_BEGIN
 
-/** \brief 1/8/24/32/128-Bit Raster ("Bitmap") data structure with
- * support for PNG storage and retrieval. When set to 128 bits per pixel,
- * the implementation switches to HDR and the EXR file format.
+/** \brief 1/8/24/32/128-Bit bitmap class with read and write 
+ * support for several file formats.
  *
- * This class can efficiently handle 1-bit masks
+ * Handles loading of PNG, JPG, BMP, uncompressed TIFF, as well as 
+ * EXR files. The class supports writing of PNG and EXR files.
+ *
+ * 1-bit masks are handled efficiently. Note that in order
+ * to use EXR files, the number of bits per pixel must be set to 128.
  *
  * \ingroup libcore
  */

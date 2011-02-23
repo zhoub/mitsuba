@@ -44,7 +44,7 @@ Medium::Medium(const Properties &props)
 
 Medium::Medium(Stream *stream, InstanceManager *manager)
  : NetworkedObject(stream, manager) {
-	m_aabb = AABB(stream);
+	m_aabb = BoundingBox3(stream);
 	m_densityMultiplier = stream->readFloat();
 	m_sigmaA = Spectrum(stream);
 	m_sigmaS = Spectrum(stream);

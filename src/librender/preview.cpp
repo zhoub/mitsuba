@@ -95,11 +95,11 @@ void PreviewWorker::processIncoherent(const WorkUnit *workUnit, WorkResult *work
 				block->setPixel(pos++, value);
 				continue;
 			}
-			Float length = toVPL.length();
+			Float length = toVPL.norm();
 			toVPL/=length;
 
 			BSDFQueryRecord rr(its, its.toLocal(toVPL));
-			rr.wi = normalize(rr.wi);
+			rr.wi.normalize();
 			bsdfVal = its.shape->getBSDF()->fCos(rr);
 			length = std::max(length, m_minDist);
 
@@ -113,7 +113,7 @@ void PreviewWorker::processIncoherent(const WorkUnit *workUnit, WorkResult *work
 				eRec.type = EmissionRecord::EPreview;
 				value += m_vpl.P * bsdfVal * m_vpl.luminaire->f(eRec) 
 					* ((m_vpl.luminaire->getType() & Luminaire::EOnSurface ?
-					dot(m_vpl.its.shFrame.n, -toVPL) : (Float) 1)
+					-m_vpl.its.shFrame.n.dot(toVPL) : (Float) 1)
 					/ (length*length));
 			}
 			block->setPixel(pos++, value);
@@ -308,15 +308,15 @@ void PreviewWorker::processCoherent(const WorkUnit *workUnit, WorkResult *workRe
 						const Normal &n0 = normals[idx0],
 							  		 &n1 = normals[idx1],
 									 &n2 = normals[idx2];
-						its.shFrame.n = normalize(n0 * alpha + n1 * beta + n2 * gamma);
+						its.shFrame.n = (n0 * alpha + n1 * beta + n2 * gamma).normalized();
 					} else {
 						const Point *positions = mesh->getVertexPositions();
 						const Point &p0 = positions[idx0],
 									&p1 = positions[idx1],
 									&p2 = positions[idx2];
 						Vector sideA = p1 - p0, sideB = p2 - p0;
-						Vector n = cross(sideA, sideB);
-						Float nLengthSqr = n.lengthSquared();
+						Vector n = sideA.cross(sideB);
+						Float nLengthSqr = n.squaredNorm();
 						if (nLengthSqr != 0)
 							n /= std::sqrt(nLengthSqr);
 						its.shFrame.n = Normal(n);
@@ -369,7 +369,7 @@ void PreviewWorker::processCoherent(const WorkUnit *workUnit, WorkResult *workRe
 				if (EXPECT_TAKEN(bsdf->getType() == BSDF::EDiffuseReflection && diffuseVPL)) {
 					/* Fast path */
 					direct[idx] = (bsdf->getDiffuseReflectance(its) * vplWeight)
-						* (std::max((Float) 0.0f, dot(wo, its.shFrame.n))
+						* (std::max((Float) 0.0f, wo.dot(its.shFrame.n))
 						* (vplOnSurface ? (std::max(cosThetaLight.f[idx], (Float) 0.0f) * INV_PI) : INV_PI)
 						* invLengthSquared.f[idx]);
 				} else {
@@ -380,14 +380,14 @@ void PreviewWorker::processCoherent(const WorkUnit *workUnit, WorkResult *workRe
 					its.p.y = secRay4.o[1].f[idx];
 					its.p.z = secRay4.o[2].f[idx];
 					if (EXPECT_NOT_TAKEN(bsdf->getType() & BSDF::EAnisotropicMaterial)) {
-						its.shFrame.s = normalize(its.dpdu - its.shFrame.n
-							* dot(its.shFrame.n, its.dpdu));
-						its.shFrame.t = cross(its.shFrame.n, its.shFrame.s);
+						its.shFrame.s = (its.dpdu - its.shFrame.n
+							* its.shFrame.n.dot(its.dpdu)).normalized();
+						its.shFrame.t = its.shFrame.n.cross(its.shFrame.s);
 					} else {
 						coordinateSystem(its.shFrame.n, its.shFrame.s, its.shFrame.t);
 					}
 					const Float ctLight = cosThetaLight.f[idx];
-					wi = normalize(wi);
+					wi.normalize();
 
 					its.wi = its.toLocal(wi);
 					wo = its.toLocal(wo);

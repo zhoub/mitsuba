@@ -95,7 +95,7 @@ public:
 	 * @param v An arbitrary direction
 	 */
 	Float smithBeckmannG1(const Vector &v, const Vector &m) const {
-		if (dot(v, m)*Frame::cosTheta(v) <= 0)
+		if (v.dot(m)*Frame::cosTheta(v) <= 0)
 			return 0.0;
 
 		const Float tanTheta = Frame::tanTheta(v);
@@ -113,7 +113,7 @@ public:
 	}
 
 	inline Vector reflect(const Vector &wi, const Normal &n) const {
-		return Vector(n*(2.0f*dot(n, wi))) - wi;
+		return Vector(n*(2.0f*n.dot(wi))) - wi;
 	}
 
 	Spectrum f(const BSDFQueryRecord &bRec) const {
@@ -121,10 +121,10 @@ public:
 			|| bRec.wi.z <= 0 || bRec.wo.z <= 0)
 			return Spectrum(0.0f);\
 
-		Vector Hr = normalize(bRec.wi+bRec.wo);
+		Vector Hr = (bRec.wi+bRec.wo).normalized();
 
 		/* Fresnel factor */
-		Spectrum F = fresnelConductor(dot(bRec.wi, Hr), m_ior, m_k);
+		Spectrum F = fresnelConductor(bRec.wi.dot(Hr), m_ior, m_k);
 
 		/* Microsurface normal distribution */
 		Float D = beckmannD(Hr);
@@ -141,7 +141,7 @@ public:
 		if (bRec.wi.z <= 0 || bRec.wo.z <= 0)
 			return 0.0f;
 
-		Vector Hr = normalize(bRec.wi + bRec.wo);
+		Vector Hr = (bRec.wi + bRec.wo).normalized();
 		/* Jacobian of the half-direction transform. */
 		Float dwhr_dwo = 1.0f / (4.0f * absDot(bRec.wo, Hr));
 		return beckmannD(Hr) * Frame::cosTheta(Hr) * dwhr_dwo;

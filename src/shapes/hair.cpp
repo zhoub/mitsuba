@@ -38,7 +38,7 @@ MTS_NAMESPACE_BEGIN
  * the start of a new hair.
  */
 class HairKDTree : public SAHKDTree3D<HairKDTree> {
-	friend class GenericKDTree<AABB, SurfaceAreaHeuristic, HairKDTree>;
+	friend class GenericKDTree<BoundingBox3, SurfaceAreaHeuristic, HairKDTree>;
 	friend class SAHKDTree3D<HairKDTree>;
 public:
 	HairKDTree(std::vector<Point> &vertices, 
@@ -87,8 +87,8 @@ public:
 		std::vector<index_type>().swap(m_segIndex);
 	}
 
-	/// Return the AABB of the hair kd-tree
-	inline const AABB &getAABB() const {
+	/// Return the BoundingBox3 of the hair kd-tree
+	inline const BoundingBox3 &getBoundingBox3() const {
 		return m_aabb;
 	}
 
@@ -178,10 +178,10 @@ public:
 		if (absDot(planeNrml, cylD) < Epsilon)
 			return false;
 
-		Assert(std::abs(planeNrml.length()-1) <Epsilon);
-		Vector B, A = cylD - dot(cylD, planeNrml)*planeNrml;
+		Assert(std::abs(planeNrml.norm()-1) <Epsilon);
+		Vector B, A = cylD - cylD.dot(planeNrml)*planeNrml;
 
-		Float length = A.length();
+		Float length = A.norm();
 		if (length > Epsilon && planeNrml != cylD) {
 			A /= length;
 			B = cross(planeNrml, A);
@@ -190,15 +190,15 @@ public:
 		}
 
 		Vector delta = planePt - cylPt,
-			   deltaProj = delta - cylD*dot(delta, cylD);
+			   deltaProj = delta - cylD*delta.dot(cylD);
 
-		Float aDotD = dot(A, cylD);
-		Float bDotD = dot(B, cylD);
+		Float aDotD = A.dot(cylD);
+		Float bDotD = B.dot(cylD);
 		Float c0 = 1-aDotD*aDotD;
 		Float c1 = 1-bDotD*bDotD;
-		Float c2 = 2*dot(A, deltaProj);
-		Float c3 = 2*dot(B, deltaProj);
-		Float c4 = dot(delta, deltaProj) - radius*radius;
+		Float c2 = 2*A.dot(deltaProj);
+		Float c3 = 2*B.dot(deltaProj);
+		Float c4 = delta.dot(deltaProj) - radius*radius;
 
 		Float lambda = (c2*c2/(4*c0) + c3*c3/(4*c1) - c4)/(c0*c1);
 
@@ -216,9 +216,9 @@ public:
 
 	/**
 	 * \brief Intersect an infinite cylinder with an 
-	 * AABB face and bound the resulting clipped ellipse
+	 * BoundingBox3 face and bound the resulting clipped ellipse
 	 */
-	AABB intersectCylFace(int axis,
+	BoundingBox3 intersectCylFace(int axis,
 			const Point &min, const Point &max,
 			const Point &cylPt, const Vector &cylD) const {
 		int axis1 = (axis + 1) % 3;
@@ -231,16 +231,16 @@ public:
 		Vector ellipseAxes[2];
 		Float ellipseLengths[2];
 
-		AABB aabb;
+		BoundingBox3 aabb;
 		if (!intersectCylPlane(min, planeNrml, cylPt, cylD, m_radius, 
 			ellipseCenter, ellipseAxes, ellipseLengths)) {
-			/* Degenerate case -- return an invalid AABB. This is
+			/* Degenerate case -- return an invalid BoundingBox3. This is
 			   not a problem, since one of the other faces will provide
-			   enough information to arrive at a correct clipped AABB */
+			   enough information to arrive at a correct clipped BoundingBox3 */
 			return aabb;
 		}
 
-		/* Intersect the ellipse against the sides of the AABB face */
+		/* Intersect the ellipse against the sides of the BoundingBox3 face */
 		for (int i=0; i<4; ++i) {
 			Point p1, p2;
 			p1[axis] = p2[axis] = min[axis];
@@ -250,16 +250,16 @@ public:
 			p2[axis2] = ((i+1) & 2) ? min[axis2] : max[axis2];
 
 			Point2 p1l(
-				dot(p1 - ellipseCenter, ellipseAxes[0]) / ellipseLengths[0],
-				dot(p1 - ellipseCenter, ellipseAxes[1]) / ellipseLengths[1]);
+				(p1 - ellipseCenter).dot(ellipseAxes[0]) / ellipseLengths[0],
+				(p1 - ellipseCenter).dot(ellipseAxes[1]) / ellipseLengths[1]);
 			Point2 p2l(
-				dot(p2 - ellipseCenter, ellipseAxes[0]) / ellipseLengths[0],
-				dot(p2 - ellipseCenter, ellipseAxes[1]) / ellipseLengths[1]);
+				(p2 - ellipseCenter).dot(ellipseAxes[0]) / ellipseLengths[0],
+				(p2 - ellipseCenter).dot(ellipseAxes[1]) / ellipseLengths[1]);
 
 			Vector2 rel = p2l-p1l;
-			Float A = dot(rel, rel);
-			Float B = 2*dot(Vector2(p1l), rel);
-			Float C = dot(Vector2(p1l), Vector2(p1l))-1;
+			Float A = rel.squaredNorm();
+			Float B = 2*p1l.dot(rel);
+			Float C = p1l.squaredNorm()-1;
 
 			Float x0, x1;
 			if (solveQuadratic(A, B, C, x0, x1)) {
@@ -272,7 +272,7 @@ public:
 
 		ellipseAxes[0] *= ellipseLengths[0];
 		ellipseAxes[1] *= ellipseLengths[1];
-		AABB faceBounds(min, max);
+		BoundingBox3 faceBounds(min, max);
 
 		/* Find the componentwise maxima of the ellipse */
 		for (int i=0; i<2; ++i) {
@@ -293,7 +293,7 @@ public:
 		return aabb;
 	}
 
-	AABB getAABB(index_type index) const {
+	BoundingBox3 getBoundingBox3(index_type index) const {
 		index_type iv = m_segIndex.at(index);
 		Point center;
 		Vector axes[2];
@@ -303,7 +303,7 @@ public:
 			firstVertex(iv), tangent(iv), m_radius, center, axes, lengths);
 		Assert(success);
 
-		AABB result;
+		BoundingBox3 result;
 		axes[0] *= lengths[0]; axes[1] *= lengths[1];
 		for (int i=0; i<3; ++i) {
 			Float range = std::sqrt(axes[0][i]*axes[0][i] + axes[1][i]*axes[1][i]);
@@ -324,9 +324,9 @@ public:
 		return result;
 	}
 
-	AABB getClippedAABB(index_type index, const AABB &box) const {
+	BoundingBox3 getClippedBoundingBox3(index_type index, const BoundingBox3 &box) const {
 		/* Compute a base bounding box */
-		AABB base(getAABB(index));
+		BoundingBox3 base(getBoundingBox3(index));
 		base.clip(box);
 
 		index_type iv = m_segIndex.at(index);
@@ -335,56 +335,56 @@ public:
 		Vector cylD = tangent(iv);
 
 		/* Now forget about the cylinder ends and 
-		   intersect an infinite cylinder with each AABB face */
-		AABB clippedAABB;
-		clippedAABB.expandBy(intersectCylFace(0, 
+		   intersect an infinite cylinder with each BoundingBox3 face */
+		BoundingBox3 clippedBoundingBox3;
+		clippedBoundingBox3.expandBy(intersectCylFace(0, 
 				Point(base.min.x, base.min.y, base.min.z),
 				Point(base.min.x, base.max.y, base.max.z),
 				cylPt, cylD));
 
-		clippedAABB.expandBy(intersectCylFace(0,
+		clippedBoundingBox3.expandBy(intersectCylFace(0,
 				Point(base.max.x, base.min.y, base.min.z),
 				Point(base.max.x, base.max.y, base.max.z),
 				cylPt, cylD));
 
-		clippedAABB.expandBy(intersectCylFace(1, 
+		clippedBoundingBox3.expandBy(intersectCylFace(1, 
 				Point(base.min.x, base.min.y, base.min.z),
 				Point(base.max.x, base.min.y, base.max.z),
 				cylPt, cylD));
 
-		clippedAABB.expandBy(intersectCylFace(1,
+		clippedBoundingBox3.expandBy(intersectCylFace(1,
 				Point(base.min.x, base.max.y, base.min.z),
 				Point(base.max.x, base.max.y, base.max.z),
 				cylPt, cylD));
 
-		clippedAABB.expandBy(intersectCylFace(2, 
+		clippedBoundingBox3.expandBy(intersectCylFace(2, 
 				Point(base.min.x, base.min.y, base.min.z),
 				Point(base.max.x, base.max.y, base.min.z),
 				cylPt, cylD));
 
-		clippedAABB.expandBy(intersectCylFace(2,
+		clippedBoundingBox3.expandBy(intersectCylFace(2,
 				Point(base.min.x, base.min.y, base.max.z),
 				Point(base.max.x, base.max.y, base.max.z),
 				cylPt, cylD));
 
-		clippedAABB.clip(base);
-		return clippedAABB;
+		clippedBoundingBox3.clip(base);
+		return clippedBoundingBox3;
 	}
 #else
-	/// Compute the AABB of a segment (only used during tree construction)
-	AABB getAABB(int index) const {
+	/// Compute the BoundingBox3 of a segment (only used during tree construction)
+	BoundingBox3 getBoundingBox3(int index) const {
 		index_type iv = m_segIndex.at(index);
 
 		// cosine of steepest miter angle
-		const Float cos0 = dot(firstMiterNormal(iv), tangent(iv));
-		const Float cos1 = dot(secondMiterNormal(iv), tangent(iv));
+		const Float cos0 = firstMiterNormal(iv).dot(tangent(iv));
+		const Float cos1 = secondMiterNormal(iv).dot(tangent(iv));
 		const Float maxInvCos = 1.0 / std::min(cos0, cos1);
 		const Vector expandVec(m_radius * maxInvCos);
 
 		const Point a = firstVertex(iv);
 		const Point b = secondVertex(iv);
 
-		AABB aabb;
+		BoundingBox3 aabb;
 		aabb.expandBy(a - expandVec);
 		aabb.expandBy(a + expandVec);
 		aabb.expandBy(b - expandVec);
@@ -392,9 +392,9 @@ public:
 		return aabb;
 	}
 
-	/// Compute the clipped AABB of a segment (only used during tree construction)
-	AABB getClippedAABB(int index, const AABB &box) const {
-		AABB aabb(getAABB(index));
+	/// Compute the clipped BoundingBox3 of a segment (only used during tree construction)
+	BoundingBox3 getClippedBoundingBox3(int index, const BoundingBox3 &box) const {
+		BoundingBox3 aabb(getBoundingBox3(index));
 		aabb.clip(box);
 		return aabb;
 	}
@@ -413,13 +413,13 @@ public:
 
 		// Projection of ray onto subspace normal to axis
 		Vector relOrigin = ray.o - firstVertex(iv);
-		Vector projOrigin = relOrigin - dot(axis, relOrigin) * axis;
-		Vector projDirection = ray.d - dot(axis, ray.d) * axis;
+		Vector projOrigin = relOrigin - axis.dot(relOrigin) * axis;
+		Vector projDirection = ray.d - axis.dot(ray.d) * axis;
 
 		// Quadratic to intersect circle in projection
-		const Float A = projDirection.lengthSquared();
-		const Float B = 2 * dot(projOrigin, projDirection);
-		const Float C = projOrigin.lengthSquared() - m_radius*m_radius;
+		const Float A = projDirection.squaredNorm();
+		const Float B = 2 * projOrigin.dot(projDirection);
+		const Float C = projOrigin.squaredNorm() - m_radius*m_radius;
 
 		if (!solveQuadratic(A, B, C, nearT, farT))
 			return false;
@@ -430,12 +430,12 @@ public:
 		/* Next check the intersection points against the miter planes */
 		Point pointNear = ray(nearT);
 		Point pointFar = ray(farT);
-		if (dot(pointNear - firstVertex(iv), firstMiterNormal(iv)) >= 0 &&
-			dot(pointNear - secondVertex(iv), secondMiterNormal(iv)) <= 0 &&
+		if ((pointNear - firstVertex(iv)).dot(firstMiterNormal(iv)) >= 0 &&
+			(pointNear - secondVertex(iv)).dot(secondMiterNormal(iv)) <= 0 &&
 			nearT >= mint) {
 			t = nearT;
-		} else if (dot(pointFar - firstVertex(iv), firstMiterNormal(iv)) >= 0 &&
-				dot(pointFar - secondVertex(iv), secondMiterNormal(iv)) <= 0) {
+		} else if ((pointFar - firstVertex(iv)).dot(firstMiterNormal(iv)) >= 0 &&
+				(pointFar - secondVertex(iv)).dot(secondMiterNormal(iv)) <= 0) {
 			if (farT > maxt)
 				return false;
 			t = farT;
@@ -465,20 +465,20 @@ public:
 	inline bool prevSegmentExists(index_type iv) const { return !m_vertexStartsFiber[iv]; }
 	inline bool nextSegmentExists(index_type iv) const { return !m_vertexStartsFiber[iv+2]; }
 
-	inline Vector tangent(index_type iv) const { return normalize(secondVertex(iv) - firstVertex(iv)); }
-	inline Vector prevTangent(index_type iv) const { return normalize(firstVertex(iv) - prevVertex(iv)); }
-	inline Vector nextTangent(index_type iv) const { return normalize(nextVertex(iv) - secondVertex(iv)); }
+	inline Vector tangent(index_type iv) const { return (secondVertex(iv) - firstVertex(iv)).normalized(); }
+	inline Vector prevTangent(index_type iv) const { return (firstVertex(iv) - prevVertex(iv)).normalized(); }
+	inline Vector nextTangent(index_type iv) const { return (nextVertex(iv) - secondVertex(iv)).normalized(); }
 
 	inline Vector firstMiterNormal(index_type iv) const {
 		if (prevSegmentExists(iv))
-			return normalize(prevTangent(iv) + tangent(iv));
+			return (prevTangent(iv) + tangent(iv)).normalized();
 		else
 			return tangent(iv);
 	}
 
 	inline Vector secondMiterNormal(index_type iv) const {
 		if (nextSegmentExists(iv))
-			return normalize(tangent(iv) + nextTangent(iv));
+			return (tangent(iv) + nextTangent(iv)).normalized();
 		else
 			return tangent(iv);
 	}
@@ -523,7 +523,7 @@ public:
 
 		while (is.good()) {
 			std::getline(is, line);
-			if (line.length() > 0 && line[0] == '#') {
+			if (line.norm() > 0 && line[0] == '#') {
 				newFiber = true;
 				continue;
 			}
@@ -540,14 +540,14 @@ public:
 					if (tangent.isZero()) {
 						vertices.push_back(p);
 						vertexStartsFiber.push_back(newFiber);
-						tangent = normalize(p - lastP);
+						tangent = (p - lastP).normalized();
 						lastP = p;
 					} else {
-						Vector nextTangent = normalize(p - lastP);
-						if (dot(nextTangent, tangent) > dpThresh) {
+						Vector nextTangent = (p - lastP).normalized();
+						if (nextTangent.dot(tangent) > dpThresh) {
 							/* Too small of a difference in the tangent value,
 							   just overwrite the previous vertex by the current one */
-							tangent = normalize(p - vertices[vertices.size()-2]);
+							tangent = (p - vertices[vertices.size()-2]).normalized();
 							vertices[vertices.size()-1] = p;
 							++nSkipped;
 						} else {
@@ -632,7 +632,7 @@ public:
 		const Vector axis = m_kdtree->tangent(iv);
 		its.geoFrame.s = axis;
 		const Vector relHitPoint = its.p - m_kdtree->firstVertex(iv);
-		its.geoFrame.n = Normal(normalize(relHitPoint - dot(axis, relHitPoint) * axis));
+		its.geoFrame.n = Normal((relHitPoint - axis.dot(relHitPoint) * axis).normalized());
 		its.geoFrame.t = cross(its.geoFrame.n, its.geoFrame.s);
 		its.shFrame = its.geoFrame;
 		its.wi = its.toLocal(-ray.d);
@@ -673,10 +673,10 @@ public:
 							Vector(cosPhi[phi], sinPhi[phi], 0));
 					Normal miterNormal1 = m_kdtree->firstMiterNormal(iv);
 					Normal miterNormal2 = m_kdtree->secondMiterNormal(iv);
-					Float t1 = dot(miterNormal1, radius*dir) / dot(miterNormal1, tangent);
-					Float t2 = dot(miterNormal2, radius*dir) / dot(miterNormal2, tangent);
+					Float t1 = radius * miterNormal1.dot(dir) / miterNormal1.dot(tangent);
+					Float t2 = radius * miterNormal2.dot(dir) / miterNormal2.dot(tangent);
 
-					Normal normal(normalize(dir));
+					Normal normal(dir.normalized());
 					normals[vertexIdx] = normal;
 					vertices[vertexIdx++] = m_kdtree->firstVertex(iv) + radius*dir - tangent*t1;
 					normals[vertexIdx] = normal;
@@ -709,12 +709,12 @@ public:
 		return mesh.get();
 	}
 
-	const KDTreeBase<AABB> *getKDTree() const {
+	const KDTreeBase<BoundingBox3> *getKDTree() const {
 		return m_kdtree.get();
 	}
 
-	AABB getAABB() const {
-		return m_kdtree->getAABB();
+	BoundingBox3 getBoundingBox3() const {
+		return m_kdtree->getBoundingBox3();
 	}
 
 	Float getSurfaceArea() const {

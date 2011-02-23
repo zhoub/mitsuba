@@ -59,8 +59,8 @@ Shape *Shape::getElement(int i) {
 	return NULL;
 }
 	
-AABB Shape::getClippedAABB(const AABB &box) const {
-	AABB result = getAABB();
+BoundingBox3 Shape::getClippedBoundingBox3(const BoundingBox3 &box) const {
+	BoundingBox3 result = getBoundingBox3();
 	result.clip(box);
 	return result;
 }
@@ -70,7 +70,7 @@ Float Shape::sampleSolidAngle(ShapeSamplingRecord &sRec,
 	/* Turns the area sampling routine into one that samples wrt. solid angles */
 	Float pdfArea = sampleArea(sRec, sample);
 	Vector lumToPoint = from - sRec.p;
-	Float distSquared = lumToPoint.lengthSquared(), dp = dot(lumToPoint, sRec.n);
+	Float distSquared = lumToPoint.squaredNorm(), dp = lumToPoint.dot(sRec.n);
 	if (dp > 0) {
 		return pdfArea * distSquared * std::sqrt(distSquared) / dp;
 	} else {
@@ -81,8 +81,8 @@ Float Shape::sampleSolidAngle(ShapeSamplingRecord &sRec,
 Float Shape::pdfSolidAngle(const ShapeSamplingRecord &sRec, const Point &from) const {
 	/* Turns the area sampling routine into one that samples wrt. solid angles */
 	Vector lumToPoint = from - sRec.p;
-	Float distSquared = lumToPoint.lengthSquared();
-	Float invDP = std::max((Float) 0, std::sqrt(distSquared) / dot(lumToPoint, sRec.n));
+	Float distSquared = lumToPoint.squaredNorm();
+	Float invDP = std::max((Float) 0, std::sqrt(distSquared) / lumToPoint.dot(sRec.n));
 	return pdfArea(sRec) * distSquared * invDP;
 }
 
@@ -101,7 +101,7 @@ void Shape::addChild(const std::string &name, ConfigurableObject *child) {
 	}
 }
 
-const KDTreeBase<AABB> *Shape::getKDTree() const {
+const KDTreeBase<BoundingBox3> *Shape::getKDTree() const {
 	return NULL;
 }
 

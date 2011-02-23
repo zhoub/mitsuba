@@ -50,8 +50,8 @@ public:
 	/// Return whether or not the shape is a compound object
 	bool isCompound() const;
 
-	/// Returns an invalid AABB
-	AABB getAABB() const;
+	/// Returns an invalid BoundingBox3
+	BoundingBox3 getBoundingBox3() const;
 
 	/// Returns the surface area
 	Float getSurfaceArea() const;

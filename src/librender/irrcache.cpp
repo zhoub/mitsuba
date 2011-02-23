@@ -148,7 +148,7 @@ struct clamp_self_functor {
 	}
 
 	void operator()(IrradianceCache::Record *sample) {
-		Float distance = (p - sample->p).length();
+		Float distance = (p - sample->p).norm();
 		R0 = std::min(R0, sample->originalR0 + distance);
 	}
 
@@ -162,7 +162,7 @@ struct clamp_neighbors_functor {
 	}
 
 	void operator()(IrradianceCache::Record *sample) {
-		Float distance = (p - sample->p).length();
+		Float distance = (p - sample->p).norm();
 		Float distanceLimit = R0 + distance;
 
 		if (sample->originalR0 > distanceLimit) {
@@ -192,7 +192,7 @@ struct irr_interp_functor {
 
 		Spectrum extrapolated = sample->E;
 		if (gradients) {
-			Vector crossN = cross(sample->n, its.geoFrame.n);
+			Vector crossN = sample->n.cross(its.geoFrame.n);
 			Vector diff = its.p - sample->p;
 
 			for (int i=0; i<SPECTRUM_SAMPLES; ++i) {
@@ -215,10 +215,10 @@ struct irr_interp_functor {
 	Spectrum E;
 };
 
-IrradianceCache::IrradianceCache(const AABB &aabb) 
+IrradianceCache::IrradianceCache(const BoundingBox3 &aabb) 
  : m_octree(aabb) {
-	/* Use the longest AABB axis as an estimate of the scene dimensions */
-	m_sceneSize = (aabb.max-aabb.min)[aabb.getLargestAxis()];
+	/* Use the longest BoundingBox3 axis as an estimate of the scene dimensions */
+	m_sceneSize = (aabb.max-aabb.min)[aabb.getLongestDimension()];
 	m_mutex = new Mutex();
 
 	/* Reasonable default settings */
@@ -230,7 +230,7 @@ IrradianceCache::IrradianceCache(const AABB &aabb)
 }
 
 IrradianceCache::IrradianceCache(Stream *stream, InstanceManager *manager) : 
-	m_octree(AABB(stream)) {
+	m_octree(BoundingBox3(stream)) {
 	m_mutex = new Mutex();
 	m_kappa = stream->readFloat();
 	m_sceneSize = stream->readFloat();
@@ -244,7 +244,7 @@ IrradianceCache::IrradianceCache(Stream *stream, InstanceManager *manager) :
 	for (unsigned int i=0; i<recordCount; ++i) {
 		Record *sample = new Record(stream);
 		Float validRadius = sample->R0 / (2*m_kappa);
-		m_octree.insert(sample, AABB(
+		m_octree.insert(sample, BoundingBox3(
 			sample->p-Vector(1,1,1)*validRadius,
 			sample->p+Vector(1,1,1)*validRadius
 		));
@@ -258,7 +258,7 @@ IrradianceCache::~IrradianceCache() {
 }
 
 void IrradianceCache::serialize(Stream *stream, InstanceManager *manager) const {
-	m_octree.getAABB().serialize(stream);
+	m_octree.getBoundingBox3().serialize(stream);
 	stream->writeFloat(m_kappa);
 	stream->writeFloat(m_sceneSize);
 	stream->writeFloat(m_minDist);
@@ -287,17 +287,17 @@ IrradianceCache::Record *IrradianceCache::put(const RayDifferential &ray, const 
 	/* Clamping suggested by Tabellion and Lamourlette ("An Approximate Global 
 	   Illumination System for Computer Generated Films") */
 	if (m_clampScreen && ray.hasDifferentials) {
-		const Float d = -dot(its.geoFrame.n, Vector(its.p));
-		const Float txRecip = dot(its.geoFrame.n, ray.rx.d),
-		            tyRecip = dot(its.geoFrame.n, ray.ry.d);
+		const Float d = -its.geoFrame.n.dot(its.p);
+		const Float txRecip = its.geoFrame.n.dot(ray.rx.d),
+		            tyRecip = its.geoFrame.n.dot(ray.ry.d);
 		if (txRecip != 0 && tyRecip != 0) {
 			// Ray distances traveled 
-			const Float tx = -(dot(its.geoFrame.n, Vector(ray.rx.o)) + d) / 
+			const Float tx = -(its.geoFrame.n.dot(ray.rx.o) + d) / 
 				txRecip;
-			const Float ty = -(dot(its.geoFrame.n, Vector(ray.ry.o)) + d) / 
+			const Float ty = -(its.geoFrame.n.dot(ray.ry.o) + d) / 
 				tyRecip;
 			Point px = ray.rx(tx), py = ray.ry(ty);
-			Float sqrtArea = std::sqrt(cross(px-its.p, py-its.p).length())*2;
+			Float sqrtArea = std::sqrt((px-its.p).cross(py-its.p).norm())*2;
 
 			R0_min = 3.0f*sqrtArea;
 			R0_max = 20.0f*sqrtArea;
@@ -311,9 +311,9 @@ IrradianceCache::Record *IrradianceCache::put(const RayDifferential &ray, const 
 		/* Limit R0 by the gradient magnitude [Krivanek et al.] */
 		for (int i=0; i<SPECTRUM_SAMPLES; ++i) {
 			Vector grad(tGrad[0][i], tGrad[1][i], tGrad[2][i]);
-			Float length = grad.length();
+			Float length = grad.norm();
 			if (length > Epsilon)
-				R0 = std::min(R0, E[i]/grad.length());
+				R0 = std::min(R0, E[i]/grad.norm());
 		}
 
 		/* Limit the translational gradient magnitude [Krivanek et al.] */
@@ -326,9 +326,9 @@ IrradianceCache::Record *IrradianceCache::put(const RayDifferential &ray, const 
 		/* Perform neighbor clamping [Krivanek et al.] to distribute 
 		   geometric feature information amongst neighboring hss */
 		clamp_self_functor clampSelf(its.p, R0);
-		m_octree.searchSphere(BSphere(its.p, R0), clampSelf);
+		m_octree.searchSphere(BoundingSphere(its.p, R0), clampSelf);
 		clamp_neighbors_functor clampNeighbors(its.p, R0);
-		m_octree.searchSphere(BSphere(its.p, R0), clampNeighbors);
+		m_octree.searchSphere(BoundingSphere(its.p, R0), clampNeighbors);
 	}
 
 	Record *record = new Record();
@@ -349,7 +349,7 @@ IrradianceCache::Record *IrradianceCache::put(const RayDifferential &ray, const 
 
 void IrradianceCache::insert(Record *record) {
 	Float validRadius = record->R0 / (2*m_kappa);
-	m_octree.insert(record, AABB(
+	m_octree.insert(record, BoundingBox3(
 		record->p-Vector(1,1,1)*validRadius,
 		record->p+Vector(1,1,1)*validRadius
 	));

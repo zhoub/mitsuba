@@ -97,20 +97,20 @@ public:
 	}
 
 	Spectrum f(const PhaseFunctionQueryRecord &pRec) const {
-		if (pRec.mRec.orientation.length() == 0)
+		if (pRec.mRec.orientation.norm() == 0)
 			return Spectrum(m_kd / (4*M_PI));
 
 		Frame frame(normalize(pRec.mRec.orientation));
 		Vector reflectedLocal = frame.toLocal(pRec.wo);
 
-		reflectedLocal.z = -dot(pRec.wi, frame.n);
+		reflectedLocal.z = -pRec.wi.dot(frame.n);
 		Float a = std::sqrt((1-reflectedLocal.z*reflectedLocal.z) / 
 			(reflectedLocal.x*reflectedLocal.x + reflectedLocal.y*reflectedLocal.y));
 		reflectedLocal.y *= a;
 		reflectedLocal.x *= a;
 		Vector R = frame.toWorld(reflectedLocal);
 
-		return Spectrum((std::pow(std::max((Float) 0, dot(R, pRec.wo)), m_exponent))
+		return Spectrum((std::pow(std::max((Float) 0, R.dot(pRec.wo)), m_exponent))
 			* m_normalization * m_ks + m_kd / (4*M_PI));
 	}
 

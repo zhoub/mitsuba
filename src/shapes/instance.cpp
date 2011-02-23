@@ -45,12 +45,12 @@ public:
 			Log(EError, "A reference to a 'shapegroup' must be specified!");
 	}
 
-	AABB getAABB() const {
+	BoundingBox3 getBoundingBox3() const {
 		const ShapeKDTree *kdtree = m_shapeGroup->getKDTree();
-		const AABB &aabb = kdtree->getAABB();
+		const BoundingBox3 &aabb = kdtree->getBoundingBox3();
 		if (!aabb.isValid()) // the geometry group is empty
 			return aabb;
-		AABB result;
+		BoundingBox3 result;
 		for (int i=0; i<8; ++i)
 			result.expandBy(m_objectToWorld(aabb.getCorner(i)));
 		return result;
@@ -89,10 +89,10 @@ public:
 		const void *temp, Intersection &its) const {
 		const ShapeKDTree *kdtree = m_shapeGroup->getKDTree();
 		kdtree->fillIntersectionRecord<false>(ray, temp, its);
-		its.shFrame.n = normalize(m_objectToWorld(its.shFrame.n));
-		its.shFrame.s = normalize(m_objectToWorld(its.shFrame.s));
-		its.shFrame.t = normalize(m_objectToWorld(its.shFrame.t));
-		its.geoFrame = Frame(normalize(m_objectToWorld(its.geoFrame.n)));
+		its.shFrame.n = m_objectToWorld(its.shFrame.n).normalized();
+		its.shFrame.s = m_objectToWorld(its.shFrame.s).normalized();
+		its.shFrame.t = m_objectToWorld(its.shFrame.t).normalized();
+		its.geoFrame = Frame(m_objectToWorld(its.geoFrame.n).normalized());
 		its.wi = its.shFrame.toLocal(-ray.d);
 		its.dpdu = m_objectToWorld(its.dpdu);
 		its.dpdv = m_objectToWorld(its.dpdv);

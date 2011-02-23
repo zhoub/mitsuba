@@ -48,56 +48,6 @@ void TestCase::assertEqualsImpl(Float expected, Float actual, Float epsilon, con
 			"expected floating point value %f, got %f.", expected, actual);
 }
 
-void TestCase::assertEqualsImpl(const Vector2 &expected, const Vector2 &actual, Float epsilon, const char *file, int line) {
-	bool match = true;
-	for (int i=0; i<2; ++i)
-		if (std::abs(expected[i]-actual[i]) > epsilon)
-			match = false;
-	if (!match)
-		Thread::getThread()->getLogger()->log(EError, NULL, file, line, "Assertion failure: "
-			"expected vector %s, got %s.", expected.toString().c_str(), actual.toString().c_str());
-}
-
-void TestCase::assertEqualsImpl(const Point2 &expected, const Point2 &actual, Float epsilon, const char *file, int line) {
-	bool match = true;
-	for (int i=0; i<2; ++i)
-		if (std::abs(expected[i]-actual[i]) > epsilon)
-			match = false;
-	if (!match)
-		Thread::getThread()->getLogger()->log(EError, NULL, file, line, "Assertion failure: "
-			"expected point %s, got %s.", expected.toString().c_str(), actual.toString().c_str());
-}
-
-void TestCase::assertEqualsImpl(const Vector &expected, const Vector &actual, Float epsilon, const char *file, int line) {
-	bool match = true;
-	for (int i=0; i<3; ++i)
-		if (std::abs(expected[i]-actual[i]) > epsilon)
-			match = false;
-	if (!match)
-		Thread::getThread()->getLogger()->log(EError, NULL, file, line, "Assertion failure: "
-			"expected vector %s, got %s.", expected.toString().c_str(), actual.toString().c_str());
-}
-
-void TestCase::assertEqualsImpl(const Point &expected, const Point &actual, Float epsilon, const char *file, int line) {
-	bool match = true;
-	for (int i=0; i<3; ++i)
-		if (std::abs(expected[i]-actual[i]) > epsilon)
-			match = false;
-	if (!match)
-		Thread::getThread()->getLogger()->log(EError, NULL, file, line, "Assertion failure: "
-			"expected point %s, got %s.", expected.toString().c_str(), actual.toString().c_str());
-}
-
-void TestCase::assertEqualsImpl(const Vector4 &expected, const Vector4 &actual, Float epsilon, const char *file, int line) {
-	bool match = true;
-	for (int i=0; i<4; ++i)
-		if (std::abs(expected[i]-actual[i]) > epsilon)
-			match = false;
-	if (!match)
-		Thread::getThread()->getLogger()->log(EError, NULL, file, line, "Assertion failure: "
-			"expected vector %s, got %s.", expected.toString().c_str(), actual.toString().c_str());
-}
-
 struct Sample {
 	Float value;
 	Float variance;

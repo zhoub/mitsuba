@@ -33,7 +33,7 @@ public:
 		m_blue[2] = 1.0f;
 		m_showEllipses = false;
 		m_showRectangles = false;
-		m_showClippedAABB = false;
+		m_showClippedBoundingBox3 = false;
 		m_radius = .2f;
 	}
 
@@ -68,9 +68,9 @@ public:
 		if (absDot(planeNrml, cylD) < Epsilon)
 			return false;
 
-		Vector B, A = cylD - dot(cylD, planeNrml)*planeNrml;
+		Vector B, A = cylD - cylD.dot(planeNrml)*planeNrml;
 
-		Float length = A.length();
+		Float length = A.norm();
 		if (length != 0) {
 			A /= length;
 			B = cross(planeNrml, A);
@@ -79,15 +79,15 @@ public:
 		}
 
 		Vector delta = planePt - cylPt,
-			   deltaProj = delta - cylD*dot(delta, cylD);
+			   deltaProj = delta - cylD*delta.dot(cylD);
 
-		Float aDotD = dot(A, cylD);
-		Float bDotD = dot(B, cylD);
+		Float aDotD = A.dot(cylD);
+		Float bDotD = B.dot(cylD);
 		Float c0 = 1-aDotD*aDotD;
 		Float c1 = 1-bDotD*bDotD;
-		Float c2 = 2*dot(A, deltaProj);
-		Float c3 = 2*dot(B, deltaProj);
-		Float c4 = dot(delta, deltaProj) - radius*radius;
+		Float c2 = 2*A.dot(deltaProj);
+		Float c3 = 2*B.dot(deltaProj);
+		Float c4 = delta.dot(deltaProj) - radius*radius;
 
 		Float lambda = (c2*c2/(4*c0) + c3*c3/(4*c1) - c4)/(c0*c1);
 
@@ -103,7 +103,7 @@ public:
 		return true;
 	}
 
-	AABB intersectCylFace(int axis,
+	BoundingBox3 intersectCylFace(int axis,
 			const Point &min, const Point &max,
 			const Point &cylPt, const Vector &cylD) {
 		int axis1 = (axis + 1) % 3;
@@ -116,12 +116,12 @@ public:
 		Vector ellipseAxes[2];
 		Float ellipseLengths[2];
 
-		AABB aabb;
+		BoundingBox3 aabb;
 		if (!intersectCylPlane(min, planeNrml, cylPt, cylD, m_radius, 
 			ellipseCenter, ellipseAxes, ellipseLengths)) {
-			/* Degenerate case -- return an invalid AABB. This is
+			/* Degenerate case -- return an invalid BoundingBox3. This is
 			   not a problem, since one of the other faces will provide
-			   enough information to arrive at a correct clipped AABB */
+			   enough information to arrive at a correct clipped BoundingBox3 */
 			return aabb;
 		}
 
@@ -132,7 +132,7 @@ public:
 					ellipseAxes[1]*ellipseLengths[1]);
 		}
 
-		/* Intersect the ellipse against the sides of the AABB face */
+		/* Intersect the ellipse against the sides of the BoundingBox3 face */
 		for (int i=0; i<4; ++i) {
 			Point p1, p2;
 			p1[axis] = p2[axis] = min[axis];
@@ -142,16 +142,16 @@ public:
 			p2[axis2] = ((i+1) & 2) ? min[axis2] : max[axis2];
 
 			Point2 p1l(
-				dot(p1 - ellipseCenter, ellipseAxes[0]) / ellipseLengths[0],
-				dot(p1 - ellipseCenter, ellipseAxes[1]) / ellipseLengths[1]);
+				(p1 - ellipseCenter).dot(ellipseAxes[0]) / ellipseLengths[0],
+				(p1 - ellipseCenter).dot(ellipseAxes[1]) / ellipseLengths[1]);
 			Point2 p2l(
-				dot(p2 - ellipseCenter, ellipseAxes[0]) / ellipseLengths[0],
-				dot(p2 - ellipseCenter, ellipseAxes[1]) / ellipseLengths[1]);
+				(p2 - ellipseCenter).dot(ellipseAxes[0]) / ellipseLengths[0],
+				(p2 - ellipseCenter).dot(ellipseAxes[1]) / ellipseLengths[1]);
 
 			Vector2 rel = p2l-p1l;
-			Float A = dot(rel, rel);
-			Float B = 2*dot(Vector2(p1l), rel);
-			Float C = dot(Vector2(p1l), Vector2(p1l))-1;
+			Float A = rel.squaredNorm();
+			Float B = 2*p1l.dot(rel);
+			Float C = p1l.squaredNorm()-1;
 
 			Float x0, x1;
 			if (solveQuadratic(A, B, C, x0, x1)) {
@@ -171,7 +171,7 @@ public:
 		ellipseAxes[1] *= ellipseLengths[1];
 		m_renderer->setColor(m_blue);
 
-		AABB faceBounds(min, max);
+		BoundingBox3 faceBounds(min, max);
 		/* Find the componentwise maxima of the ellipse */
 		for (int i=0; i<2; ++i) {
 			int j = (i==0) ? axis1 : axis2;
@@ -194,7 +194,7 @@ public:
 
 		m_renderer->setColor(m_gray);
 		if (aabb.isValid() && m_showRectangles)
-			m_renderer->drawAABB(aabb);
+			m_renderer->drawBoundingBox3(aabb);
 
 		return aabb;
 	}
@@ -208,7 +208,7 @@ public:
 				m_showRectangles = !m_showRectangles;
 				break;
 			case 'a':
-				m_showClippedAABB = !m_showClippedAABB;
+				m_showClippedBoundingBox3 = !m_showClippedBoundingBox3;
 				break;
 			case '[':
 				m_radius *= 1.1;
@@ -228,61 +228,61 @@ public:
 		m_renderer->setCamera(m_projTransform.getMatrix(),
 			m_viewTransform.inverse().getMatrix());
 
-		AABB aabb(Point(-3, -1, -1), Point(3, 1, 1));
+		BoundingBox3 aabb(Point(-3, -1, -1), Point(3, 1, 1));
 		m_renderer->setColor(Spectrum(0.3f));
-		m_renderer->drawAABB(aabb);
+		m_renderer->drawBoundingBox3(aabb);
 
 		m_renderer->setColor(m_gray);
 		Vector cylD(sphericalDirection(m_lineParams.x, m_lineParams.y));
 
 		m_renderer->drawLine(m_cylPos-cylD*1e4, m_cylPos+cylD*1e4);
-		AABB clippedAABB;
+		BoundingBox3 clippedBoundingBox3;
 
-		clippedAABB.expandBy(intersectCylFace(0, 
+		clippedBoundingBox3.expandBy(intersectCylFace(0, 
 				Point(aabb.min.x, aabb.min.y, aabb.min.z),
 				Point(aabb.min.x, aabb.max.y, aabb.max.z),
 				m_cylPos, cylD));
 
-		clippedAABB.expandBy(intersectCylFace(0,
+		clippedBoundingBox3.expandBy(intersectCylFace(0,
 				Point(aabb.max.x, aabb.min.y, aabb.min.z),
 				Point(aabb.max.x, aabb.max.y, aabb.max.z),
 				m_cylPos, cylD));
 
-		clippedAABB.expandBy(intersectCylFace(1, 
+		clippedBoundingBox3.expandBy(intersectCylFace(1, 
 				Point(aabb.min.x, aabb.min.y, aabb.min.z),
 				Point(aabb.max.x, aabb.min.y, aabb.max.z),
 				m_cylPos, cylD));
 
-		clippedAABB.expandBy(intersectCylFace(1,
+		clippedBoundingBox3.expandBy(intersectCylFace(1,
 				Point(aabb.min.x, aabb.max.y, aabb.min.z),
 				Point(aabb.max.x, aabb.max.y, aabb.max.z),
 				m_cylPos, cylD));
 
-		clippedAABB.expandBy(intersectCylFace(2, 
+		clippedBoundingBox3.expandBy(intersectCylFace(2, 
 				Point(aabb.min.x, aabb.min.y, aabb.min.z),
 				Point(aabb.max.x, aabb.max.y, aabb.min.z),
 				m_cylPos, cylD));
 
-		clippedAABB.expandBy(intersectCylFace(2,
+		clippedBoundingBox3.expandBy(intersectCylFace(2,
 				Point(aabb.min.x, aabb.min.y, aabb.max.z),
 				Point(aabb.max.x, aabb.max.y, aabb.max.z),
 				m_cylPos, cylD));
 
 		m_renderer->setColor(m_gray);
 
-		if (m_showClippedAABB) {
-			if (clippedAABB.isValid())
-				m_renderer->drawAABB(clippedAABB);
+		if (m_showClippedBoundingBox3) {
+			if (clippedBoundingBox3.isValid())
+				m_renderer->drawBoundingBox3(clippedBoundingBox3);
 		}
 
 		m_renderer->setDepthTest(false);
 		drawHUD(formatString("Cylinder clipping test. LMB-dragging moves the camera, RMB-dragging rotates the cylinder\n"
 				"[e] Ellipses: %s\n"
 				"[r] Bounding rectangles : %s\n"
-				"[a] Clipped AABB : %s",
+				"[a] Clipped BoundingBox3 : %s",
 			m_showEllipses ? "On": "Off",
 			m_showRectangles ? "On": "Off",
-			m_showClippedAABB ? "On": "Off"
+			m_showClippedBoundingBox3 ? "On": "Off"
 		));
 	}
 
@@ -295,7 +295,7 @@ private:
 	Float m_angle, m_radius;
 	bool m_showEllipses;
 	bool m_showRectangles;
-	bool m_showClippedAABB;
+	bool m_showClippedBoundingBox3;
 };
 
 MTS_EXPORT_UTILITY(CylClip, "Cylinder clipping test")

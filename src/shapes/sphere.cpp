@@ -47,7 +47,7 @@ public:
 			m_radius = props.getFloat("radius");
 		} else {
 			Transform objectToWorld = props.getTransform("toWorld", Transform());
-			m_radius = objectToWorld(Vector(1,0,0)).length();
+			m_radius = objectToWorld(Vector(1,0,0)).norm();
 			// Remove the scale from the object-to-world trasnsform
 			m_objectToWorld = objectToWorld * Transform::scale(Vector(1/m_radius));
 		}
@@ -77,8 +77,8 @@ public:
 		stream->writeBool(m_inverted);
 	}
 
-	AABB getAABB() const {
-		AABB aabb;
+	BoundingBox3 getBoundingBox3() const {
+		BoundingBox3 aabb;
 		Float absRadius = std::abs(m_radius);
 		aabb.min = m_center - Vector(absRadius);
 		aabb.max = m_center + Vector(absRadius);
@@ -144,7 +144,7 @@ public:
 		its.uv.x = phi * (0.5 * INV_PI);
 		its.uv.y = theta * INV_PI;
 		its.dpdu = m_objectToWorld(Vector(-local.y, local.x, 0) * (2*M_PI));
-    	its.geoFrame.n = normalize(its.p - m_center);
+    	its.geoFrame.n = (its.p - m_center).normalized();
 		Float zrad = std::sqrt(local.x*local.x + local.y*local.y);
 
 		if (zrad > 0) {
@@ -153,8 +153,8 @@ public:
 				  sinPhi = local.y * invZRad;
 			its.dpdv = m_objectToWorld(Vector(local.z * cosPhi, local.z * sinPhi,
 					-std::sin(theta)*m_radius) * M_PI);
-    		its.geoFrame.s = normalize(its.dpdu);
-			its.geoFrame.t = normalize(its.dpdv);
+    		its.geoFrame.s = its.dpdu.normalized();
+			its.geoFrame.t = its.dpdv.normalized();
 		} else {
 			// avoid a singularity
 			const Float cosPhi = 0, sinPhi = 1;
@@ -189,7 +189,7 @@ public:
 	 * Shirley, P. and Wang, C. and Zimmerman, K. (TOG 1996)
 	 */
 	Float sampleSolidAngle(ShapeSamplingRecord &sRec, const Point &p, const Point2 &sample) const {
-		Vector w = m_center - p; Float invDistW = 1 / w.length();
+		Vector w = m_center - p; Float invDistW = 1 / w.norm();
 		Float squareTerm = std::abs(m_radius * invDistW); // Support negative radii
 
 		if (squareTerm >= 1-Epsilon) {
@@ -200,7 +200,7 @@ public:
 			sRec.n = Normal(d);
 
 			Vector lumToPoint = p - sRec.p;
-			Float distSquared = lumToPoint.lengthSquared(), dp = dot(lumToPoint, sRec.n);
+			Float distSquared = lumToPoint.squaredNorm(), dp = lumToPoint.dot(sRec.n);
 
 			if (dp > 0)
 				return m_invSurfaceArea * distSquared * std::sqrt(distSquared) / dp;
@@ -222,19 +222,19 @@ public:
 		}
 
 		sRec.p = ray(t);
-		sRec.n = Normal(normalize(sRec.p-m_center));
+		sRec.n = Normal((sRec.p-m_center).normalized());
 
 		return 1 / ((2*M_PI) * (1-cosThetaMax));
 	}
 
 	Float pdfSolidAngle(const ShapeSamplingRecord &sRec, const Point &p) const {
-		Vector w = p - m_center; Float invDistW = 1 / w.length();
+		Vector w = p - m_center; Float invDistW = 1 / w.norm();
 		Float squareTerm = std::abs(m_radius * invDistW);
 
 		if (squareTerm >= 1-Epsilon) {
 			/* We're inside the sphere - switch to uniform sampling */
 			Vector lumToPoint = p - sRec.p;
-			Float distSquared = lumToPoint.lengthSquared(), dp = dot(lumToPoint, sRec.n);
+			Float distSquared = lumToPoint.squaredNorm(), dp = lumToPoint.dot(sRec.n);
 			if (dp > 0)
 				return m_invSurfaceArea * distSquared * std::sqrt(distSquared) / dp;
 			else

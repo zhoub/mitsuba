@@ -205,7 +205,7 @@ public:
 		else
 			kdtree->build();
 
-		BSphere bsphere(kdtree->getBSphere());
+		BoundingSphere bsphere(kdtree->getBoundingSphere());
 		const size_t nRays = 5000000;
 
 		if (!fitParameters) {
@@ -223,7 +223,7 @@ public:
 						sample2(random->nextFloat(), random->nextFloat());
 					Point p1 = bsphere.center + squareToSphere(sample1) * bsphere.radius;
 					Point p2 = bsphere.center + squareToSphere(sample2) * bsphere.radius;
-					Ray r(p1, normalize(p2-p1), 0.0f);
+					Ray r(p1, (p2-p1).normalized(), 0.0f);
 
 					Intersection its;
 					if (kdtree->rayIntersect(r, its))

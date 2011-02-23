@@ -119,7 +119,7 @@ PhotonMap::PhotonMap(size_t maxPhotons)
 	
 PhotonMap::PhotonMap(Stream *stream, InstanceManager *manager) 
  : m_numThreads(-1), m_context(NULL) {
-	m_aabb = AABB(stream);
+	m_aabb = BoundingBox3(stream);
 	m_balanced = stream->readBool();
 	m_maxPhotons = (size_t) stream->readULong();
 	m_minPhotons = (size_t) stream->readULong();
@@ -427,7 +427,7 @@ void PhotonMap::balanceRecursive(photon_iterator basePtr,
 	photon_iterator sortStart,
 	photon_iterator sortEnd, 
 	std::vector<size_t> &heapPermutation,
-	AABB &aabb, size_t heapIndex) const {
+	BoundingBox3 &aabb, size_t heapIndex) const {
 
 	/* A fully left-balanced binary tree has this many nodes on its
 	   left subtree */
@@ -439,7 +439,7 @@ void PhotonMap::balanceRecursive(photon_iterator basePtr,
 
 	/* Splitting along the axis with the widest spread
        works well in practice and is cheap to compute (p.71) */
-	int splitAxis = aabb.getLargestAxis();
+	int splitAxis = aabb.getLongestDimension();
 
 	/* QUICKSORT-like partitioning iterations until the entry referenced by 
 	   'pivot' imposes an ordering wrt. all other photons in the range */
@@ -580,9 +580,8 @@ Spectrum PhotonMap::estimateIrradiance(const Point &p, const Normal &n,
 
 		/* Don't use samples from the opposite side
 		   of a thin surface */
-		if (dot(photon.getDirection(), n) < 0) {
+		if (n.dot(photon.getDirection()) < 0) 
 			result += photon.getPower(); 
-		}
 	}
 
 	/* Based on the assumption that the surface is locally flat,
@@ -614,7 +613,7 @@ Spectrum PhotonMap::estimateIrradianceFiltered(const Point &p, const Normal &n,
 
 		/* Don't use samples from the opposite side
 		   of a thin surface */
-		if (dot(photon.getDirection(), n) < 0) {
+		if (n.dot(photon.getDirection()) < 0) {
 			/* Weight the samples using Simpson's kernel */
 			Float sqrTerm = 1.0f - photonDistanceSqr/distSquared;
 			result += photon.getPower() * (sqrTerm*sqrTerm);
@@ -649,7 +648,7 @@ Spectrum PhotonMap::estimateIrradianceFiltered(const Point &p, const Normal &n,
 		const Float photonDistanceSqr = results[i].first;
 		const Photon &photon = *results[i].second;
 
-		if (dot(photon.getDirection(), n) > 0)
+		if (n.dot(photon.getDirection()) > 0)
 			continue;
 
 		const Float sqrTerm = 1.0f - photonDistanceSqr/distSquared,
@@ -766,8 +765,8 @@ size_t PhotonMap::estimateRadianceRaw(const Intersection &its,
 		if (photonDistSquared < distSquared) {
 			Normal photonNormal(photon->getNormal());
 			Vector wiWorld = -photon->getDirection();
-			if (photon->getDepth() > maxDepth || dot(photonNormal, its.shFrame.n) < .1 
-				|| dot(photonNormal, wiWorld) < 1e-2)
+			if (photon->getDepth() > maxDepth || photonNormal.dot(its.shFrame.n) < .1 
+				|| photonNormal.dot(wiWorld) < 1e-2)
 				continue;
 
 			Vector wiLocal = its.toLocal(wiWorld);
@@ -780,7 +779,7 @@ size_t PhotonMap::estimateRadianceRaw(const Intersection &its,
 
 			/* Account for non-symmetry due to shading normals */
 			result += photon->getPower() * bsdf->f(bRec) * 
-				std::abs(Frame::cosTheta(wiLocal) / dot(photonNormal, wiWorld));
+				std::abs(Frame::cosTheta(wiLocal) / photonNormal.dot(wiWorld));
 
 			resultCount++;
 		}

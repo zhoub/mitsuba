@@ -514,16 +514,16 @@ Vector sphericalDirection(Float theta, Float phi) {
 }
 
 Vector squareToSphere(const Point2 &sample) {
-	Float z = 1.0f - 2.0f * sample.y;
+	Float z = 1.0f - 2.0f * sample.y();
 	Float r = 1.0f - z * z;
 	r = std::sqrt(std::max((Float) 0, r));
-	Float phi = 2.0f * M_PI * sample.x;
+	Float phi = 2.0f * M_PI * sample.x();
 	return Vector(r * std::cos(phi), r * std::sin(phi), z);
 }
 
 Vector squareToHemisphere(const Point2 &sample) {
-	Float phi = 2.0f * M_PI * sample.x;
-	Float r2 = sample.y;
+	Float phi = 2.0f * M_PI * sample.x();
+	Float r2 = sample.y();
 	Float tmp = std::sqrt(1-std::min((Float) 1, r2*r2));
 
 	return Vector(
@@ -534,16 +534,15 @@ Vector squareToHemisphere(const Point2 &sample) {
 }
 
 Vector squareToHemispherePSA(const Point2 &sample) {
-	Float r = std::sqrt(sample.x);
-	Float phi = 2.0f * M_PI * sample.y;
+	Float r = std::sqrt(sample.x());
+	Float phi = 2.0f * M_PI * sample.y();
 	Float dirX = r * std::cos(phi);
 	Float dirY = r * std::sin(phi);
 	Float z = std::sqrt(1 - std::min((Float) 1, dirX*dirX + dirY*dirY));
 
 	if (EXPECT_NOT_TAKEN(z == 0)) {
 		/* Guard against numerical imprecisions */
-		return normalize(Vector(
-			dirX, dirY, Epsilon));
+		return Vector(dirX, dirY, Epsilon).normalized();
 	}
 
 	return Vector(
@@ -552,8 +551,8 @@ Vector squareToHemispherePSA(const Point2 &sample) {
 }
 
 Point2 squareToDisk(const Point2 &sample) {
-	Float r = std::sqrt(sample.x);
-	Float phi = 2.0f * M_PI * sample.y;
+	Float r = std::sqrt(sample.x());
+	Float phi = 2.0f * M_PI * sample.y();
 	Float dirX = r * std::cos(phi);
 	Float dirY = r * std::sin(phi);
 
@@ -564,31 +563,31 @@ Point2 squareToDisk(const Point2 &sample) {
 
 
 void coordinateSystem(const Vector &a, Vector &b, Vector &c) {
-	if (std::abs(a.x) > std::abs(a.y)) {
-		Float invLen = 1.0f / std::sqrt(a.x * a.x + a.z * a.z);
-		b = Vector(-a.z * invLen, 0.0f, a.x * invLen);
+	if (std::abs(a.x()) > std::abs(a.y())) {
+		Float invLen = 1.0f / std::sqrt(a.x() * a.x() + a.z() * a.z());
+		b = Vector(-a.z() * invLen, 0.0f, a.x() * invLen);
 	} else {
-		Float invLen = 1.0f / std::sqrt(a.y * a.y + a.z * a.z);
-		b = Vector(0.0f, -a.z * invLen, a.y * invLen);
+		Float invLen = 1.0f / std::sqrt(a.y() * a.y() + a.z() * a.z());
+		b = Vector(0.0f, -a.z() * invLen, a.y() * invLen);
 	}
-	c = cross(a, b);
+	c = a.cross(b);
 }
 
 Point2 squareToTriangle(const Point2 &sample) {
-	Float a = std::sqrt(1.0f - sample.x);
-	return Point2(1 - a, a * sample.y);
+	Float a = std::sqrt(1.0f - sample.x());
+	return Point2(1 - a, a * sample.y());
 }
 
 Point2 toSphericalCoordinates(const Vector &v) {
 	return Point2(
-		std::acos(v.z),
-		std::atan2(v.y, v.x)
+		std::acos(v.z()),
+		std::atan2(v.y(), v.x())
 	);
 }
 
 Point2 squareToDiskConcentric(const Point2 &sample) {
-	Float r1 = 2.0f*sample.x - 1.0f;
-	Float r2 = 2.0f*sample.y - 1.0f;
+	Float r1 = 2.0f*sample.x() - 1.0f;
+	Float r2 = 2.0f*sample.y() - 1.0f;
 
 	Point2 coords;
 	if (r1 == 0 && r2 == 0) {
@@ -605,8 +604,8 @@ Point2 squareToDiskConcentric(const Point2 &sample) {
 			coords = Point2(-r2, (M_PI/4.0f) * (6.0f- - r1/r2));
 	}
 	return Point2(
-		coords.x*std::cos(coords.y),
-		coords.x*std::sin(coords.y)
+		coords.x()*std::cos(coords.y()),
+		coords.x()*std::sin(coords.y())
 	);
 }
 
@@ -615,9 +614,9 @@ Float squareToConePdf(Float cosCutoff) {
 }
 
 Vector squareToCone(Float cosCutoff, const Point2 &sample) {
-	Float cosTheta = (1-sample.x) + sample.x * cosCutoff;
+	Float cosTheta = (1-sample.x()) + sample.x() * cosCutoff;
 	Float sinTheta = std::sqrt(1 - cosTheta * cosTheta);
-	Float phi = sample.y * (2 * M_PI);
+	Float phi = sample.y() * (2 * M_PI);
 	return Vector(std::cos(phi) * sinTheta,
 		std::sin(phi) * sinTheta, cosTheta);
 }
@@ -651,13 +650,13 @@ Float fresnelDielectric(Float cosTheta1, Float cosTheta2,
 Spectrum fresnelConductor(Float cosTheta, const Spectrum &eta, const Spectrum &k) {
 	Spectrum tmp = (eta*eta + k*k) * (cosTheta * cosTheta);
 
-	Spectrum rParl2 = (tmp - (eta * (2.0f * cosTheta)) + Spectrum(1.0f))
-					/ (tmp + (eta * (2.0f * cosTheta)) + Spectrum(1.0f));
+	Spectrum rParl2 = (tmp - (eta * (2.0f * cosTheta)) + 1.0f)
+					/ (tmp + (eta * (2.0f * cosTheta)) + 1.0f);
 
 	Spectrum tmpF = eta*eta + k*k;
 
-	Spectrum rPerp2 = (tmpF - (eta * (2.0f * cosTheta)) + Spectrum(cosTheta*cosTheta)) /
-					  (tmpF + (eta * (2.0f * cosTheta)) + Spectrum(cosTheta*cosTheta));
+	Spectrum rPerp2 = (tmpF - (eta * (2.0f * cosTheta)) + (cosTheta*cosTheta)) /
+					  (tmpF + (eta * (2.0f * cosTheta)) + (cosTheta*cosTheta));
 
 	return (rParl2 + rPerp2) / 2.0f;
 }

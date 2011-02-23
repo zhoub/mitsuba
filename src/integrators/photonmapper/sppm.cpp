@@ -95,7 +95,7 @@ public:
 		if (m_initialRadius == 0) {
 			/* Guess an initial radius if not provided
 			  (use scene width / horizontal or vertical pixel count) * 5 */
-			Float rad = scene->getBSphere().radius;
+			Float rad = scene->getBoundingSphere().radius;
 			Vector2i filmSize = scene->getCamera()->getFilm()->getSize();
 
 			m_initialRadius = std::min(rad / filmSize.x, rad / filmSize.y) * 5;

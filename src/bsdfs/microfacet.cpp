@@ -115,7 +115,7 @@ public:
 	 * @param v An arbitrary direction
 	 */
 	Float smithBeckmannG1(const Vector &v, const Vector &m) const {
-		if (dot(v, m)*Frame::cosTheta(v) <= 0)
+		if (v.dot(m)*Frame::cosTheta(v) <= 0)
 			return 0.0;
 
 		const Float tanTheta = Frame::tanTheta(v);
@@ -133,7 +133,7 @@ public:
 	}
 
 	inline Vector reflect(const Vector &wi, const Normal &n) const {
-		return Vector(n*(2.0f*dot(n, wi))) - wi;
+		return Vector(n*(2.0f*n.dot(wi))) - wi;
 	}
 
 	inline Spectrum fSpec(const BSDFQueryRecord &bRec, const Vector &Hr) const {
@@ -161,8 +161,8 @@ public:
 				&& (bRec.component == -1 || bRec.component == 1);
 
 		/* Fresnel factor */
-		Vector Hr = normalize(bRec.wi+bRec.wo);
-		Float F = fresnel(dot(bRec.wi, Hr), m_extIOR, m_intIOR);
+		Vector Hr = (bRec.wi+bRec.wo).normalized();
+		Float F = fresnel(bRec.wi.dot(Hr), m_extIOR, m_intIOR);
 
 		if (hasGlossy)
 			result += fSpec(bRec, Hr) * (F * m_ks);
@@ -173,7 +173,7 @@ public:
 	}
 
 	inline Float pdfSpec(const BSDFQueryRecord &bRec) const {
-		Vector Hr = normalize(bRec.wi + bRec.wo);
+		Vector Hr = (bRec.wi + bRec.wo).normalized();
 		return beckmannD(Hr) * Frame::cosTheta(Hr) 
 			/ (4.0f * absDot(bRec.wo, Hr));
 	}
