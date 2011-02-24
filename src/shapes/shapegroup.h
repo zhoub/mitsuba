@@ -51,7 +51,7 @@ public:
 	bool isCompound() const;
 
 	/// Returns an invalid BoundingBox3
-	BoundingBox3 getBoundingBox3() const;
+	BoundingBox3 getBoundingBox() const;
 
 	/// Returns the surface area
 	Float getSurfaceArea() const;

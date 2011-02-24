@@ -99,6 +99,9 @@ typedef Eigen::Matrix<Float,  2, 2> Matrix2x2;
 typedef Eigen::Matrix<Float,  3, 3> Matrix3x3;
 typedef Eigen::Matrix<Float,  4, 4> Matrix4x4;
 
+typedef Eigen::Matrix<Float,  Eigen::Dynamic, Eigen::Dynamic> DynamicMatrix;
+typedef Eigen::Matrix<Float,  Eigen::Dynamic, 1> DynamicVector;
+
 template <typename T, int N> class TPoint;
 
 typedef TPoint<Float,  3> Point;

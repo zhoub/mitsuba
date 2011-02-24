@@ -18,6 +18,7 @@
 
 #include <mitsuba/core/testcase.h>
 #include <mitsuba/core/bbox.h>
+#include <mitsuba/core/atomic.h>
 
 MTS_NAMESPACE_BEGIN
 
@@ -25,6 +26,7 @@ class TestCore : public TestCase {
 public:
 	MTS_BEGIN_TESTCASE()
 	MTS_DECLARE_TEST(test01_boundingBox)
+	MTS_DECLARE_TEST(test02_atomic)
 	MTS_END_TESTCASE()
 
 	void test01_boundingBox() {
@@ -76,10 +78,43 @@ public:
 		assertTrue(test2.overlaps(test2.getBoundingSphere()));
 
 		assertFalse(test2.overlaps(BoundingSphere(Point(-2, 3.5, 4.5), 0.5f)));
+	
+		Float nearT, farT;
+		assertTrue(test2.rayIntersect(Ray(Point(0,0,0), Vector(1,0,0), 0.0f), nearT, farT));
+		assertEquals(nearT, -1);
+		assertEquals(farT, 2);
+	
+		assertFalse(test2.rayIntersect(Ray(Point(0,10,0), Vector(1,0,0), 0.0f), nearT, farT));
 
 		/* Also test the generic version of getSurfaceArea() */
 		BoundingBox<Point> test3(Point(1,2,3), Point(2,4,6));
 		assertEquals(test3.getSurfaceArea(), 22);
+	}
+	
+	void test02_atomic() {
+		int A = 0, B = 1, *C = &A;
+		int64_t A64 = 0;
+
+		assertTrue(Atomic::compareAndExchangePtr(&C, &B, &A));
+		assertTrue(C == &B);
+
+		assertTrue(Atomic::compareAndExchange(&A, 5, 0));
+		assertEquals(A, 5);
+		
+		assertTrue(Atomic::compareAndExchange(&A64, 5, 0));
+		assertEquals(A64, 5);
+
+		assertEquals(Atomic::add(&A, 1), 6);
+		assertEquals(A, 6);
+		assertEquals(Atomic::add(&A64, 1), 6);
+		assertEquals(A64, 6);
+
+		float Af = 5.0f;
+		double Ad = 5.0;
+		assertEquals(Atomic::add(&Af, 1), 6.0f);
+		assertEquals(Af, 6.0f);
+		assertEquals(Atomic::add(&Ad, 1), 6.0);
+		assertEquals(Ad, 6.0);
 	}
 };
 

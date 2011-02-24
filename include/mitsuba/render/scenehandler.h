@@ -41,6 +41,8 @@ public:
 		bool isIncludedFile = false);
 	virtual ~SceneHandler();
 
+	static ref<Scene> loadScene(const fs::path &filename);
+
 	// -----------------------------------------------------------------------
 	//  Implementation of the SAX DocumentHandler interface
 	// -----------------------------------------------------------------------

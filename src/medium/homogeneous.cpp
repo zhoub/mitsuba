@@ -151,7 +151,7 @@ public:
 		if (m_shapes.size() == 0)
 			Log(EError, "This medium requires one or more Shape instance as a child");
 		m_kdTree->build();
-		m_aabb = m_kdTree->getBoundingBox3();
+		m_bbox = m_kdTree->getBoundingBox();
 	}
 
 	Float getCoveredLength(const Ray &r) const {

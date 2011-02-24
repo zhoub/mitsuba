@@ -28,7 +28,7 @@ Point Triangle::sample(const Point *positions, const Normal *normals,
 
 	Point2 bary = squareToTriangle(sample);
 	Vector sideA = p1 - p0, sideB = p2 - p0;
-	Point p = p0 + (sideA * bary.x) + (sideB * bary.y);	
+	Point p = p0 + (sideA * bary.x()) + (sideB * bary.y());
 	
 	if (normals) {
 		const Normal &n0 = normals[idx[0]];
@@ -36,8 +36,8 @@ Point Triangle::sample(const Point *positions, const Normal *normals,
 		const Normal &n2 = normals[idx[2]];
 
 		normal = Normal(
-			(n0 * (1.0f - bary.x - bary.y) +
-			n1 * bary.x + n2 * bary.y).normalized()
+			(n0 * (1.0f - bary.x() - bary.y()) +
+			n1 * bary.x() + n2 * bary.y()).normalized()
 		);
 	} else {
 		normal = Normal(sideA.cross(sideB).normalized());
@@ -103,7 +103,7 @@ static int sutherlandHodgman(Point3d *input, int inCount, Point3d *output, int a
 	return outCount;
 }
 
-BoundingBox3 Triangle::getClippedBoundingBox3(const Point *positions, const BoundingBox3 &aabb) const {
+BoundingBox3 Triangle::getClippedBoundingBox(const Point *positions, const BoundingBox3 &bbox) const {
 	/* Reserve room for some additional vertices */
 	Point3d vertices1[MAX_VERTS], vertices2[MAX_VERTS];
 	int nVertices = 3;
@@ -114,11 +114,11 @@ BoundingBox3 Triangle::getClippedBoundingBox3(const Point *positions, const Boun
 	   remove triangles from the associated nodes. Hence, do the
 	   following computation in double precision! */
 	for (int i=0; i<3; ++i) 
-		vertices1[i] = Point3d(positions[idx[i]]);
+		vertices1[i] = positions[idx[i]].cast<double>();
 
 	for (int axis=0; axis<3; ++axis) {
-		nVertices = sutherlandHodgman(vertices1, nVertices, vertices2, axis, aabb.min[axis], true);
-		nVertices = sutherlandHodgman(vertices2, nVertices, vertices1, axis, aabb.max[axis], false);
+		nVertices = sutherlandHodgman(vertices1, nVertices, vertices2, axis, bbox.min[axis], true);
+		nVertices = sutherlandHodgman(vertices2, nVertices, vertices1, axis, bbox.max[axis], false);
 	}
 
 	BoundingBox3 result;
@@ -152,7 +152,7 @@ BoundingBox3 Triangle::getClippedBoundingBox3(const Point *positions, const Boun
 		result.expandBy(vertices1[i]);
 #endif
 	}
-	result.clip(aabb);
+	result.clip(bbox);
 
 	return result;
 }

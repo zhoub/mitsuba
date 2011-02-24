@@ -35,21 +35,21 @@ MTS_NAMESPACE_BEGIN
 class GridDataSource : public VolumeDataSource {
 public:
 	GridDataSource(const Properties &props) 
-		: VolumeDataSource(props), m_overrideBoundingBox3(false) {
+		: VolumeDataSource(props), m_overrideBoundingBox(false) {
 		std::string filename = props.getString("filename");
 		loadFromFile(props.getString("filename"));
 		m_volumeToWorld = props.getTransform("toWorld", Transform());
 
 		if (props.hasProperty("min") && props.hasProperty("max")) {
-			/* Optionally allow to use an BoundingBox3 other than 
+			/* Optionally allow to use an bounding box other than 
 			   the one specified by the grid file */
-			m_originalBoundingBox3.min = props.getPoint("min");
-			m_originalBoundingBox3.max = props.getPoint("max");
-			m_overrideBoundingBox3 = true;
+			m_originalBoundingBox.min = props.getPoint("min");
+			m_originalBoundingBox.max = props.getPoint("max");
+			m_overrideBoundingBox = true;
 		}
 
 		for (int i=0; i<8; ++i)
-			m_aabb.expandBy(m_volumeToWorld(m_originalBoundingBox3.getCorner(i)));
+			m_bbox.expandBy(m_volumeToWorld(m_originalBoundingBox.getCorner(i)));
 
 		/**
 		* When 'sendData' is set to false, only the filename 
@@ -64,7 +64,7 @@ public:
 	GridDataSource(Stream *stream, InstanceManager *manager) 
 	: VolumeDataSource(stream, manager) {
 		m_volumeToWorld = Transform(stream);
-		m_originalBoundingBox3 = BoundingBox3(stream);
+		m_originalBoundingBox = BoundingBox3(stream);
 		m_sendData = stream->readBool();
 		m_overrideBoundingBox3 = stream->readBool();
 		if (m_sendData) { 
@@ -109,9 +109,9 @@ public:
 		VolumeDataSource::serialize(stream, manager);
 
 		m_volumeToWorld.serialize(stream);
-		m_originalBoundingBox3.serialize(stream);
+		m_originalBoundingBox.serialize(stream);
 		stream->writeBool(m_sendData);
-		stream->writeBool(m_overrideBoundingBox3);
+		stream->writeBool(m_overrideBoundingBox);
 
 		if (m_sendData) {
 			m_res.serialize(stream);
@@ -125,13 +125,13 @@ public:
 	}
 		
 	void configure() {
-		Vector extents(m_originalBoundingBox3.getExtents());
+		Vector extents(m_originalBoundingBox.getExtents());
 		m_worldToVolume = m_volumeToWorld.inverse();
 		m_worldToGrid = Transform::scale(Vector(
 				(m_res[0] - 1) / extents[0],
 				(m_res[1] - 1) / extents[1],
 				(m_res[2] - 1) / extents[2])
-			) * Transform::translate(-Vector(m_originalBoundingBox3.min)) * m_worldToVolume;
+			) * Transform::translate(-Vector(m_originalBoundingBox.min)) * m_worldToVolume;
 		m_stepSize = std::numeric_limits<Float>::infinity();
 		for (int i=0; i<3; ++i)
 			m_stepSize = std::min(m_stepSize, extents[i] / (Float) (m_res[i]-1));
@@ -163,13 +163,13 @@ public:
 		size_t nEntries = m_res.x*m_res.y*m_res.z*m_channels;
 		Float xmin = stream->readSingle(), ymin = stream->readSingle(), zmin = stream->readSingle();
 		Float xmax = stream->readSingle(), ymax = stream->readSingle(), zmax = stream->readSingle();
-		if (!m_overrideBoundingBox3)
-			m_originalBoundingBox3 = BoundingBox3(Point(xmin, ymin, zmin), Point(xmax, ymax, zmax));
+		if (!m_overrideBoundingBox)
+			m_originalBoundingBox = BoundingBox3(Point(xmin, ymin, zmin), Point(xmax, ymax, zmax));
 
 #if defined(__LINUX__) || defined(__OSX__)
 		Log(EDebug, "Mapping \"%s\" into memory: %ix%ix%i (%i channels), %i KiB, %s", filename.c_str(), 
 			m_res.x, m_res.y, m_res.z, m_channels, nEntries*sizeof(float)/1024,
-			m_originalBoundingBox3.toString().c_str());
+			m_originalBoundingBox.toString().c_str());
 		stream->close();
 		int fd = open(resolved.file_string().c_str(), O_RDONLY);
 		if (fd == -1)
@@ -184,7 +184,7 @@ public:
 #elif defined(WIN32)
 		Log(EDebug, "Mapping \"%s\" into memory: %ix%ix%i (%i channels), %i KiB, %s", filename.c_str(), 
 			m_res.x, m_res.y, m_res.z, m_channels, nEntries*sizeof(float)/1024,
-			m_originalBoundingBox3.toString().c_str());
+			m_originalBoundingBox.toString().c_str());
 		stream->close();
 		m_file = CreateFile(resolved.file_string().c_str(), GENERIC_READ, 
 			FILE_SHARE_READ, NULL, OPEN_EXISTING, 
@@ -204,7 +204,7 @@ public:
 #else
 		Log(EInfo, "Loading \"%s\": %ix%ix%i (%i channels), %i KiB, %s", filename.c_str(), 
 			m_res.x, m_res.y, m_res.z, m_channels, nEntries*sizeof(float)/1024,
-			m_originalBoundingBox3.toString().c_str());
+			m_originalBoundingBox.toString().c_str());
 		m_data = new float[nEntries];
 		stream->read(m_data, nEntries*sizeof(float));
 		stream->close();
@@ -318,7 +318,7 @@ public:
 	Vector lookupVector(const Point &_p) const {
 		const Point p = m_worldToGrid.transformAffine(_p);
 		if (p.x < 0 || p.y < 0 || p.z < 0)
-			return Vector(0.0f);
+			return Vector::Zero();
 
 		const int x1 = (int) p.x, y1 = (int) p.y, z1 = (int) p.z,
 				x2 = x1+1, y2 = y1+1, z2 = z1+1;
@@ -327,7 +327,7 @@ public:
 			y2 >= m_res.y || z2 >= m_res.z) {
 			/* Do an integer bounds test (may seem redundant - this is
 			   to avoid a segfault, should a NaN/Inf ever find its way here..) */
-			return Vector(0.0f);
+			return Vector::Zero();
 		}
 
 		const Float fx = p.x-x1, fy = p.y-y1, fz = p.z-z1;
@@ -385,8 +385,8 @@ protected:
 	Transform m_worldToVolume;
 	Transform m_volumeToWorld;
 	Float m_stepSize;
-	bool m_overrideBoundingBox3;
-	BoundingBox3 m_originalBoundingBox3;
+	bool m_overrideBoundingBox;
+	BoundingBox3 m_originalBoundingBox;
 #if defined(__LINUX__) || defined(__OSX__)
 	size_t m_mmapSize;
 	void *m_mmapPtr;

@@ -152,7 +152,7 @@ public:
 	/**
 	 * Create an empty irradiance of the given size
 	 */
-	IrradianceCache(const BoundingBox3 &aabb);
+	IrradianceCache(const BoundingBox3 &bbox);
 	
 	/**
 	 * Unserialize an irradiance cache from a binary data stream

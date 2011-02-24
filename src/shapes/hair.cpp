@@ -73,23 +73,23 @@ public:
 
 		Log(EDebug, "Total amount of storage (kd-tree & vertex data): %s",
 			memString(m_nodeCount * sizeof(KDNode) 
-			+ m_indexCount * sizeof(index_type)
+			+ m_indexCount * sizeof(IndexType)
 			+ vertices.size() * sizeof(Point)
 			+ vertexStartsFiber.size() / 8).c_str());
 
 		/* Optimization: replace all primitive indices by the
 		   associated vertex indices (this avoids an extra 
 		   indirection during traversal later on) */
-		for (size_type i=0; i<m_indexCount; ++i)
+		for (SizeType i=0; i<m_indexCount; ++i)
 			m_indices[i] = m_segIndex[m_indices[i]];
 
 		/* Free the segIndex array, it is not needed anymore */
-		std::vector<index_type>().swap(m_segIndex);
+		std::vector<IndexType>().swap(m_segIndex);
 	}
 
-	/// Return the BoundingBox3 of the hair kd-tree
-	inline const BoundingBox3 &getBoundingBox3() const {
-		return m_aabb;
+	/// Return the bounding box of the hair kd-tree
+	inline const BoundingBox3 &getBoundingBox() const {
+		return m_bbox;
 	}
 
 	/// Return the list of vertices underlying the hair kd-tree
@@ -131,7 +131,7 @@ public:
 		Float tempT = std::numeric_limits<Float>::infinity(); 
 		Float mint, maxt;
 
-		if (m_aabb.rayIntersect(ray, mint, maxt)) {
+		if (m_bbox.rayIntersect(ray, mint, maxt)) {
 			if (_mint > mint) mint = _mint;
 			if (_maxt < maxt) maxt = _maxt;
 
@@ -153,7 +153,7 @@ public:
 		Float tempT = std::numeric_limits<Float>::infinity(); 
 		Float mint, maxt;
 
-		if (m_aabb.rayIntersect(ray, mint, maxt)) {
+		if (m_bbox.rayIntersect(ray, mint, maxt)) {
 			if (_mint > mint) mint = _mint;
 			if (_maxt < maxt) maxt = _maxt;
 
@@ -216,7 +216,7 @@ public:
 
 	/**
 	 * \brief Intersect an infinite cylinder with an 
-	 * BoundingBox3 face and bound the resulting clipped ellipse
+	 * bounding box face and bound the resulting clipped ellipse
 	 */
 	BoundingBox3 intersectCylFace(int axis,
 			const Point &min, const Point &max,
@@ -231,13 +231,13 @@ public:
 		Vector ellipseAxes[2];
 		Float ellipseLengths[2];
 
-		BoundingBox3 aabb;
+		BoundingBox3 bbox;
 		if (!intersectCylPlane(min, planeNrml, cylPt, cylD, m_radius, 
 			ellipseCenter, ellipseAxes, ellipseLengths)) {
 			/* Degenerate case -- return an invalid BoundingBox3. This is
 			   not a problem, since one of the other faces will provide
 			   enough information to arrive at a correct clipped BoundingBox3 */
-			return aabb;
+			return bbox;
 		}
 
 		/* Intersect the ellipse against the sides of the BoundingBox3 face */
@@ -264,9 +264,9 @@ public:
 			Float x0, x1;
 			if (solveQuadratic(A, B, C, x0, x1)) {
 				if (x0 >= 0 && x0 <= 1)
-					aabb.expandBy(p1+(p2-p1)*x0);
+					bbox.expandBy(p1+(p2-p1)*x0);
 				if (x1 >= 0 && x1 <= 1)
-					aabb.expandBy(p1+(p2-p1)*x1);
+					bbox.expandBy(p1+(p2-p1)*x1);
 			}
 		}
 
@@ -285,16 +285,16 @@ public:
 			Point p2 = ellipseCenter - cosTheta*ellipseAxes[0] - sinTheta*ellipseAxes[1];
 
 			if (faceBounds.contains(p1)) 
-				aabb.expandBy(p1);
+				bbox.expandBy(p1);
 			if (faceBounds.contains(p2)) 
-				aabb.expandBy(p2);
+				bbox.expandBy(p2);
 		}
 
-		return aabb;
+		return bbox;
 	}
 
-	BoundingBox3 getBoundingBox3(index_type index) const {
-		index_type iv = m_segIndex.at(index);
+	BoundingBox3 getBoundingBox(IndexType index) const {
+		IndexType iv = m_segIndex.at(index);
 		Point center;
 		Vector axes[2];
 		Float lengths[2];
@@ -324,12 +324,12 @@ public:
 		return result;
 	}
 
-	BoundingBox3 getClippedBoundingBox3(index_type index, const BoundingBox3 &box) const {
+	BoundingBox3 getClippedBoundingBox(IndexType index, const BoundingBox3 &box) const {
 		/* Compute a base bounding box */
-		BoundingBox3 base(getBoundingBox3(index));
+		BoundingBox3 base(getBoundingBox(index));
 		base.clip(box);
 
-		index_type iv = m_segIndex.at(index);
+		IndexType iv = m_segIndex.at(index);
 
 		Point cylPt = firstVertex(iv);
 		Vector cylD = tangent(iv);
@@ -372,8 +372,8 @@ public:
 	}
 #else
 	/// Compute the BoundingBox3 of a segment (only used during tree construction)
-	BoundingBox3 getBoundingBox3(int index) const {
-		index_type iv = m_segIndex.at(index);
+	BoundingBox3 getBoundingBox(int index) const {
+		IndexType iv = m_segIndex.at(index);
 
 		// cosine of steepest miter angle
 		const Float cos0 = firstMiterNormal(iv).dot(tangent(iv));
@@ -384,19 +384,19 @@ public:
 		const Point a = firstVertex(iv);
 		const Point b = secondVertex(iv);
 
-		BoundingBox3 aabb;
-		aabb.expandBy(a - expandVec);
-		aabb.expandBy(a + expandVec);
-		aabb.expandBy(b - expandVec);
-		aabb.expandBy(b + expandVec);
-		return aabb;
+		BoundingBox3 bbox;
+		bbox.expandBy(a - expandVec);
+		bbox.expandBy(a + expandVec);
+		bbox.expandBy(b - expandVec);
+		bbox.expandBy(b + expandVec);
+		return bbox;
 	}
 
 	/// Compute the clipped BoundingBox3 of a segment (only used during tree construction)
-	BoundingBox3 getClippedBoundingBox3(int index, const BoundingBox3 &box) const {
-		BoundingBox3 aabb(getBoundingBox3(index));
-		aabb.clip(box);
-		return aabb;
+	BoundingBox3 getClippedBoundingBox(int index, const BoundingBox3 &box) const {
+		BoundingBox3 bbox(getBoundingBox(index));
+		bbox.clip(box);
+		return bbox;
 	}
 #endif
 
@@ -405,7 +405,7 @@ public:
 		return m_segIndex.size();
 	}
 
-	inline bool intersect(const Ray &ray, index_type iv, 
+	inline bool intersect(const Ray &ray, IndexType iv, 
 		Float mint, Float maxt, Float &t, void *tmp) const {
 		/* First compute the intersection with the infinite cylinder */
 		Float nearT, farT;
@@ -443,40 +443,40 @@ public:
 			return false;
 		}
 
-		index_type *storage = static_cast<index_type *>(tmp);
+		IndexType *storage = static_cast<IndexType *>(tmp);
 		if (storage)
 			*storage = iv;
 
 		return true;
 	}
 	
-	inline bool intersect(const Ray &ray, index_type iv, 
+	inline bool intersect(const Ray &ray, IndexType iv, 
 		Float mint, Float maxt) const {
 		Float tempT;
 		return intersect(ray, iv, mint, maxt, tempT, NULL);
 	}
 
 	/* Some utility functions */
-	inline Point firstVertex(index_type iv) const { return m_vertices[iv]; }
-	inline Point secondVertex(index_type iv) const { return m_vertices[iv+1]; }
-	inline Point prevVertex(index_type iv) const { return m_vertices[iv-1]; }
-	inline Point nextVertex(index_type iv) const { return m_vertices[iv+2]; }
+	inline Point firstVertex(IndexType iv) const { return m_vertices[iv]; }
+	inline Point secondVertex(IndexType iv) const { return m_vertices[iv+1]; }
+	inline Point prevVertex(IndexType iv) const { return m_vertices[iv-1]; }
+	inline Point nextVertex(IndexType iv) const { return m_vertices[iv+2]; }
 
-	inline bool prevSegmentExists(index_type iv) const { return !m_vertexStartsFiber[iv]; }
-	inline bool nextSegmentExists(index_type iv) const { return !m_vertexStartsFiber[iv+2]; }
+	inline bool prevSegmentExists(IndexType iv) const { return !m_vertexStartsFiber[iv]; }
+	inline bool nextSegmentExists(IndexType iv) const { return !m_vertexStartsFiber[iv+2]; }
 
-	inline Vector tangent(index_type iv) const { return (secondVertex(iv) - firstVertex(iv)).normalized(); }
-	inline Vector prevTangent(index_type iv) const { return (firstVertex(iv) - prevVertex(iv)).normalized(); }
-	inline Vector nextTangent(index_type iv) const { return (nextVertex(iv) - secondVertex(iv)).normalized(); }
+	inline Vector tangent(IndexType iv) const { return (secondVertex(iv) - firstVertex(iv)).normalized(); }
+	inline Vector prevTangent(IndexType iv) const { return (firstVertex(iv) - prevVertex(iv)).normalized(); }
+	inline Vector nextTangent(IndexType iv) const { return (nextVertex(iv) - secondVertex(iv)).normalized(); }
 
-	inline Vector firstMiterNormal(index_type iv) const {
+	inline Vector firstMiterNormal(IndexType iv) const {
 		if (prevSegmentExists(iv))
 			return (prevTangent(iv) + tangent(iv)).normalized();
 		else
 			return tangent(iv);
 	}
 
-	inline Vector secondMiterNormal(index_type iv) const {
+	inline Vector secondMiterNormal(IndexType iv) const {
 		if (nextSegmentExists(iv))
 			return (tangent(iv) + nextTangent(iv)).normalized();
 		else
@@ -487,7 +487,7 @@ public:
 protected:
 	std::vector<Point> m_vertices;
 	std::vector<bool> m_vertexStartsFiber;
-	std::vector<index_type> m_segIndex;
+	std::vector<IndexType> m_segIndex;
 	size_t m_segmentCount;
 	size_t m_hairCount;
 	Float m_radius;
@@ -535,7 +535,7 @@ public:
 					vertices.push_back(p);
 					vertexStartsFiber.push_back(newFiber);
 					lastP = p;
-					tangent = Vector(0.0f);
+					tangent = Vector::Zero();
 				} else if (p != lastP) {
 					if (tangent.isZero()) {
 						vertices.push_back(p);
@@ -621,13 +621,13 @@ public:
 		its.p = ray(its.t);
 
 		/* No UV coordinates for now */
-		its.uv = Point2(0,0);
-		its.dpdu = Vector(0,0,0);
-		its.dpdv = Vector(0,0,0);
+		its.uv = Point2::Zero();
+		its.dpdu = Vector::Zero();
+		its.dpdv = Vector::Zero();
 
-		const HairKDTree::index_type *storage = 
-			static_cast<const HairKDTree::index_type *>(temp);
-		HairKDTree::index_type iv = *storage;
+		const HairKDTree::IndexType *storage = 
+			static_cast<const HairKDTree::IndexType *>(temp);
+		HairKDTree::IndexType iv = *storage;
 
 		const Vector axis = m_kdtree->tangent(iv);
 		its.geoFrame.s = axis;
@@ -713,8 +713,8 @@ public:
 		return m_kdtree.get();
 	}
 
-	BoundingBox3 getBoundingBox3() const {
-		return m_kdtree->getBoundingBox3();
+	BoundingBox3 getBoundingBox() const {
+		return m_kdtree->getBoundingBox();
 	}
 
 	Float getSurfaceArea() const {

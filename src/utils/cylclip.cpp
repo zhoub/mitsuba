@@ -27,13 +27,13 @@ public:
 		m_viewTransform = Transform::lookAt(Point(10*std::sin(m_angle), 0, std::cos(m_angle)*10), 
 				Point(0, 0, 0), Vector(0, 1, 0));
 		m_lineParams = Point2(M_PI/2, 0.28f);
-		m_cylPos = Point(0.0f);
+		m_cylPos = Point::Zero();
 		m_device->setFSAA(4);
 		m_red[0] = 1.0f;
 		m_blue[2] = 1.0f;
 		m_showEllipses = false;
 		m_showRectangles = false;
-		m_showClippedBoundingBox3 = false;
+		m_showClippedBoundingBox = false;
 		m_radius = .2f;
 	}
 
@@ -116,13 +116,13 @@ public:
 		Vector ellipseAxes[2];
 		Float ellipseLengths[2];
 
-		BoundingBox3 aabb;
+		BoundingBox3 bbox;
 		if (!intersectCylPlane(min, planeNrml, cylPt, cylD, m_radius, 
 			ellipseCenter, ellipseAxes, ellipseLengths)) {
 			/* Degenerate case -- return an invalid BoundingBox3. This is
 			   not a problem, since one of the other faces will provide
 			   enough information to arrive at a correct clipped BoundingBox3 */
-			return aabb;
+			return bbox;
 		}
 
 		if (m_showEllipses) {
@@ -158,11 +158,11 @@ public:
 				m_renderer->setColor(m_red);
 				if (x0 >= 0 && x0 <= 1) {
 					m_renderer->drawPoint(p1 + (p2-p1) * x0);
-					aabb.expandBy(p1+(p2-p1)*x0);
+					bbox.expandBy(p1+(p2-p1)*x0);
 				}
 				if (x1 >= 0 && x1 <= 1) {
 					m_renderer->drawPoint(p1 + (p2-p1) * x1);
-					aabb.expandBy(p1+(p2-p1)*x1);
+					bbox.expandBy(p1+(p2-p1)*x1);
 				}
 			}
 		}
@@ -183,20 +183,20 @@ public:
 			Point p2 = ellipseCenter - cosTheta*ellipseAxes[0] - sinTheta*ellipseAxes[1];
 
 			if (faceBounds.contains(p1)) {
-				aabb.expandBy(p1);
+				bbox.expandBy(p1);
 				m_renderer->drawPoint(p1);
 			}
 			if (faceBounds.contains(p2)) {
-				aabb.expandBy(p2);
+				bbox.expandBy(p2);
 				m_renderer->drawPoint(p2);
 			}
 		}
 
 		m_renderer->setColor(m_gray);
-		if (aabb.isValid() && m_showRectangles)
-			m_renderer->drawBoundingBox3(aabb);
+		if (bbox.isValid() && m_showRectangles)
+			m_renderer->drawBoundingBox(bbox);
 
-		return aabb;
+		return bbox;
 	}
 
 	void keyPressed(const DeviceEvent &event) {
@@ -208,7 +208,7 @@ public:
 				m_showRectangles = !m_showRectangles;
 				break;
 			case 'a':
-				m_showClippedBoundingBox3 = !m_showClippedBoundingBox3;
+				m_showClippedBoundingBox = !m_showClippedBoundingBox;
 				break;
 			case '[':
 				m_radius *= 1.1;
@@ -228,9 +228,9 @@ public:
 		m_renderer->setCamera(m_projTransform.getMatrix(),
 			m_viewTransform.inverse().getMatrix());
 
-		BoundingBox3 aabb(Point(-3, -1, -1), Point(3, 1, 1));
+		BoundingBox3 bbox(Point(-3, -1, -1), Point(3, 1, 1));
 		m_renderer->setColor(Spectrum(0.3f));
-		m_renderer->drawBoundingBox3(aabb);
+		m_renderer->drawBoundingBox(bbox);
 
 		m_renderer->setColor(m_gray);
 		Vector cylD(sphericalDirection(m_lineParams.x, m_lineParams.y));
@@ -239,40 +239,40 @@ public:
 		BoundingBox3 clippedBoundingBox3;
 
 		clippedBoundingBox3.expandBy(intersectCylFace(0, 
-				Point(aabb.min.x, aabb.min.y, aabb.min.z),
-				Point(aabb.min.x, aabb.max.y, aabb.max.z),
+				Point(bbox.min.x, bbox.min.y, bbox.min.z),
+				Point(bbox.min.x, bbox.max.y, bbox.max.z),
 				m_cylPos, cylD));
 
 		clippedBoundingBox3.expandBy(intersectCylFace(0,
-				Point(aabb.max.x, aabb.min.y, aabb.min.z),
-				Point(aabb.max.x, aabb.max.y, aabb.max.z),
+				Point(bbox.max.x, bbox.min.y, bbox.min.z),
+				Point(bbox.max.x, bbox.max.y, bbox.max.z),
 				m_cylPos, cylD));
 
 		clippedBoundingBox3.expandBy(intersectCylFace(1, 
-				Point(aabb.min.x, aabb.min.y, aabb.min.z),
-				Point(aabb.max.x, aabb.min.y, aabb.max.z),
+				Point(bbox.min.x, bbox.min.y, bbox.min.z),
+				Point(bbox.max.x, bbox.min.y, bbox.max.z),
 				m_cylPos, cylD));
 
 		clippedBoundingBox3.expandBy(intersectCylFace(1,
-				Point(aabb.min.x, aabb.max.y, aabb.min.z),
-				Point(aabb.max.x, aabb.max.y, aabb.max.z),
+				Point(bbox.min.x, bbox.max.y, bbox.min.z),
+				Point(bbox.max.x, bbox.max.y, bbox.max.z),
 				m_cylPos, cylD));
 
 		clippedBoundingBox3.expandBy(intersectCylFace(2, 
-				Point(aabb.min.x, aabb.min.y, aabb.min.z),
-				Point(aabb.max.x, aabb.max.y, aabb.min.z),
+				Point(bbox.min.x, bbox.min.y, bbox.min.z),
+				Point(bbox.max.x, bbox.max.y, bbox.min.z),
 				m_cylPos, cylD));
 
 		clippedBoundingBox3.expandBy(intersectCylFace(2,
-				Point(aabb.min.x, aabb.min.y, aabb.max.z),
-				Point(aabb.max.x, aabb.max.y, aabb.max.z),
+				Point(bbox.min.x, bbox.min.y, bbox.max.z),
+				Point(bbox.max.x, bbox.max.y, bbox.max.z),
 				m_cylPos, cylD));
 
 		m_renderer->setColor(m_gray);
 
-		if (m_showClippedBoundingBox3) {
+		if (m_showClippedBoundingBox) {
 			if (clippedBoundingBox3.isValid())
-				m_renderer->drawBoundingBox3(clippedBoundingBox3);
+				m_renderer->drawBoundingBox(clippedBoundingBox3);
 		}
 
 		m_renderer->setDepthTest(false);
@@ -282,7 +282,7 @@ public:
 				"[a] Clipped BoundingBox3 : %s",
 			m_showEllipses ? "On": "Off",
 			m_showRectangles ? "On": "Off",
-			m_showClippedBoundingBox3 ? "On": "Off"
+			m_showClippedBoundingBox ? "On": "Off"
 		));
 	}
 
@@ -295,7 +295,7 @@ private:
 	Float m_angle, m_radius;
 	bool m_showEllipses;
 	bool m_showRectangles;
-	bool m_showClippedBoundingBox3;
+	bool m_showClippedBoundingBox;
 };
 
 MTS_EXPORT_UTILITY(CylClip, "Cylinder clipping test")

@@ -23,31 +23,6 @@
 
 MTS_NAMESPACE_BEGIN
 
-void TestCase::init() { }
-void TestCase::shutdown() { }
-
-void TestCase::assertTrueImpl(bool value, const char *expr, const char *file, int line) {
-	if (!value)
-		Thread::getThread()->getLogger()->log(EError, NULL, file, line, "Assertion '%s == true' failed!", expr);
-}
-
-void TestCase::assertFalseImpl(bool value, const char *expr, const char *file, int line) {
-	if (value)
-		Thread::getThread()->getLogger()->log(EError, NULL, file, line, "Assertion '%s == false' failed!", expr);
-}
-
-void TestCase::assertEqualsImpl(int expected, int actual, const char *file, int line) {
-	if (expected != actual)
-		Thread::getThread()->getLogger()->log(EError, NULL, file, line, "Assertion failure: "
-			"expected integer value %i, got %i.", expected, actual);
-}
-
-void TestCase::assertEqualsImpl(Float expected, Float actual, Float epsilon, const char *file, int line) {
-	if (std::abs(expected-actual) > epsilon)
-		Thread::getThread()->getLogger()->log(EError, NULL, file, line, "Assertion failure: "
-			"expected floating point value %f, got %f.", expected, actual);
-}
-
 struct Sample {
 	Float value;
 	Float variance;
@@ -216,5 +191,4 @@ void TestSupervisor::printSummary() const {
 }
 
 MTS_IMPLEMENT_CLASS(TestSupervisor, false, Object)
-MTS_IMPLEMENT_CLASS(TestCase, false, Utility)
 MTS_NAMESPACE_END

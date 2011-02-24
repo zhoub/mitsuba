@@ -389,23 +389,78 @@ namespace Eigen {
 	template<typename _Scalar, int _Rows, int _Cols, int _Options, int _MaxRows, int _MaxCols>
 			Matrix<_Scalar, _Rows, _Cols, _Options, _MaxRows, _MaxCols>::Matrix(mitsuba::Stream *stream) {
 		Base::_check_template_params();
-		stream->readArray(this->data(), RowsAtCompileTime * ColsAtCompileTime);
+		if (RowsAtCompileTime != Dynamic && ColsAtCompileTime != Dynamic) {
+			stream->readArray(Base::data(), RowsAtCompileTime * ColsAtCompileTime);
+		} else if (RowsAtCompileTime != Dynamic) {
+			uint32_t cols = stream->readUInt();
+			Base::resize(Eigen::NoChange, cols);
+			stream->readArray(Base::data(), RowsAtCompileTime * cols);
+		} else if (ColsAtCompileTime != Dynamic) {
+			uint32_t rows = stream->readUInt();
+			Base::resize(rows, Eigen::NoChange);
+			stream->readArray(Base::data(), rows * ColsAtCompileTime);
+		} else {
+			uint32_t rows = stream->readUInt();
+			uint32_t cols = stream->readUInt();
+			Base::resize(rows, cols);
+			stream->readArray(Base::data(), rows * cols);
+		}
 	}
 
 	template<typename _Scalar, int _Rows, int _Cols, int _Options, int _MaxRows, int _MaxCols>
 			void Matrix<_Scalar, _Rows, _Cols, _Options, _MaxRows, _MaxCols>::serialize(mitsuba::Stream *stream) const {
-		stream->writeArray(this->data(), RowsAtCompileTime * ColsAtCompileTime);
+		if (RowsAtCompileTime != Dynamic && ColsAtCompileTime != Dynamic) {
+			stream->writeArray(Base::data(), RowsAtCompileTime * ColsAtCompileTime);
+		} else if (RowsAtCompileTime != Dynamic) {
+			stream->writeUInt((uint32_t) Base::cols());
+			stream->writeArray(Base::data(), Base::cols() * RowsAtCompileTime);
+		} else if (ColsAtCompileTime != Dynamic) {
+			stream->writeUInt((uint32_t) Base::rows());
+			stream->writeArray(Base::data(), Base::rows() * ColsAtCompileTime);
+		} else {
+			stream->writeUInt((uint32_t) Base::rows());
+			stream->writeUInt((uint32_t) Base::cols());
+			stream->writeArray(Base::data(), Base::rows() * Base::cols());
+		}
 	}
 
 	template<typename _Scalar, int _Rows, int _Cols, int _Options, int _MaxRows, int _MaxCols>
 			Array<_Scalar, _Rows, _Cols, _Options, _MaxRows, _MaxCols>::Array(mitsuba::Stream *stream) {
 		Base::_check_template_params();
-		stream->readArray(this->data(), RowsAtCompileTime * ColsAtCompileTime);
+		if (RowsAtCompileTime != Dynamic && ColsAtCompileTime != Dynamic) {
+			stream->readArray(Base::data(), RowsAtCompileTime * ColsAtCompileTime);
+		} else if (RowsAtCompileTime != Dynamic) {
+			uint32_t cols = stream->readUInt();
+			Base::resize(Eigen::NoChange, cols);
+			stream->readArray(Base::data(), cols * RowsAtCompileTime);
+		} else if (ColsAtCompileTime != Dynamic) {
+			uint32_t rows = stream->readUInt();
+			Base::resize(rows, Eigen::NoChange);
+			stream->readArray(Base::data(), rows * ColsAtCompileTime);
+		} else {
+			uint32_t rows = stream->readUInt();
+			uint32_t cols = stream->readUInt();
+			Base::resize(rows, cols);
+			stream->readArray(Base::data(), rows * cols);
+		}
+
 	}
 
 	template<typename _Scalar, int _Rows, int _Cols, int _Options, int _MaxRows, int _MaxCols>
 			void Array<_Scalar, _Rows, _Cols, _Options, _MaxRows, _MaxCols>::serialize(mitsuba::Stream *stream) const {
-		stream->writeArray(this->data(), RowsAtCompileTime * ColsAtCompileTime);
+		if (RowsAtCompileTime != Dynamic && ColsAtCompileTime != Dynamic) {
+			stream->writeArray(Base::data(), RowsAtCompileTime * ColsAtCompileTime);
+		} else if (RowsAtCompileTime != Dynamic) {
+			stream->writeUInt((uint32_t) Base::cols());
+			stream->writeArray(Base::data(), Base::cols() * RowsAtCompileTime);
+		} else if (ColsAtCompileTime != Dynamic) {
+			stream->writeUInt((uint32_t) Base::rows());
+			stream->writeArray(Base::data(), Base::rows() * ColsAtCompileTime);
+		} else {
+			stream->writeUInt((uint32_t) Base::rows());
+			stream->writeUInt((uint32_t) Base::cols());
+			stream->writeArray(Base::data(), Base::rows() * Base::cols());
+		}
 	}
 };
 

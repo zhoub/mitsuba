@@ -63,7 +63,7 @@ struct TriAccel {
 inline int TriAccel::load(const Point &A, const Point &B, const Point &C) {
 	static const int waldModulo[4] = { 1, 2, 0, 1 };
 
-	Vector b = C-A, c = B-A, N = cross(c, b);
+	Vector b = C-A, c = B-A, N = c.cross(b);
 
 	k = 0;
 	/* Determine the largest projection axis */
@@ -85,7 +85,7 @@ inline int TriAccel::load(const Point &A, const Point &B, const Point &C) {
 	/* Pre-compute intersection calculation constants */
 	n_u   =  N[u] / n_k;
 	n_v   =  N[v] / n_k;
-	n_d   =  dot(Vector(A), N) / n_k;
+	n_d   =  A.dot(N) / n_k;
 	b_nu  =  b[u] / denom;
 	b_nv  = -b[v] / denom;
 	a_u   =  A[u];

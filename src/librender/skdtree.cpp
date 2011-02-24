@@ -47,8 +47,8 @@ void ShapeKDTree::addShape(const Shape *shape) {
 	if (shape->getClass()->derivesFrom(TriMesh::m_theClass)) {
 		// Triangle meshes are expanded into individual primitives,
 		// which are visible to the tree construction code. Generic
-		// primitives are only handled by their BoundingBox3s
-		m_shapeMap.push_back((size_type) 
+		// primitives are only handled by their bounding boxes
+		m_shapeMap.push_back((SizeType) 
 			static_cast<const TriMesh *>(shape)->getTriangleCount());
 		m_triangleFlag.push_back(true);
 	} else {
@@ -65,23 +65,23 @@ void ShapeKDTree::build() {
 
 	SAHKDTree3D<ShapeKDTree>::buildInternal();
 		
-	m_bsphere = m_aabb.getBoundingSphere();
+	m_bsphere = m_bbox.getBoundingSphere();
 
 #if !defined(MTS_KD_CONSERVE_MEMORY)
 	ref<Timer> timer = new Timer();
-	size_type primCount = getPrimitiveCount();
+	SizeType primCount = getPrimitiveCount();
 	Log(EDebug, "Precomputing triangle intersection information (%s)",
 			memString(sizeof(TriAccel)*primCount).c_str());
 	m_triAccel = static_cast<TriAccel *>(allocAligned(primCount * sizeof(TriAccel)));
 
-	index_type idx = 0;
-	for (index_type i=0; i<m_shapes.size(); ++i) {
+	IndexType idx = 0;
+	for (IndexType i=0; i<m_shapes.size(); ++i) {
 		const Shape *shape = m_shapes[i];
 		if (m_triangleFlag[i]) {
 			const TriMesh *mesh = static_cast<const TriMesh *>(shape);
 			const Triangle *triangles = mesh->getTriangles();
 			const Point *positions = mesh->getVertexPositions();
-			for (index_type j=0; j<mesh->getTriangleCount(); ++j) {
+			for (IndexType j=0; j<mesh->getTriangleCount(); ++j) {
 				const Triangle &tri = triangles[j];
 				const Point &v0 = positions[tri.idx[0]];
 				const Point &v1 = positions[tri.idx[1]];
@@ -111,7 +111,7 @@ bool ShapeKDTree::rayIntersect(const Ray &ray, Intersection &its) const {
 	Float mint, maxt;
 
 	++raysTraced;
-	if (m_aabb.rayIntersect(ray, mint, maxt)) {
+	if (m_bbox.rayIntersect(ray, mint, maxt)) {
 		/* Use an adaptive ray epsilon */
 		Float rayMinT = ray.mint;
 		if (rayMinT == Epsilon) 
@@ -135,7 +135,7 @@ bool ShapeKDTree::rayIntersect(const Ray &ray) const {
 	Float mint, maxt, t = std::numeric_limits<Float>::infinity();
 
 	++shadowRaysTraced;
-	if (m_aabb.rayIntersect(ray, mint, maxt)) {
+	if (m_bbox.rayIntersect(ray, mint, maxt)) {
 		/* Use an adaptive ray epsilon */
 		Float rayMinT = ray.mint;
 		if (rayMinT == Epsilon)
@@ -169,7 +169,7 @@ void ShapeKDTree::rayIntersectPacket(const RayPacket4 &packet,
 
 	/* First, intersect with the kd-tree BoundingBox3 to determine
 	   the intersection search intervals */
-	if (!m_aabb.rayIntersectPacket(packet, interval))
+	if (!m_bbox.rayIntersectPacket(packet, interval))
 		return;
 
 	interval.mint.ps = _mm_max_ps(interval.mint.ps, rayInterval.mint.ps);
@@ -218,8 +218,8 @@ void ShapeKDTree::rayIntersectPacket(const RayPacket4 &packet,
 		}
 
 		/* Arrived at a leaf node - intersect against primitives */
-		const index_type primStart = currNode->getPrimStart();
-		const index_type primEnd = currNode->getPrimEnd();
+		const IndexType primStart = currNode->getPrimStart();
+		const IndexType primEnd = currNode->getPrimEnd();
 
 		if (EXPECT_NOT_TAKEN(primStart != primEnd)) {
 			SSEVector 
@@ -228,7 +228,7 @@ void ShapeKDTree::rayIntersectPacket(const RayPacket4 &packet,
 				searchEnd(_mm_min_ps(rayInterval.maxt.ps, 
 					_mm_mul_ps(interval.maxt.ps, SSEConstants::op_eps.ps)));
 
-			for (index_type entry=primStart; entry != primEnd; entry++) {
+			for (IndexType entry=primStart; entry != primEnd; entry++) {
 				const TriAccel &kdTri = m_triAccel[m_indices[entry]];
 				if (EXPECT_TAKEN(kdTri.k != KNoTriangleFlag)) {
 					itsFound.ps = _mm_or_ps(itsFound.ps, 

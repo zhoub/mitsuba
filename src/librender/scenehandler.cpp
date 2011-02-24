@@ -442,4 +442,33 @@ void SceneHandler::fatalError(const SAXParseException& e) {
 		transcode(e.getMessage()).c_str());
 }
 
+ref<Scene> SceneHandler::loadScene(const fs::path &filename) {
+	/* Prepare for parsing scene descriptions */
+	FileResolver *resolver = Thread::getThread()->getFileResolver();
+	SAXParser* parser = new SAXParser();
+	fs::path schemaPath = resolver->resolveAbsolute("schema/scene.xsd");
+
+	/* Check against the 'scene.xsd' XML Schema */
+	parser->setDoSchema(true);
+	parser->setValidationSchemaFullChecking(true);
+	parser->setValidationScheme(SAXParser::Val_Always);
+	parser->setExternalNoNamespaceSchemaLocation(schemaPath.file_string().c_str());
+
+	std::map<std::string, std::string> parameters;
+	SceneHandler *handler = new SceneHandler(parameters);
+	parser->setDoNamespaces(true);
+	parser->setDocumentHandler(handler);
+	parser->setErrorHandler(handler);
+		
+	parser->parse(filename.file_string().c_str());
+	ref<Scene> scene = handler->getScene();
+
+	delete parser;
+	delete handler;
+
+	return scene;
+}
+
+
+
 MTS_NAMESPACE_END

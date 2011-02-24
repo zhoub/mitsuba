@@ -210,4 +210,5 @@ void PluginManager::staticShutdown() {
 }
 
 MTS_IMPLEMENT_CLASS(PluginManager, false, Object)
+MTS_IMPLEMENT_CLASS(Utility, true, Object)
 MTS_NAMESPACE_END

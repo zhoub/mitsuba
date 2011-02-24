@@ -215,10 +215,10 @@ struct irr_interp_functor {
 	Spectrum E;
 };
 
-IrradianceCache::IrradianceCache(const BoundingBox3 &aabb) 
- : m_octree(aabb) {
-	/* Use the longest BoundingBox3 axis as an estimate of the scene dimensions */
-	m_sceneSize = (aabb.max-aabb.min)[aabb.getLongestDimension()];
+IrradianceCache::IrradianceCache(const BoundingBox3 &bbox) 
+ : m_octree(bbox) {
+	/* Use the longest bounding box axis as an estimate of the scene dimensions */
+	m_sceneSize = (bbox.max-bbox.min)[bbox.getLongestDimension()];
 	m_mutex = new Mutex();
 
 	/* Reasonable default settings */
@@ -258,7 +258,7 @@ IrradianceCache::~IrradianceCache() {
 }
 
 void IrradianceCache::serialize(Stream *stream, InstanceManager *manager) const {
-	m_octree.getBoundingBox3().serialize(stream);
+	m_octree.getBoundingBox().serialize(stream);
 	stream->writeFloat(m_kappa);
 	stream->writeFloat(m_sceneSize);
 	stream->writeFloat(m_minDist);

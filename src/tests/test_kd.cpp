@@ -18,7 +18,8 @@
 
 #include <mitsuba/core/plugin.h>
 #include <mitsuba/core/kdtree.h>
-#include <mitsuba/render/testcase.h>
+#include <mitsuba/core/testcase.h>
+#include <mitsuba/core/properties.h>
 #include <mitsuba/render/skdtree.h>
 
 MTS_NAMESPACE_BEGIN
@@ -40,47 +41,47 @@ public:
 		Triangle t;
 		t.idx[0] = 0; t.idx[1] = 1; t.idx[2] = 2;
 
-		/* Split the triangle in half and verify the clipped BoundingBox3 */
-		BoundingBox3 clippedBoundingBox3 = t.getClippedBoundingBox3(vertices, BoundingBox3(
+		/* Split the triangle in half and verify the clipped bounding box */
+		BoundingBox3 clippedBoundingBox = t.getClippedBoundingBox(vertices, BoundingBox3(
 			Point(0, .5, -1),
 			Point(1, 1, 1)
 		));
 
-		assertEquals(Point(.5, .5, 0), clippedBoundingBox3.min);
-		assertEquals(Point(1, 1, 0), clippedBoundingBox3.max);
+		assertEquals(Point(.5, .5, 0), clippedBoundingBox.min);
+		assertEquals(Point(1, 1, 0), clippedBoundingBox.max);
 
 		/* Verify that a triangle can be completely clipped away */
-		clippedBoundingBox3 = t.getClippedBoundingBox3(vertices, BoundingBox3(
+		clippedBoundingBox = t.getClippedBoundingBox(vertices, BoundingBox3(
 			Point(2, 2, 2),
 			Point(3, 3, 3)
 		));
-		assertFalse(clippedBoundingBox3.isValid());
+		assertFalse(clippedBoundingBox.isValid());
 
 		/* Verify that a no clipping whatsoever happens when 
 		   the BoundingBox3 fully contains a triangle */
-		clippedBoundingBox3 = t.getClippedBoundingBox3(vertices, BoundingBox3(
+		clippedBoundingBox = t.getClippedBoundingBox(vertices, BoundingBox3(
 			Point(-1, -1, -1),
 			Point(1, 1, 1)
 		));
-		assertEquals(Point(0, 0, 0), clippedBoundingBox3.min);
-		assertEquals(Point(1, 1, 0), clippedBoundingBox3.max);
+		assertEquals(Point(0, 0, 0), clippedBoundingBox.min);
+		assertEquals(Point(1, 1, 0), clippedBoundingBox.max);
 
 		/* Verify that a triangle within a flat cell won't be clipped away */
-		clippedBoundingBox3 = t.getClippedBoundingBox3(vertices, BoundingBox3(
+		clippedBoundingBox = t.getClippedBoundingBox(vertices, BoundingBox3(
 			Point(-100,-100, 0),
 			Point( 100, 100, 0)
 		));
-		assertEquals(Point(0, 0, 0), clippedBoundingBox3.min);
-		assertEquals(Point(1, 1, 0), clippedBoundingBox3.max);
+		assertEquals(Point(0, 0, 0), clippedBoundingBox.min);
+		assertEquals(Point(1, 1, 0), clippedBoundingBox.max);
 
-		/* Verify that a triangle just touching the clip BoundingBox3 leads to a
-		   collapsed point BoundingBox3 */
-		clippedBoundingBox3 = t.getClippedBoundingBox3(vertices, BoundingBox3(
+		/* Verify that a triangle just touching the clip bounding box leads to a
+		   collapsed point bounding box */
+		clippedBoundingBox = t.getClippedBoundingBox(vertices, BoundingBox3(
 			Point(0,1, 0),
 			Point(1,2, 0)
 		));
-		assertEquals(Point(1, 1, 0), clippedBoundingBox3.min);
-		assertEquals(Point(1, 1, 0), clippedBoundingBox3.max);
+		assertEquals(Point(1, 1, 0), clippedBoundingBox.min);
+		assertEquals(Point(1, 1, 0), clippedBoundingBox.max);
 	}
 
 	void test02_bunnyBenchmark() {

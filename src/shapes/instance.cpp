@@ -45,14 +45,14 @@ public:
 			Log(EError, "A reference to a 'shapegroup' must be specified!");
 	}
 
-	BoundingBox3 getBoundingBox3() const {
+	BoundingBox3 getBoundingBox() const {
 		const ShapeKDTree *kdtree = m_shapeGroup->getKDTree();
-		const BoundingBox3 &aabb = kdtree->getBoundingBox3();
-		if (!aabb.isValid()) // the geometry group is empty
-			return aabb;
+		const BoundingBox3 &bbox = kdtree->getBoundingBox();
+		if (!bbox.isValid()) // the geometry group is empty
+			return bbox;
 		BoundingBox3 result;
 		for (int i=0; i<8; ++i)
-			result.expandBy(m_objectToWorld(aabb.getCorner(i)));
+			result.expandBy(m_objectToWorld(bbox.getCorner(i)));
 		return result;
 	}
 

@@ -119,7 +119,7 @@ public:
 			const Vector &axis1, const Vector &axis2);
 
 	/// Draw a wire-frame axis-aligned box
-	void drawBoundingBox3(const BoundingBox3 &aabb);
+	void drawBoundingBox(const BoundingBox3 &bbox);
 
 	/// Set a depth offset for shadow mapping (0 to disable)
 	void setDepthOffset(Float value);

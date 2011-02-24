@@ -103,9 +103,9 @@ public:
 
 		if (m_shapes.size() != 0) {
 			m_kdTree->build();
-			m_aabb = m_kdTree->getBoundingBox3();
+			m_bbox = m_kdTree->getBoundingBox();
 		} else {
-			m_aabb = m_densities->getBoundingBox3();
+			m_bbox = m_densities->getBoundingBox();
 		}
 
 		if (m_stepSize == 0) {
@@ -167,7 +167,7 @@ public:
 			t = its.t;
 		} else {
 			Float mint, maxt;
-			if (!m_aabb.rayIntersect(ray, mint, maxt))
+			if (!m_bbox.rayIntersect(ray, mint, maxt))
 				return false;
 			if (mint <= ray.mint && maxt <= ray.mint)
 				return false;

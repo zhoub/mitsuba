@@ -80,7 +80,7 @@ public:
 	/**
 	 * \brief Return an axis-aligned bounding box containing all primitives
 	 */
-	inline const BoundingBox3 &getBoundingBox3() const { return m_aabb; }
+	inline const BoundingBox3 &getBoundingBox() const { return m_bbox; }
 	
 	/// Return an bounding sphere containing all primitives
 	inline const BoundingSphere &getBoundingSphere() const { return m_bsphere; }
@@ -114,7 +114,7 @@ public:
 		const RayInterval4 &interval, Intersection4 &its, void *temp) const;
 #endif
 	
-	FINLINE size_type getPrimitiveCount() const {
+	FINLINE SizeType getPrimitiveCount() const {
 		return m_shapeMap[m_shapeMap.size()-1];
 	}
 
@@ -126,41 +126,41 @@ protected:
 	 * mesh, the \a idx parameter is updated to the triangle index within
 	 * the mesh.
 	 */
-	index_type findShape(index_type &idx) const {
-		std::vector<index_type>::const_iterator it = std::lower_bound(
+	IndexType findShape(IndexType &idx) const {
+		std::vector<IndexType>::const_iterator it = std::lower_bound(
 				m_shapeMap.begin(), m_shapeMap.end(), idx+1) - 1;
 		idx -= *it;
-		return (index_type) (it - m_shapeMap.begin());
+		return (IndexType) (it - m_shapeMap.begin());
 	}
 
  	/// Return the axis-aligned bounding box of a certain primitive
-	FINLINE BoundingBox3 getBoundingBox3(index_type idx) const {
-		index_type shapeIdx = findShape(idx);
+	FINLINE BoundingBox3 getBoundingBox(IndexType idx) const {
+		IndexType shapeIdx = findShape(idx);
 		const Shape *shape = m_shapes[shapeIdx];
 		if (m_triangleFlag[shapeIdx]) {
 			const TriMesh *mesh = static_cast<const TriMesh *>(shape);
-			return mesh->getTriangles()[idx].getBoundingBox3(mesh->getVertexPositions());
+			return mesh->getTriangles()[idx].getBoundingBox(mesh->getVertexPositions());
 		} else {
-			return shape->getBoundingBox3();
+			return shape->getBoundingBox();
 		}
 	}
 
  	/// Return the BoundingBox3 of a primitive when clipped to another BoundingBox3
-	FINLINE BoundingBox3 getClippedBoundingBox3(index_type idx, const BoundingBox3 &aabb) const {
-		index_type shapeIdx = findShape(idx);
+	FINLINE BoundingBox3 getClippedBoundingBox(IndexType idx, const BoundingBox3 &bbox) const {
+		IndexType shapeIdx = findShape(idx);
 		const Shape *shape = m_shapes[shapeIdx];
 		if (m_triangleFlag[shapeIdx]) {
 			const TriMesh *mesh = static_cast<const TriMesh *>(shape);
-			return mesh->getTriangles()[idx].getClippedBoundingBox3(mesh->getVertexPositions(), aabb);
+			return mesh->getTriangles()[idx].getClippedBoundingBox(mesh->getVertexPositions(), bbox);
 		} else {
-			return shape->getClippedBoundingBox3(aabb);
+			return shape->getClippedBoundingBox(bbox);
 		}
 	}
 
 	/// Temporarily holds some intersection information
 	struct IntersectionCache {
-		size_type shapeIndex;
-		size_type primIndex;
+		SizeType shapeIndex;
+		SizeType primIndex;
 		Float u, v;
 	};
 
@@ -169,13 +169,13 @@ protected:
 	 * temporary space is supplied to store data that can later
 	 * be used to create a detailed intersection record.
 	 */
-	FINLINE bool intersect(const Ray &ray, index_type idx, Float mint, 
+	FINLINE bool intersect(const Ray &ray, IndexType idx, Float mint, 
 		Float maxt, Float &t, void *temp) const {
 		IntersectionCache *cache = 
 			static_cast<IntersectionCache *>(temp);
 
 #if defined(MTS_KD_CONSERVE_MEMORY)
-		index_type shapeIdx = findShape(idx);
+		IndexType shapeIdx = findShape(idx);
 		if (EXPECT_TAKEN(m_triangleFlag[shapeIdx])) {
 			const TriMesh *mesh = 
 				static_cast<const TriMesh *>(m_shapes[shapeIdx]);
@@ -231,10 +231,10 @@ protected:
 	 * Check whether a primitive is intersected by the given ray. This
 	 * version is used for shadow rays, hence no temporary space is supplied.
 	 */
-	FINLINE bool intersect(const Ray &ray, index_type idx, 
+	FINLINE bool intersect(const Ray &ray, IndexType idx, 
 			Float mint, Float maxt) const {
 #if defined(MTS_KD_CONSERVE_MEMORY)
-		index_type shapeIdx = findShape(idx);
+		IndexType shapeIdx = findShape(idx);
 		if (EXPECT_TAKEN(m_triangleFlag[shapeIdx])) {
 			const TriMesh *mesh = 
 				static_cast<const TriMesh *>(m_shapes[shapeIdx]);
@@ -297,11 +297,11 @@ protected:
 			const Point &p2 = vertexPositions[idx2];
 
 			if (BarycentricPos)
-				its.p = p0 * b.x + p1 * b.y + p2 * b.z;
+				its.p = p0 * b.x() + p1 * b.y() + p2 * b.z();
 			else
 				its.p = ray(its.t);
 
-			Normal faceNormal(cross(p1-p0, p2-p0));
+			Normal faceNormal((p1-p0).cross(p2-p0));
 			Float length = faceNormal.norm();
 			if (!faceNormal.isZero())
 				faceNormal /= length;
@@ -314,18 +314,17 @@ protected:
 				const Normal &n2 = vertexNormals[idx2];
 
 				if (EXPECT_TAKEN(!vertexTangents)) {
-					its.shFrame = Frame(normalize(n0 * b.x + n1 * b.y + n2 * b.z));
+					its.shFrame = Frame((n0 * b.x() + n1 * b.y() + n2 * b.z()).normalized());
 				} else {
 					const TangentSpace &t0 = vertexTangents[idx0];
 					const TangentSpace &t1 = vertexTangents[idx1];
 					const TangentSpace &t2 = vertexTangents[idx2];
-					const Vector dpdu = t0.dpdu * b.x + t1.dpdu * b.y + t2.dpdu * b.z;
-					its.shFrame.n = normalize(n0 * b.x + n1 * b.y + n2 * b.z);
-					its.shFrame.s = normalize(dpdu - its.shFrame.n 
-						* dot(its.shFrame.n, dpdu));
-					its.shFrame.t = cross(its.shFrame.n, its.shFrame.s);
+					const Vector dpdu = t0.dpdu * b.x() + t1.dpdu * b.y() + t2.dpdu * b.z();
+					its.shFrame.n = (n0 * b.x() + n1 * b.y() + n2 * b.z()).normalized();
+					its.shFrame.s = (dpdu - its.shFrame.n * its.shFrame.n.dot(dpdu)).normalized();
+					its.shFrame.t = its.shFrame.n.cross(its.shFrame.s);
 					its.dpdu = dpdu;
-					its.dpdv = t0.dpdv * b.x + t1.dpdv * b.y + t2.dpdv * b.z;
+					its.dpdv = t0.dpdv * b.x() + t1.dpdv * b.y() + t2.dpdv * b.z();
 				}
 			} else {
 				its.shFrame = its.geoFrame;
@@ -335,7 +334,7 @@ protected:
 				const Point2 &t0 = vertexTexcoords[idx0];
 				const Point2 &t1 = vertexTexcoords[idx1];
 				const Point2 &t2 = vertexTexcoords[idx2];
-				its.uv = t0 * b.x + t1 * b.y + t2 * b.z;
+				its.uv = t0 * b.x() + t1 * b.y() + t2 * b.z();
 			} else {
 				its.uv = Point2(0.0f);
 			}
@@ -344,7 +343,7 @@ protected:
 				const Spectrum &c0 = vertexColors[idx0],
 							&c1 = vertexColors[idx1],
 							&c2 = vertexColors[idx2];
-				its.color = c0 * b.x + c1 * b.y + c2 * b.z;
+				its.color = c0 * b.x() + c1 * b.y() + c2 * b.z();
 			}
 
 			its.wi = its.toLocal(-ray.d);
@@ -360,7 +359,7 @@ protected:
 	/// Plain shadow ray query (used by the 'instance' plugin)
 	inline bool rayIntersect(const Ray &ray, Float _mint, Float _maxt) const {
 		Float mint, maxt, tempT = std::numeric_limits<Float>::infinity(); 
-		if (m_aabb.rayIntersect(ray, mint, maxt)) {
+		if (m_bbox.rayIntersect(ray, mint, maxt)) {
 			if (_mint > mint) mint = _mint;
 			if (_maxt < maxt) maxt = _maxt;
 
@@ -373,7 +372,7 @@ protected:
 	/// Plain intersection query (used by the 'instance' plugin)
 	inline bool rayIntersect(const Ray &ray, Float _mint, Float _maxt, Float &t, void *temp) const {
 		Float mint, maxt, tempT = std::numeric_limits<Float>::infinity(); 
-		if (m_aabb.rayIntersect(ray, mint, maxt)) {
+		if (m_bbox.rayIntersect(ray, mint, maxt)) {
 			if (_mint > mint) mint = _mint;
 			if (_maxt < maxt) maxt = _maxt;
 
@@ -392,7 +391,7 @@ protected:
 private:
 	std::vector<const Shape *> m_shapes;
 	std::vector<bool> m_triangleFlag;
-	std::vector<index_type> m_shapeMap;
+	std::vector<IndexType> m_shapeMap;
 #if !defined(MTS_KD_CONSERVE_MEMORY)
 	TriAccel *m_triAccel;
 #endif

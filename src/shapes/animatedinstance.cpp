@@ -52,7 +52,7 @@ public:
 		if (!m_shapeGroup)
 			Log(EError, "A reference to a 'shapegroup' must be specified!");
 		const ShapeKDTree *kdtree = m_shapeGroup->getKDTree();
-		const BoundingBox3 &aabb = kdtree->getBoundingBox3();
+		const BoundingBox3 &bbox = kdtree->getBoundingBox();
 		Float minT, maxT;
 		m_transform->computeTimeBounds(minT, maxT);
 
@@ -64,12 +64,12 @@ public:
 		for (int i=0; i<nSteps; ++i) {
 			m_transform->eval(minT + step * i, objectToWorld);
 			for (int j=0; j<8; ++j)
-				m_aabb.expandBy(objectToWorld(aabb.getCorner(j)));
+				m_bbox.expandBy(objectToWorld(bbox.getCorner(j)));
 		}
 	}
 
-	BoundingBox3 getBoundingBox3() const {
-		return m_aabb;
+	BoundingBox3 getBoundingBox() const {
+		return m_bbox;
 	}
 
 	std::string getName() const {
@@ -130,7 +130,7 @@ public:
 private:
 	ref<ShapeGroup> m_shapeGroup;
 	ref<AnimatedTransform> m_transform;
-	BoundingBox3 m_aabb;
+	BoundingBox3 m_bbox;
 	std::string m_name;
 };
 

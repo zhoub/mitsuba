@@ -32,7 +32,7 @@ public:
 	/**
 	 * Construct a new mipmap from the given volume data
 	 *
-	 * @param aabb
+	 * @param bbox
 	 *    Axis-aligned bounding box specifying the size of the volume region
 	 * @param size
 	 *    Size-length of the volume data in pixels (must be a power of two)
@@ -42,7 +42,7 @@ public:
 	 *    Fudge factor for the denominator, meant to avoid the relative
 	 *    error singularity at zero
 	 */
-	SparseMipmap3D(const BoundingBox3 &aabb, size_t size, const float *data, 
+	SparseMipmap3D(const BoundingBox3 &bbox, size_t size, const float *data, 
 		Float maxError, Float offset);
 
 	/// Unserialize from a binary data stream
@@ -119,10 +119,10 @@ protected:
 	/// Virtual destructor
 	virtual ~SparseMipmap3D() { }
 private:
-	BoundingBox3 m_aabb;
+	BoundingBox3 m_bbox;
 	std::vector<Node> m_nodes;
 	size_t m_size, m_levels;
-	Vector m_aabbSum;
+	Vector m_bboxSum;
 };
 
 MTS_NAMESPACE_END

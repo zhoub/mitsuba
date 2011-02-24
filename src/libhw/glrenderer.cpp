@@ -824,8 +824,8 @@ void GLRenderer::drawEllipse(const Point &center,
 	glEnd();
 }
 
-void GLRenderer::drawBoundingBox3(const BoundingBox3 &aabb) {
-	#define V(a,b,c) glVertex3f(aabb.a.x, aabb.b.y, aabb.c.z)
+void GLRenderer::drawBoundingBox(const BoundingBox3 &bbox) {
+	#define V(a,b,c) glVertex3f(bbox.a.x, bbox.b.y, bbox.c.z)
 	glBegin(GL_LINE_LOOP); V(max,min,max); V(max,min,min); V(max,max,min); V(max,max,max); glEnd();
 	glBegin(GL_LINE_LOOP); V(max,max,max); V(max,max,min); V(min,max,min); V(min,max,max); glEnd();
 	glBegin(GL_LINE_LOOP); V(max,max,max); V(min,max,max); V(min,min,max); V(max,min,max); glEnd();

@@ -168,7 +168,7 @@ public:
 	virtual Float getSurfaceArea() const = 0;
 
 	/// Return a bounding box containing the shape
-	virtual BoundingBox3 getBoundingBox3() const = 0;
+	virtual BoundingBox3 getBoundingBox() const = 0;
 
 	/**
 	 * \brief Returns the minimal axis-aligned bounding box 
@@ -176,9 +176,9 @@ public:
 	 * 
 	 * This is extremely important to construct decent kd-trees.
 	 * The default implementation just takes the bounding box
-	 * returned by \ref getBoundingBox3() and clips it to \a box.
+	 * returned by \ref getBoundingBox() and clips it to \a box.
 	 */
-	virtual BoundingBox3 getClippedBoundingBox3(const BoundingBox3 &box) const;
+	virtual BoundingBox3 getClippedBoundingBox(const BoundingBox3 &box) const;
 
 	/**
 	 * \brief Fast ray intersection test

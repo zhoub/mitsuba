@@ -16,7 +16,7 @@
     along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <mitsuba/core/shvector.h>
+#include <mitsuba/core/sh.h>
 #include <mitsuba/core/transform.h>
 #include <boost/math/special_functions/factorials.hpp>
 
@@ -26,16 +26,12 @@ Float *SHVector::m_normalization = NULL;
 
 SHVector::SHVector(Stream *stream) {
 	m_bands = stream->readInt();
-	unsigned int size = m_bands*m_bands;
-	m_coeffs.resize(size);
-	for (size_t i=0; i<size; ++i)
-		m_coeffs[i] = stream->readFloat();
+	m_coeffs = DynamicVector(stream);
 }
 
 void SHVector::serialize(Stream *stream) const {
 	stream->writeInt(m_bands);
-	for (size_t i=0; i<m_coeffs.size(); ++i)
-		stream->writeFloat(m_coeffs[i]);
+	m_coeffs.serialize(stream);
 }
 
 bool SHVector::isAzimuthallyInvariant() const {
@@ -87,13 +83,13 @@ Float SHVector::findMinimum(int res = 32) const {
 	return minimum;
 }
 
-void SHVector::offset(Float value) {
+void SHVector::addOffset(Float value) {
 	operator()(0, 0) += 2 * value * (Float) std::sqrt(M_PI);
 }
 
 Float SHVector::eval(const Vector &v) const {
 	Float result = 0;
-	Float cosTheta = v.z, phi = std::atan2(v.y, v.x);
+	Float cosTheta = v.z(), phi = std::atan2(v.y(), v.x());
 	if (phi < 0) phi += 2*M_PI;
 	Float *sinPhi = (Float *) alloca(sizeof(Float)*m_bands),
 		  *cosPhi = (Float *) alloca(sizeof(Float)*m_bands);
@@ -115,15 +111,15 @@ Float SHVector::eval(const Vector &v) const {
 	return result;
 }
 
-Float SHVector::evalAzimuthallyInvariant(Float theta, Float phi) const {
+Float SHVector::evalAI(Float theta, Float phi) const {
 	Float result = 0, cosTheta = std::cos(theta);
 	for (int l=0; l<m_bands; ++l) 
 		result += operator()(l, 0) * legendre(l, 0, cosTheta) * normalization(l, 0);
 	return result;
 }
 
-Float SHVector::evalAzimuthallyInvariant(const Vector &v) const {
-	Float result = 0, cosTheta = v.z;
+Float SHVector::evalAI(const Vector &v) const {
+	Float result = 0, cosTheta = v.z();
 	for (int l=0; l<m_bands; ++l) 
 		result += operator()(l, 0) * legendre(l, 0, cosTheta) * normalization(l, 0);
 	return result;
@@ -162,7 +158,7 @@ Float SHVector::legendre(int l, int m, Float x) {
 void SHVector::normalize() {
 	Float correction = 1/(2 * (Float) std::sqrt(M_PI)*operator()(0,0));
 
-	for (size_t i=0; i<m_coeffs.size(); ++i)
+	for (int i=0; i<m_coeffs.size(); ++i)
 		m_coeffs[i] *= correction;
 }
 
@@ -176,14 +172,12 @@ void SHVector::convolve(const SHVector &kernel) {
 	}
 }
 
-ublas::matrix<Float> SHVector::mu2() const {
-	const Float sqrt5o3 = std::sqrt((Float) 5/ (Float) 3);
-	const Float sqrto3 = std::sqrt((Float) 1/ (Float) 3);
-	ublas::matrix<Float> result(3, 3);
+Matrix3x3 SHVector::mu2() const {
+	const Float sqrt5o3 = std::sqrt((Float) 5 / (Float) 3);
+	const Float sqrto3 = std::sqrt((Float) 1 / (Float) 3);
+	Matrix3x3 result = Matrix3x3::Zero();
 
 	SAssert(m_bands > 0);
-
-	result.clear();
 	result(0, 0) = result(1, 1) = 
 		result(2, 2) = sqrt5o3*operator()(0,0);
 
@@ -241,16 +235,14 @@ void SHVector::staticShutdown() {
 }
 
 struct RotationBlockHelper {
-	const ublas::matrix<Float> &M1, &Mp;
-	ublas::matrix<Float> &Mn;
+	const DynamicMatrix &M1, &Mp;
+	DynamicMatrix &Mn;
 	int prevLevel, level;
 
-	inline RotationBlockHelper(
-		const ublas::matrix<Float> &M1, 
-		const ublas::matrix<Float> &Mp, 
-		ublas::matrix<Float> &Mn)
-		: M1(M1), Mp(Mp), Mn(Mn), prevLevel((int) Mp.size1()/2),
-		level((int) Mp.size1()/2+1) { }
+	inline RotationBlockHelper(const DynamicMatrix &M1, 
+		const DynamicMatrix &Mp, DynamicMatrix &Mn)
+			: M1(M1), Mp(Mp), Mn(Mn), prevLevel((int) Mp.rows()/2),
+			  level((int) Mp.rows()/2+1) { }
 
 	inline Float delta(int i, int j) const {
 		return (i == j) ? (Float) 1 : (Float) 0;
@@ -339,48 +331,28 @@ struct RotationBlockHelper {
 	}
 };
 
-void SHVector::rotationBlock(
-		const ublas::matrix<Float> &M1,
-		const ublas::matrix<Float> &Mp,
-		ublas::matrix<Float> &Mn) {
-	RotationBlockHelper rbh(M1, Mp, Mn);
-	rbh.compute();
-}
+void SHRotation::set(const Transform &t) {
+	blocks[0](0, 0) = 1;
 
-void SHVector::rotation(const Transform &t, SHRotation &rot) {
-	rot.blocks[0](0, 0) = 1;
-	if (rot.blocks.size() <= 1)
+	if (blocks.size() <= 1)
 		return;
 
 	const Matrix4x4 &trafo = t.getMatrix();
-	rot.blocks[1](0, 0) =  trafo.m[1][1];
-	rot.blocks[1](0, 1) = -trafo.m[2][1];
-	rot.blocks[1](0, 2) =  trafo.m[0][1];
-	rot.blocks[1](1, 0) = -trafo.m[1][2];
-	rot.blocks[1](1, 1) =  trafo.m[2][2];
-	rot.blocks[1](1, 2) = -trafo.m[0][2];
-	rot.blocks[1](2, 0) =  trafo.m[1][0];
-	rot.blocks[1](2, 1) = -trafo.m[2][0];
-	rot.blocks[1](2, 2) =  trafo.m[0][0];
+	blocks[1](0, 0) =  trafo(1, 1);
+	blocks[1](0, 1) = -trafo(2, 1);
+	blocks[1](0, 2) =  trafo(0, 1);
+	blocks[1](1, 0) = -trafo(1, 2);
+	blocks[1](1, 1) =  trafo(2, 2);
+	blocks[1](1, 2) = -trafo(0, 2);
+	blocks[1](2, 0) =  trafo(1, 0);
+	blocks[1](2, 1) = -trafo(2, 0);
+	blocks[1](2, 2) =  trafo(0, 0);
 
-	if (rot.blocks.size() <= 2)
+	if (blocks.size() <= 2)
 		return;
 
-	for (size_t i=2; i<rot.blocks.size(); ++i)
-		rotationBlock(rot.blocks[1], rot.blocks[i-1], rot.blocks[i]);
-}
-
-void SHRotation::operator()(const SHVector &source, SHVector &target) const {
-	SAssert(source.getBands() == target.getBands());
-	for (int l=0; l<source.getBands(); ++l) {
-		const ublas::matrix<Float> &M = blocks[l];
-		for (int m1=-l; m1<=l; ++m1) {
-			Float result = 0;
-			for (int m2=-l; m2<=l; ++m2)
-				result += M(m1+l, m2+l)*source(l, m2);
-			target(l, m1) = result;
-		}
-	}
+	for (size_t i=2; i<blocks.size(); ++i) 
+		RotationBlockHelper(blocks[1], blocks[i-1], blocks[i]).compute();
 }
 
 SHSampler::SHSampler(int bands, int depth) : m_bands(bands), m_depth(depth) {
@@ -437,12 +409,12 @@ Float SHSampler::warp(const SHVector &f, Point2 &sample) const {
 		Float zNorm = (Float) 1 / (z1+z2);
 		z1 *= zNorm; z2 *= zNorm;
 
-		if (sample.x < z1) {
-			sample.x /= z1;
+		if (sample.x() < z1) {
+			sample.x() /= z1;
 			phi1 = q00; phi2 = q10;
 			i <<= 1;
 		} else {
-			sample.x = (sample.x - z1) / z2;
+			sample.x() = (sample.x() - z1) / z2;
 			phi1 = q01; phi2 = q11;
 			i = (i+1) << 1;
 		}
@@ -450,12 +422,12 @@ Float SHSampler::warp(const SHVector &f, Point2 &sample) const {
 		Float phiNorm = (Float) 1 / (phi1+phi2);
 		Float phi1Norm = phi1*phiNorm, phi2Norm = phi2*phiNorm;
 
-		if (sample.y <= phi1Norm) {
-			sample.y /= phi1Norm;
+		if (sample.y() <= phi1Norm) {
+			sample.y() /= phi1Norm;
 			j <<= 1;
 			integral = phi1;
 		} else {
-			sample.y = (sample.y - phi1Norm) / phi2Norm;
+			sample.y() = (sample.y() - phi1Norm) / phi2Norm;
 			j = (j+1) << 1;
 			integral = phi2;
 		}
@@ -465,9 +437,9 @@ Float SHSampler::warp(const SHVector &f, Point2 &sample) const {
 	Float phiStep = 2 * (Float) M_PI / (Float) (1 << m_depth);
 	i >>= 1; j >>= 1;
 
-	Float z = 1 + zStep * i + zStep * sample.x;
-	sample.x = std::acos(z);
-	sample.y = phiStep * j + phiStep * sample.y;
+	Float z = 1 + zStep * i + zStep * sample.x();
+	sample.x() = std::acos(z);
+	sample.y() = phiStep * j + phiStep * sample.y();
 
 	/* PDF of sampling the mip-map bin */
 	Float pdfBin = integral/integralRoot;

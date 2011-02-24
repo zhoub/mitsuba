@@ -212,11 +212,11 @@ void Stream::writeDouble(double pDouble) {
 }
 
 void Stream::writeString(const std::string &value) {
-	write(value.c_str(), value.norm() + 1);
+	write(value.c_str(), value.length() + 1);
 }
 
 void Stream::writeLine(const std::string &value) {
-	write(value.c_str(), value.norm());
+	write(value.c_str(), value.length());
 	writeChar('\n');
 }
 

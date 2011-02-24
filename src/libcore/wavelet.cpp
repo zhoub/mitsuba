@@ -359,7 +359,7 @@ void SparseWavelet2D::clear() {
 
 
 Float SparseWavelet2D::getPixel(const Point2i &pt) const {
-	Key key = Key::create(0, 0, pt.x, pt.y);
+	Key key = Key::create(0, 0, pt.x(), pt.y());
 	Float value = 0;
 
 	for (int i=m_maxLevel; i>=0; i--) {
@@ -400,8 +400,8 @@ Float SparseWavelet2D::lineIntegral(Point2 start, Point2 end) const {
 		key.level = level;
 
 		Vector2i dpos(
-			std::max(0, std::min((int) start.x, (int) res-1)),
-			std::max(0, std::min((int) start.y, (int) res-1))
+			std::max(0, std::min((int) start.x(), (int) res-1)),
+			std::max(0, std::min((int) start.y(), (int) res-1))
 		);
 
 		Vector2 delta, next;
@@ -424,14 +424,14 @@ Float SparseWavelet2D::lineIntegral(Point2 start, Point2 end) const {
 		Float t = 0, nextT;
 
 		while (true) {
-			nextT = std::min(std::min(next.x, next.y), maxt);
-			key.i = dpos.x >> 1; key.j = dpos.y >> 1;
+			nextT = std::min(std::min(next.x(), next.y()), maxt);
+			key.i = dpos.x() >> 1; key.j = dpos.y() >> 1;
 			float temp = 0;
 
 			for (int type=0; type<3; ++type) {
 				key.type = type;
 				const float coeff = get(key),
-					sign = key.quadrantSign(dpos.x - (key.i << 1), dpos.y - (key.j << 1));
+					sign = key.quadrantSign(dpos.x() - (key.i << 1), dpos.y() - (key.j << 1));
 				temp += coeff*sign;
 			}
 
@@ -440,12 +440,12 @@ Float SparseWavelet2D::lineIntegral(Point2 start, Point2 end) const {
 
 			if (nextT == maxt) {
 				break;
-			} else if (next.x <= next.y) {
-				dpos.x += step.x;
-				next.x += delta.x;
+			} else if (next.x() <= next.y()) {
+				dpos.x() += step.x();
+				next.x() += delta.x();
 			} else {
-				dpos.y += step.y;
-				next.y += delta.y;
+				dpos.y() += step.y();
+				next.y() += delta.y();
 			}
 		}
 		res /= 2; maxt /= 2; start /= 2; end /= 2;
@@ -847,38 +847,36 @@ Float SparseWaveletOctree::lineIntegral(Point start, Point end) const {
 	Ray ray(start, (end-start).normalized(), 0.0f);
 	
 	uint8_t a = 0;
-	if (ray.d.x < 0) {
-		ray.d.x = -ray.d.x;
-		ray.dRcp.x = -ray.dRcp.x;
-		ray.o.x = 1-ray.o.x;
+	if (ray.d.x() < 0) {
+		ray.d.x() = -ray.d.x();
+		ray.dRcp.x() = -ray.dRcp.x();
+		ray.o.x() = 1-ray.o.x();
 		a |= 4;
 	}
-	if (ray.d.y < 0) {
-		ray.d.y = -ray.d.y;
-		ray.dRcp.y = -ray.dRcp.y;
-		ray.o.y = 1-ray.o.y;
+
+	if (ray.d.y() < 0) {
+		ray.d.y() = -ray.d.y();
+		ray.dRcp.y() = -ray.dRcp.y();
+		ray.o.y() = 1-ray.o.y();
 		a |= 2;
 	}
-	if (ray.d.z < 0) {
-		ray.d.z = -ray.d.z;
-		ray.dRcp.z = -ray.dRcp.z;
-		ray.o.z = 1-ray.o.z;
+
+	if (ray.d.z() < 0) {
+		ray.d.z() = -ray.d.z();
+		ray.dRcp.z() = -ray.dRcp.z();
+		ray.o.z() = 1-ray.o.z();
 		a |= 1;
 	}
 
-	Float tx0 = -ray.o.x*ray.dRcp.x,
-		  ty0 = -ray.o.y*ray.dRcp.y,
-		  tz0 = -ray.o.z*ray.dRcp.z,
-		  tx1 = (1-ray.o.x)*ray.dRcp.x,
-		  ty1 = (1-ray.o.y)*ray.dRcp.y,
-		  tz1 = (1-ray.o.z)*ray.dRcp.z,
-		  mint = std::max(std::max(tx0, ty0), tz0),
-		  maxt = std::min(std::min(tx1, ty1), tz1);
+	Vector t0 = -ray.o.cwiseProduct(ray.dRcp);
+	Vector t1 = (Vector(1,1,1) - ray.o).cwiseProduct(ray.dRcp);
+
+	Float mint = t0.maxCoeff(), maxt = t1.minCoeff();
 
 	if (mint >= maxt)
 		return 0.0f;
 
-	return lineIntegral(1, tx0, ty0, tz0, tx1, ty1, tz1, a);
+	return lineIntegral(1, t0.x(), t0.y(), t0.z(), t1.x(), t1.y(), t1.z(), a);
 }
 
 Float SparseWaveletOctree::lineIntegral(int32_t idx,

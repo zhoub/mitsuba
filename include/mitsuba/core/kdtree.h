@@ -43,7 +43,7 @@ template <typename _PointType, typename _DataRecord> struct BasicKDNode {
 	DataRecord value;
 
 	/// Initialize a KD-tree node
-	inline BasicKDNode() : position((Float) 0), 
+	inline BasicKDNode() : position(PointType::Zero()), 
 		right(0), flags(0), axis(0), value() { }
 	/// Initialize a KD-tree node with the given data record
 	inline BasicKDNode(const DataRecord &value) : position((Float) 0), 
@@ -178,7 +178,7 @@ public:
 	inline const KDNode &operator[](size_t idx) const { return m_nodes[idx]; }
 
 	/// Return the BoundingBox3 of the underlying point data
-	inline const BoundingBoxType &getBoundingBox3() const { return m_bbox; }
+	inline const BoundingBoxType &getBoundingBox() const { return m_bbox; }
 	/// Return the depth of the constructed KD-tree
 	inline size_t getDepth() const { return m_depth; }
 	/// Return the size of the kd-tree
@@ -581,15 +581,15 @@ protected:
 						std::sort(rangeStart, rangeEnd, CoordinateOrdering(dim));
 
 						size_t numLeft = 1, numRight = rangeEnd-rangeStart-2;
-						BoundingBoxType leftBoundingBox3(m_bbox), rightBoundingBox3(m_bbox);
+						BoundingBoxType leftBoundingBox(m_bbox), rightBoundingBox(m_bbox);
 						Float invVolume = 1.0f / m_bbox.getVolume();
 						for (typename std::vector<KDNode>::iterator it = rangeStart+1; it != rangeEnd; ++it) {
 							++numLeft; --numRight;
-							leftBoundingBox3.max[dim] = it->getPosition()[dim];
-							rightBoundingBox3.min[dim] = it->getPosition()[dim];
+							leftBoundingBox.max[dim] = it->getPosition()[dim];
+							rightBoundingBox.min[dim] = it->getPosition()[dim];
 
-							Float cost = (numLeft * leftBoundingBox3.getVolume()
-								+ numRight * rightBoundingBox3.getVolume()) * invVolume;
+							Float cost = (numLeft * leftBoundingBox.getVolume()
+								+ numRight * rightBoundingBox.getVolume()) * invVolume;
 							if (cost < bestCost) {
 								bestCost = cost;
 								axis = dim;

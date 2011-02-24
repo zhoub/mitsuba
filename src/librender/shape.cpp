@@ -59,8 +59,8 @@ Shape *Shape::getElement(int i) {
 	return NULL;
 }
 	
-BoundingBox3 Shape::getClippedBoundingBox3(const BoundingBox3 &box) const {
-	BoundingBox3 result = getBoundingBox3();
+BoundingBox3 Shape::getClippedBoundingBox(const BoundingBox3 &box) const {
+	BoundingBox3 result = getBoundingBox();
 	result.clip(box);
 	return result;
 }

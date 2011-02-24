@@ -464,7 +464,7 @@ protected:
 		photon_iterator sortStart,
 		photon_iterator sortEnd,
 		std::vector<size_t> &heapPermutation,
-		BoundingBox3 &aabb, size_t heapIndex) const;
+		BoundingBox3 &bbox, size_t heapIndex) const;
 
 	/// Heap access routines
 	inline size_t leftChild(size_t index) const { return 2*index; }
@@ -476,7 +476,7 @@ private:
     /*                        Protected attributes                           */
     /* ===================================================================== */
 	struct ThreadContext {
-		BoundingBox3 aabb;
+		BoundingBox3 bbox;
 		size_t photonOffset;
 		size_t photonCount;
 		size_t maxPhotons;
@@ -492,7 +492,7 @@ private:
 	static bool m_precompTableReady;
 
 	Photon *m_photons;
-	BoundingBox3 m_aabb;
+	BoundingBox3 m_bbox;
 	size_t m_photonCount;
 	size_t m_maxPhotons;
 	size_t m_minPhotons;

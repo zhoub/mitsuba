@@ -20,7 +20,6 @@
 #define __SHVECTOR_H
 
 #include <mitsuba/mitsuba.h>
-#include <boost/numeric/ublas/matrix.hpp>
 #include <numeric>
 
 MTS_NAMESPACE_BEGIN
@@ -28,40 +27,12 @@ MTS_NAMESPACE_BEGIN
 /* Precompute normalization coefficients for the first 10 bands */
 #define SH_NORMTBL_SIZE 10 
 
-namespace ublas  = boost::numeric::ublas;
-
-struct SHVector;
-
-/**
- * \brief Stores the diagonal blocks of a spherical harmonic rotation matrix
- * \ingroup libcore
- */
-struct MTS_EXPORT_CORE SHRotation {
-	std::vector<ublas::matrix<Float> > blocks;
-
-	/// Construct a new rotation storage for the given number of bands
-	inline SHRotation(int bands) : blocks(bands) {
-		for (int i=0; i<bands; ++i) {
-			int dim = 2*i+1;
-			blocks[i] = ublas::matrix<Float>(dim, dim);
-		}
-	}
-
-	/**
-	 * \brief Transform a coefficient vector and store the result into
-	 * the given target vector. 
-	 *
-	 * The source and target must have the same number of bands.
-	 */
-	void operator()(const SHVector &source, SHVector &target) const;
-};
-
 /**
  * \brief Stores a truncated real spherical harmonics representation of
  * an L2-integrable function.
  *
  * Also provides some other useful functionality, such as evaluation, 
- * projection and rotation.
+ * projection, convolution, and rotation of the SH representation.
  * 
  * The Mathematica equivalent of the basis functions implemented here is:
  *
@@ -79,27 +50,34 @@ struct MTS_EXPORT_CORE SHRotation {
 struct MTS_EXPORT_CORE SHVector {
 public:
 	/// Construct an invalid SH vector
-	inline SHVector()
-		: m_bands(0) {
-	}
+	inline SHVector() : m_bands(0) { }
 
 	/// Construct a new SH vector (initialized to zero)
 	inline SHVector(int bands)
 		: m_bands(bands), m_coeffs(bands*bands) {
-		clear();
+		setZero();
 	}
 
-	/// Unserialize a SH vector to a binary data stream
+	/// Unserialize a SH vector from a binary data stream
 	SHVector(Stream *stream);
 
 	/// Copy constructor
 	inline SHVector(const SHVector &v) : m_bands(v.m_bands),
-		m_coeffs(v.m_coeffs) {
-	}
+		m_coeffs(v.m_coeffs) { }
 
 	/// Return the number of stored SH coefficient bands
 	inline int getBands() const {
 		return m_bands;
+	}
+
+	/// Return the coefficients associated with a single band
+	inline Eigen::DenseBase<DynamicVector>::SegmentReturnType getBand(int l) {
+		return m_coeffs.segment(l*l, 2*l+1);
+	}
+
+	/// Return the coefficients associated with a single band (const version)
+	inline Eigen::DenseBase<DynamicVector>::ConstSegmentReturnType getBand(int l) const {
+		return m_coeffs.segment(l*l, 2*l+1);
 	}
 
 	/// Serialize a SH vector to a binary data stream
@@ -121,49 +99,36 @@ public:
 	}
 
 	/// Set all coefficients to zero
-	inline void clear() {
-		for (size_t i=0; i<m_coeffs.size(); ++i)
-			m_coeffs[i] = 0;
+	inline void setZero() {
+		m_coeffs.setZero();
 	}
 
 	/// Component-wise addition
 	inline SHVector& operator+=(const SHVector &v) {
-		if (v.m_coeffs.size() > m_coeffs.size())
-			m_coeffs.resize(v.m_coeffs.size(), 0);
-		for (size_t i=0; i<v.m_coeffs.size(); ++i)
-			m_coeffs[i] += v.m_coeffs[i];
+		m_coeffs += v.m_coeffs;
 		return *this;
 	}
 
 	/// Component-wise subtraction
 	inline SHVector& operator-=(const SHVector &v) {
-		if (v.m_coeffs.size() > m_coeffs.size())
-			m_coeffs.resize(v.m_coeffs.size(), 0);
-		for (size_t i=0; i<v.m_coeffs.size(); ++i)
-			m_coeffs[i] -= v.m_coeffs[i];
+		m_coeffs -= v.m_coeffs;
 		return *this;
 	}
 
 	/// Scalar multiplication
 	inline SHVector &operator*=(Float f) {
-		std::transform(m_coeffs.begin(), m_coeffs.end(), m_coeffs.begin(),
-			std::bind2nd(std::multiplies<Float>(), f));
+		m_coeffs *= f;
 		return *this;
 	}
 
 	/// Add a scalar multiple of another vector
-	inline void madd(Float f, const SHVector &v) {
-		if (v.m_coeffs.size() > m_coeffs.size())
-			m_coeffs.resize(v.m_coeffs.size(), 0);
-		for (size_t i=0; i<v.m_coeffs.size(); ++i)
-			m_coeffs[i] += f*v.m_coeffs[i];
+	inline void addScalarMultiple(Float f, const SHVector &v) {
+		m_coeffs += v.m_coeffs * f;
 	}
 
 	/// Scalar division
 	inline SHVector &operator/=(Float f) {
-		Float inv = (Float) 1.0f / f;
-		std::transform(m_coeffs.begin(), m_coeffs.end(), m_coeffs.begin(),
-			std::bind2nd(std::multiplies<Float>(), inv));
+		m_coeffs *= (Float) 1.0f / f;
 		return *this;
 	}
 
@@ -172,7 +137,7 @@ public:
 		return m_coeffs[l*(l+1) + m];
 	}
 
-	/// Access coefficient m (in {-l, ..., l}) on band l
+	/// Access coefficient m (in {-l, ..., l}) on band l (const version)
 	inline const Float &operator()(int l, int m) const {
 		return m_coeffs[l*(l+1) + m];
 	}
@@ -186,10 +151,10 @@ public:
 	/**
 	 * \brief Evaluate for a direction given in spherical coordinates.
 	 *
-	 * This function is much faster but only works for azimuthally
+	 * This function is faster but only works for azimuthally
 	 * invariant functions
 	 */
-	Float evalAzimuthallyInvariant(Float theta, Float phi) const;
+	Float evalAI(Float theta, Float phi) const;
 
 	/**
 	 * \brief Evaluate for a direction given in cartesian coordinates.
@@ -197,7 +162,7 @@ public:
 	 * This function is much faster but only works for azimuthally
 	 * invariant functions
 	 */
-	Float evalAzimuthallyInvariant(const Vector &v) const;
+	Float evalAI(const Vector &v) const;
 
 	/// Check if this function is azumuthally invariant
 	bool isAzimuthallyInvariant() const;
@@ -206,25 +171,21 @@ public:
 	std::string toString() const;
 
 	/// Dot product
-	inline friend Float dot(const SHVector &v1, const SHVector &v2) {
-		const size_t size = std::min(v1.m_coeffs.size(), v2.m_coeffs.size());
-		return std::inner_product(
-			v1.m_coeffs.begin(), v1.m_coeffs.begin() + size,
-			v2.m_coeffs.begin(), Float()
-		);
+	inline Float dot(const SHVector &v) const {
+		return m_coeffs.dot(v.m_coeffs);
 	}
 
 	/// Normalize so that the represented function becomes a valid distribution
 	void normalize();
 
 	/// Compute the second spherical moment (analytic)
-	ublas::matrix<Float> mu2() const;
+	Matrix3x3 mu2() const;
 
 	/// Brute-force search for the minimum value over the sphere
 	Float findMinimum(int res) const;
 
-	/// Add a constant value
-	void offset(Float value);
+	/// Add a constant offset
+	void addOffset(Float value);
 
 	/**
 	 * \brief Convolve the SH representation with the supplied kernel.
@@ -329,6 +290,34 @@ public:
 			return computeNormalization(l, m);	
 	}
 
+	/** \brief Precomputes normalization coefficients for the first few bands */
+	static void staticInitialization();
+
+	/// Free the memory taken by staticInitialization()
+	static void staticShutdown();
+protected:
+	/// Compute a normalization coefficient
+	static Float computeNormalization(int l, int m);
+private:
+	int m_bands;
+	DynamicVector m_coeffs;
+	static Float *m_normalization;
+};
+
+/**
+ * \brief Stores the diagonal blocks of a spherical harmonic rotation matrix
+ * \ingroup libcore
+ */
+class MTS_EXPORT_CORE SHRotation {
+public:
+	/// Construct a new rotation storage for the given number of bands
+	inline SHRotation(int bands) : blocks(bands) {
+		for (int i=0; i<bands; ++i) {
+			int dim = 2*i+1;
+			blocks[i] = DynamicMatrix(dim, dim);
+		}
+	}
+
 	/**
 	 * \brief Recursively computes rotation matrices for each band of SH coefficients.
 	 *
@@ -336,23 +325,21 @@ public:
 	 * by Ivanic and Ruedenberg. The implemented tables follow the notation in 
 	 * 'Spherical Harmonic Lighting: The Gritty Details' by Robin Green.
 	 */
-	static void rotation(const Transform &t, SHRotation &rot);
-	
-	/** \brief Precomputes normalization coefficients for the first few bands */
-	static void staticInitialization();
+	void set(const Transform &t);
 
-	/// Free the memory taken by staticInitialization()
-	static void staticShutdown();
+	/**
+	 * \brief Transform a coefficient vector and store the result into
+	 * the specified target vector. 
+	 *
+	 * The source and target must have the same number of bands.
+	 */
+	void operator()(const SHVector &source, SHVector &target) const {
+		SAssert(source.getBands() == target.getBands());
+		for (int l=0; l<source.getBands(); ++l) 
+			target.getBand(l) = blocks[l] * source.getBand(l);
+	}
 protected:
-	/// Helper function for rotation() -- computes a diagonal block based on the previous level
-	static void rotationBlock(const ublas::matrix<Float> &M1, const ublas::matrix<Float> &Mp, ublas::matrix<Float> &Mn);
-
-	/// Compute a normalization coefficient
-	static Float computeNormalization(int l, int m);
-private:
-	int m_bands;
-	std::vector<Float> m_coeffs;
-	static Float *m_normalization;
+	std::vector<DynamicMatrix> blocks;
 };
 
 /**

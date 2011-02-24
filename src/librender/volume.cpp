@@ -30,7 +30,7 @@ VolumeDataSource::VolumeDataSource(const Properties &props) : ConfigurableObject
 
 VolumeDataSource::VolumeDataSource(Stream *stream, InstanceManager *manager) :
 	ConfigurableObject(stream, manager) {
-	m_aabb = BoundingBox3(stream);
+	m_bbox = BoundingBox3(stream);
 }
 
 VolumeDataSource::~VolumeDataSource() {
@@ -38,7 +38,7 @@ VolumeDataSource::~VolumeDataSource() {
 
 void VolumeDataSource::serialize(Stream *stream, InstanceManager *manager) const {
 	ConfigurableObject::serialize(stream, manager);
-	m_aabb.serialize(stream);
+	m_bbox.serialize(stream);
 }
 
 Float VolumeDataSource::lookupFloat(const Point &p) const {

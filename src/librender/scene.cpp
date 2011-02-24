@@ -93,7 +93,7 @@ Scene::Scene(Scene *scene) : NetworkedObject(Properties()) {
 	m_testType = scene->m_testType;
 	m_testThresh = scene->m_testThresh;
 	m_blockSize = scene->m_blockSize;
-	m_aabb = scene->m_aabb;
+	m_bbox = scene->m_bbox;
 	m_bsphere = scene->m_bsphere;
 	m_backgroundLuminaire = scene->m_backgroundLuminaire;
 	m_camera = scene->m_camera;
@@ -143,7 +143,7 @@ Scene::Scene(Stream *stream, InstanceManager *manager)
 	m_testType = (ETestType) stream->readInt();
 	m_testThresh = stream->readFloat();
 	m_blockSize = stream->readInt();
-	m_aabb = BoundingBox3(stream);
+	m_bbox = BoundingBox3(stream);
 	m_bsphere = BoundingSphere(stream);
 	m_backgroundLuminaire = static_cast<Luminaire *>(manager->getInstance(stream));
 	int count = stream->readInt();
@@ -227,19 +227,19 @@ void Scene::configure() {
 
 		Properties props("perspective");
 		/* Create a perspective camera with 45deg. FOV, which can see the whole scene */
-		BoundingBox3 aabb;
+		BoundingBox3 bbox;
 		for (size_t i=0; i<m_shapes.size(); ++i)
-			aabb.expandBy(m_shapes[i]->getBoundingBox3());
+			bbox.expandBy(m_shapes[i]->getBoundingBox());
 		for (size_t i=0; i<m_media.size(); ++i)
-			aabb.expandBy(m_media[i]->getBoundingBox3());
-		if (!aabb.isValid())
+			bbox.expandBy(m_media[i]->getBoundingBox());
+		if (!bbox.isValid())
 			Log(EError, "Unable to set up a default camera -- does the scene contain anything at all?");
-		Point center = aabb.getCenter();
-		Vector extents = aabb.getExtents();
+		Point center = bbox.getCenter();
+		Vector extents = bbox.getExtents();
 		Float maxExtents = std::max(extents.x, extents.y);
 		Float distance = maxExtents/(2.0f * std::tan(45 * .5f * M_PI/180));
 
-		props.setTransform("toWorld", Transform::translate(Vector(center.x, center.y, aabb.min.z - distance)));
+		props.setTransform("toWorld", Transform::translate(Vector(center.x, center.y, bbox.min.z - distance)));
 		props.setFloat("fov", 45.0f);
 
 		m_camera = static_cast<Camera *> (PluginManager::getInstance()->createObject(Camera::m_theClass, props));
@@ -273,13 +273,13 @@ void Scene::initialize() {
 		/* Build the kd-tree */
 		m_kdtree->build();
 
-		m_aabb = m_kdtree->getBoundingBox3();
+		m_bbox = m_kdtree->getBoundingBox();
 		m_bsphere = m_kdtree->getBoundingSphere();
 
 		if (m_media.size() > 0) {
 			for (size_t i=0; i<m_media.size(); i++) 
-				m_aabb.expandBy(m_media[i]->getBoundingBox3());
-			m_bsphere = m_aabb.getBoundingSphere();
+				m_bbox.expandBy(m_media[i]->getBoundingBox());
+			m_bsphere = m_bbox.getBoundingSphere();
 		}
 	}
 
@@ -643,7 +643,7 @@ void Scene::serialize(Stream *stream, InstanceManager *manager) const {
 	stream->writeInt(m_testType);
 	stream->writeFloat(m_testThresh);
 	stream->writeInt(m_blockSize);
-	m_aabb.serialize(stream);
+	m_bbox.serialize(stream);
 	m_bsphere.serialize(stream);
 	manager->serialize(stream, m_backgroundLuminaire.get());
 	stream->writeUInt((unsigned int) m_shapes.size());

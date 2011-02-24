@@ -33,8 +33,8 @@ public:
 	virtual void serialize(Stream *stream, InstanceManager *manager) const;
 
 	/// Return the bounding box
-	inline const BoundingBox3 &getBoundingBox3() const {
-		return m_aabb;
+	inline const BoundingBox3 &getBoundingBox() const {
+		return m_bbox;
 	}
 
 	/// Are float-valued lookups permitted?
@@ -72,7 +72,7 @@ protected:
 	/// Unserialize from a binary data stream
 	VolumeDataSource(Stream *stream, InstanceManager *manager); 
 protected:
-	BoundingBox3 m_aabb;
+	BoundingBox3 m_bbox;
 };
 
 MTS_NAMESPACE_END

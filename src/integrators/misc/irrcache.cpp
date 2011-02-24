@@ -159,7 +159,7 @@ public:
 			return false;
 
 		ref<Scheduler> sched = Scheduler::getInstance();
-		m_irrCache = new IrradianceCache(scene->getBoundingBox3());
+		m_irrCache = new IrradianceCache(scene->getBoundingBox());
 		m_irrCache->clampNeighbor(m_clampNeighbor);
 		m_irrCache->clampScreen(m_clampScreen);
 		m_irrCache->clampInfluence(m_influenceMin, m_influenceMax);

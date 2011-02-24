@@ -45,7 +45,7 @@ IrradianceOctree::~IrradianceOctree() {
 }
 
 void IrradianceOctree::serialize(Stream *stream, InstanceManager *manager) const {
-	m_root->aabb.serialize(stream);
+	m_root->bbox.serialize(stream);
 	stream->writeFloat(m_threshold);
 	stream->writeInt(m_maxDepth);
 	stream->writeUInt(m_numSamples);
@@ -85,14 +85,14 @@ void IrradianceOctree::addSample(OctreeNode *node, const IrradianceSample &sampl
 	for (sample_iterator it = node->samples.begin();
 		it != node->samples.end(); ++it) {
 		const IrradianceSample &s = *it;
-		Point center = node->aabb.getCenter();
+		Point center = node->bbox.getCenter();
 		int nodeId = (s.p.x > center.x ? 1 : 0) +
 			(s.p.y > center.y ? 2 : 0) +
 			(s.p.z > center.z ? 4 : 0);
 
 		if (!node->children[nodeId]) {
 			BoundingBox3 childBoundingBox3(center, center);
-			childBoundingBox3.expandBy(node->aabb.getCorner(nodeId));
+			childBoundingBox3.expandBy(node->bbox.getCorner(nodeId));
 			node->children[nodeId] = new OctreeNode(childBoundingBox3);
 			++nodesCreated;
 		}

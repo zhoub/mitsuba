@@ -47,7 +47,7 @@ void ShapeGroup::configure() {
 		m_kdtree->build();
 }
 
-BoundingBox3 ShapeGroup::getBoundingBox3() const {
+BoundingBox3 ShapeGroup::getBoundingBox() const {
 	return BoundingBox3();
 }
 

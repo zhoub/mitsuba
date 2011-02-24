@@ -265,7 +265,7 @@ public:
 		}
 
 		m_octree = new IrradianceOctree(m_maxDepth, m_minDelta, 
-			scene->getKDTree()->getBoundingBox3());
+			scene->getKDTree()->getBoundingBox());
 
 		Float sa = 0;
 		for (std::vector<Shape *>::iterator it = m_shapes.begin(); 

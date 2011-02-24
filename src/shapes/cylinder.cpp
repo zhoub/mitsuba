@@ -184,7 +184,7 @@ public:
 		return m_invSurfaceArea;
 	}
 
-	inline BoundingBox3 getBoundingBox3() const {
+	inline BoundingBox3 getBoundingBox() const {
 		Vector x1 = m_objectToWorld(Vector(m_radius, 0, 0));
 		Vector x2 = m_objectToWorld(Vector(0, m_radius, 0));
 		Point p0 = m_objectToWorld(Point(0, 0, 0));
@@ -267,13 +267,13 @@ public:
 		Vector ellipseAxes[2];
 		Float ellipseLengths[2];
 
-		BoundingBox3 aabb;
+		BoundingBox3 bbox;
 		if (!intersectCylPlane(min, planeNrml, cylPt, cylD, m_radius, 
 			ellipseCenter, ellipseAxes, ellipseLengths)) {
 			/* Degenerate case -- return an invalid BoundingBox3. This is
 			   not a problem, since one of the other faces will provide
 			   enough information to arrive at a correct clipped BoundingBox3 */
-			return aabb;
+			return bbox;
 		}
 
 		/* Intersect the ellipse against the sides of the BoundingBox3 face */
@@ -300,9 +300,9 @@ public:
 			Float x0, x1;
 			if (solveQuadratic(A, B, C, x0, x1)) {
 				if (x0 >= 0 && x0 <= 1)
-					aabb.expandBy(p1+(p2-p1)*x0);
+					bbox.expandBy(p1+(p2-p1)*x0);
 				if (x1 >= 0 && x1 <= 1)
-					aabb.expandBy(p1+(p2-p1)*x1);
+					bbox.expandBy(p1+(p2-p1)*x1);
 			}
 		}
 
@@ -321,17 +321,17 @@ public:
 			Point p2 = ellipseCenter - cosTheta*ellipseAxes[0] - sinTheta*ellipseAxes[1];
 
 			if (faceBounds.contains(p1)) 
-				aabb.expandBy(p1);
+				bbox.expandBy(p1);
 			if (faceBounds.contains(p2)) 
-				aabb.expandBy(p2);
+				bbox.expandBy(p2);
 		}
 
-		return aabb;
+		return bbox;
 	}
 
-	BoundingBox3 getClippedBoundingBox3(const BoundingBox3 &box) const {
+	BoundingBox3 getClippedBoundingBox(const BoundingBox3 &box) const {
 		/* Compute a base bounding box */
-		BoundingBox3 base(getBoundingBox3());
+		BoundingBox3 base(getBoundingBox());
 		base.clip(box);
 		
 		Point cylPt = m_objectToWorld(Point(0, 0, 0));
@@ -415,7 +415,7 @@ public:
 	}
 
 #if 0
-	BoundingBox3 getBoundingBox3() const {
+	BoundingBox3 getBoundingBox() const {
 		const Point a = m_objectToWorld(Point(0, 0, 0));
 		const Point b = m_objectToWorld(Point(0, 0, m_length));
 

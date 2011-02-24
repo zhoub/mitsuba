@@ -36,7 +36,7 @@ struct MTS_EXPORT_CORE Triangle {
 	uint32_t idx[3];
 
 	/// Construct an axis-aligned box, which contains the triangle
-	inline BoundingBox3 getBoundingBox3(const Point *positions) const {
+	inline BoundingBox3 getBoundingBox(const Point *positions) const {
 		BoundingBox3 result(positions[idx[0]]);
 		result.expandBy(positions[idx[1]]);
 		result.expandBy(positions[idx[2]]);
@@ -55,7 +55,7 @@ struct MTS_EXPORT_CORE Triangle {
 	 * see "On building fast kd-Trees for Ray Tracing, and on doing 
 	 * that in O(N log N)" by Ingo Wald and Vlastimil Havran
 	 */
-	BoundingBox3 getClippedBoundingBox3(const Point *positions, const BoundingBox3 &aabb) const;
+	BoundingBox3 getClippedBoundingBox(const Point *positions, const BoundingBox3 &bbox) const;
 
 	/// Uniformly sample a point on the triangle and return its normal
 	Point sample(const Point *positions, const Normal *normals,

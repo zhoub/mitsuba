@@ -155,7 +155,7 @@ public:
 	virtual void addChild(const std::string &name, ConfigurableObject *child);
 
 	/// Return a bounding volume
-	inline const BoundingBox3 &getBoundingBox3() const { return m_aabb; }
+	inline const BoundingBox3 &getBoundingBox() const { return m_bbox; }
 
 	/// Return a string representation
 	virtual std::string toString() const = 0;
@@ -175,7 +175,7 @@ protected:
 	Spectrum m_sigmaS;
 	Spectrum m_sigmaT;
 	Float m_albedo;
-	BoundingBox3 m_aabb;
+	BoundingBox3 m_bbox;
 	ref<PhaseFunction> m_phaseFunction;
 	Float m_densityMultiplier;
 };

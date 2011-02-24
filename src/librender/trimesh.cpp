@@ -81,7 +81,7 @@ enum ETriMeshFlags {
 TriMesh::TriMesh(Stream *stream, InstanceManager *manager) 
 	: Shape(stream, manager), m_tangents(NULL) {
 	m_name = stream->readString();
-	m_aabb = BoundingBox3(stream);
+	m_bbox = BoundingBox3(stream);
 
 	uint32_t flags = stream->readUInt();
 	m_vertexCount = (size_t) stream->readULong();
@@ -254,8 +254,8 @@ std::string TriMesh::getName() const {
 	return m_name;
 }
 
-BoundingBox3 TriMesh::getBoundingBox3() const {
-	return m_aabb;
+BoundingBox3 TriMesh::getBoundingBox() const {
+	return m_bbox;
 }
 
 Float TriMesh::pdfArea(const ShapeSamplingRecord &sRec) const {
@@ -266,14 +266,14 @@ void TriMesh::configure() {
 	Shape::configure();
 
 	if (!m_areaPDF.isReady()) {
-		m_aabb.reset();
+		m_bbox.reset();
 
 		if (m_triangleCount == 0)
 			Log(EError, "Encountered an empty triangle mesh!");
 		
 		/* Determine the object bounds */
 		for (size_t i=0; i<m_vertexCount; i++) 
-			m_aabb.expandBy(m_positions[i]);
+			m_bbox.expandBy(m_positions[i]);
 
 		/* Generate a PDF for sampling wrt. area */
 		for (size_t i=0; i<m_triangleCount; i++) 
@@ -563,8 +563,8 @@ bool TriMesh::computeTangentSpaceBasis() {
 	uint32_t *sharers = new uint32_t[m_vertexCount];
 
 	for (size_t i=0; i<m_vertexCount; i++) {
-		m_tangents[i].dpdu = Vector(0.0f);
-		m_tangents[i].dpdv = Vector(0.0f);
+		m_tangents[i].dpdu = Vector::Zero();
+		m_tangents[i].dpdv = Vector::Zero();
 		if (m_normals[i].isZero()) {
 			zeroNormals++;
 			m_normals[i] = Normal(1.0f, 0.0f, 0.0f);
@@ -676,7 +676,7 @@ void TriMesh::serialize(Stream *stream, InstanceManager *manager) const {
 	if (m_faceNormals)
 		flags |= EFaceNormals;
 	stream->writeString(m_name);
-	m_aabb.serialize(stream);
+	m_bbox.serialize(stream);
 	stream->writeUInt(flags);
 	stream->writeULong(m_vertexCount);
 	stream->writeULong(m_triangleCount);
@@ -794,7 +794,7 @@ std::string TriMesh::toString() const {
 		<< "  hasTangents = " << (m_tangents ? "true" : "false") << "," << endl
 		<< "  hasColors = " << (m_colors ? "true" : "false") << "," << endl
 		<< "  surfaceArea = " << m_surfaceArea << "," << endl
-		<< "  aabb = " << m_aabb.toString() << "," << endl
+		<< "  bbox = " << m_bbox.toString() << "," << endl
 		<< "  bsdf = " << indent(m_bsdf.toString()) << "," << endl
 		<< "  subsurface = " << indent(m_subsurface.toString()) << "," << endl
 		<< "  luminaire = " << indent(m_luminaire.toString()) << endl

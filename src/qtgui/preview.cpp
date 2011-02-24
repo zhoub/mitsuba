@@ -550,29 +550,29 @@ void PreviewThread::oglRenderKDTree(const KDTreeBase<BoundingBox3> *kdtree) {
 
 	while (!stack.empty()) {
 		const KDTreeBase<BoundingBox3>::KDNode *node = boost::get<0>(stack.top());
-		BoundingBox3 aabb = boost::get<1>(stack.top());
+		BoundingBox3 bbox = boost::get<1>(stack.top());
 		int level = boost::get<2>(stack.top());
 		stack.pop();
 		m_renderer->setColor(Spectrum(brightness));
-		m_renderer->drawBoundingBox3(aabb);
+		m_renderer->drawBoundingBox(bbox);
 
 		if (!node->isLeaf()) {
 			int axis = node->getAxis();
 			float split = node->getSplit();
 			if (level + 1 <= m_context->shownKDTreeLevel) {
-				Float tmp = aabb.max[axis];
-				aabb.max[axis] = split;
-				stack.push(boost::make_tuple(node->getLeft(), aabb, level+1));
-				aabb.max[axis] = tmp;
-				aabb.min[axis] = split;
-				stack.push(boost::make_tuple(node->getRight(), aabb, level+1));
+				Float tmp = bbox.max[axis];
+				bbox.max[axis] = split;
+				stack.push(boost::make_tuple(node->getLeft(), bbox, level+1));
+				bbox.max[axis] = tmp;
+				bbox.min[axis] = split;
+				stack.push(boost::make_tuple(node->getRight(), bbox, level+1));
 			} else {
-				aabb.min[axis] = split;
-				aabb.max[axis] = split;
+				bbox.min[axis] = split;
+				bbox.max[axis] = split;
 				Spectrum color;
 				color.fromLinearRGB(0, 0, 2*brightness);
 				m_renderer->setColor(color);
-				m_renderer->drawBoundingBox3(aabb);
+				m_renderer->drawBoundingBox(bbox);
 			}
 		}
 	}

@@ -36,10 +36,10 @@ private:
 		OctreeNode *children[8];
 		sample_vector samples;
 		IrradianceSample cluster;
-		BoundingBox3 aabb;
+		BoundingBox3 bbox;
 		bool leaf;
 
-		inline OctreeNode(const BoundingBox3 &_aabb) : aabb(_aabb) {
+		inline OctreeNode(const BoundingBox3 &_bbox) : bbox(_bbox) {
 			for (int i=0; i<8; i++)
 				children[i] = NULL;
 			leaf = true;
@@ -113,7 +113,7 @@ protected:
 				query(*it);
 		} else {
 			Float approxSolidAngle = node->cluster.area / (query.p - node->cluster.p).squaredNorm();
-			if (!node->aabb.contains(query.p) && approxSolidAngle < m_threshold) {
+			if (!node->bbox.contains(query.p) && approxSolidAngle < m_threshold) {
 				query(node->cluster);
 			} else {
 				for (int i=0; i<8; i++)

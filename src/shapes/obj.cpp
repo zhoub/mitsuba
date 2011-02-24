@@ -203,7 +203,7 @@ public:
 	}
 
 	WavefrontOBJ(Stream *stream, InstanceManager *manager) : Shape(stream, manager) {
-		m_aabb = BoundingBox3(stream);
+		m_bbox = BoundingBox3(stream);
 		m_name = stream->readString();
 		unsigned int meshCount = stream->readUInt();
 		m_meshes.resize(meshCount);
@@ -217,7 +217,7 @@ public:
 	void serialize(Stream *stream, InstanceManager *manager) const {
 		Shape::serialize(stream, manager);
 
-		m_aabb.serialize(stream);
+		m_bbox.serialize(stream);
 		stream->writeString(m_name);
 		stream->writeUInt((unsigned int) m_meshes.size());
 		for (size_t i=0; i<m_meshes.size(); ++i)
@@ -336,15 +336,15 @@ public:
 		Float scale = 0.0f;
 
 		if (m_recenter) {
-			BoundingBox3 aabb;
+			BoundingBox3 bbox;
 			for (unsigned int i=0; i<triangles.size(); i++) {
 				for (unsigned int j=0; j<3; j++) {
 					unsigned int vertexId = triangles[i].p[j];
-					aabb.expandBy(vertices.at(vertexId));
+					bbox.expandBy(vertices.at(vertexId));
 				}
 			}
-			scale = 2/aabb.getExtents()[aabb.getLongestDimension()];
-			translate = -Vector(aabb.getCenter());
+			scale = 2/bbox.getExtents()[bbox.getLongestDimension()];
+			translate = -Vector(bbox.getCenter());
 		}
 
 		/* Collapse the mesh into a more usable form */
@@ -429,10 +429,10 @@ public:
 	void configure() {
 		Shape::configure();
 
-		m_aabb.reset();
+		m_bbox.reset();
 		for (size_t i=0; i<m_meshes.size(); ++i) {
 			m_meshes[i]->configure();
-			m_aabb.expandBy(m_meshes[i]->getBoundingBox3());
+			m_bbox.expandBy(m_meshes[i]->getBoundingBox());
 		}
 	}
 
@@ -487,8 +487,8 @@ public:
 		return m_name;
 	}
 
-	BoundingBox3 getBoundingBox3() const {
-		return m_aabb;
+	BoundingBox3 getBoundingBox() const {
+		return m_bbox;
 	}
 
 	Float getSurfaceArea() const {
@@ -504,7 +504,7 @@ private:
 	std::map<std::string, BSDF *> m_materials;
 	bool m_flipNormals, m_faceNormals, m_recenter;
 	std::string m_name;
-	BoundingBox3 m_aabb;
+	BoundingBox3 m_bbox;
 };
 
 MTS_IMPLEMENT_CLASS_S(WavefrontOBJ, false, Shape)

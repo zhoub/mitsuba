@@ -246,7 +246,9 @@ public:
 	}
 
 	/// Return a string representation
-	std::string toString() const;
+	std::string toString() const {
+		return m_transform.toString();
+	}
 private:
 	Matrix4x4 m_transform;
 	Matrix4x4 m_invTransform;

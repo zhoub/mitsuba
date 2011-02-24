@@ -141,8 +141,8 @@ public:
 	}
 
 	/// Return an axis-aligned bounding box containing the whole scene
-	inline const BoundingBox3 &getBoundingBox3() const {
-		return m_aabb;
+	inline const BoundingBox3 &getBoundingBox() const {
+		return m_bbox;
 	}
 	
 	/// Return a bounding sphere containing the whole scene
@@ -463,7 +463,7 @@ private:
 	fs::path m_sourceFile;
 	fs::path m_destinationFile;
 	DiscretePDF m_luminairePDF;
-	BoundingBox3 m_aabb;
+	BoundingBox3 m_bbox;
 	BoundingSphere m_bsphere;
 	bool m_importanceSampleLuminaires;
 	ETestType m_testType;

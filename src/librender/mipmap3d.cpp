@@ -21,11 +21,11 @@
 
 MTS_NAMESPACE_BEGIN
 
-SparseMipmap3D::SparseMipmap3D(const BoundingBox3 &aabb, size_t size, const float *data, 
-		Float maxError, Float offset)  : m_aabb(aabb), m_size(size) {
+SparseMipmap3D::SparseMipmap3D(const BoundingBox3 &bbox, size_t size, const float *data, 
+		Float maxError, Float offset)  : m_bbox(bbox), m_size(size) {
 	Assert(isPowerOfTwo(m_size));
 	m_levels = 1 + log2i(m_size);
-	m_aabbSum = Vector(m_aabb.min + m_aabb.max);
+	m_bboxSum = Vector(m_bbox.min + m_bbox.max);
 
 	float **pyramid = new float*[m_levels];
 
@@ -152,7 +152,7 @@ SparseMipmap3D::SparseMipmap3D(const BoundingBox3 &aabb, size_t size, const floa
 }
 
 SparseMipmap3D::SparseMipmap3D(Stream *stream, InstanceManager *manager) {
-	m_aabb = BoundingBox3(stream);
+	m_bbox = BoundingBox3(stream);
 	m_size = (size_t) stream->readUInt();
 	
 	size_t nodeCount = (size_t) stream->readULong();
@@ -163,11 +163,11 @@ SparseMipmap3D::SparseMipmap3D(Stream *stream, InstanceManager *manager) {
 	}
 
 	m_levels = 1 + log2i(m_size);
-	m_aabbSum = Vector(m_aabb.min + m_aabb.max);
+	m_bboxSum = Vector(m_bbox.min + m_bbox.max);
 }
 
 void SparseMipmap3D::serialize(Stream *stream, InstanceManager *manager) const {
-	m_aabb.serialize(stream);
+	m_bbox.serialize(stream);
 	stream->writeUInt(m_size);
 	stream->writeULong(m_nodes.size());
 
@@ -266,30 +266,30 @@ Float SparseMipmap3D::lineIntegral(const Ray &r) const {
 
 	uint8_t a = 0;
 	if (ray.d.x < 0) {
-		ray.o.x = m_aabbSum.x-ray.o.x;
+		ray.o.x = m_bboxSum.x-ray.o.x;
 		ray.d.x = -ray.d.x;
 		ray.dRcp.x = -ray.dRcp.x;
 		a |= 4;
 	}
 	if (ray.d.y < 0) {
-		ray.o.y = m_aabbSum.y-ray.o.y;
+		ray.o.y = m_bboxSum.y-ray.o.y;
 		ray.d.y = -ray.d.y;
 		ray.dRcp.y = -ray.dRcp.y;
 		a |= 2;
 	}
 	if (ray.d.z < 0) {
-		ray.o.z = m_aabbSum.z-ray.o.z;
+		ray.o.z = m_bboxSum.z-ray.o.z;
 		ray.d.z = -ray.d.z;
 		ray.dRcp.z = -ray.dRcp.z;
 		a |= 1;
 	}
 
-	Float tx0 = (m_aabb.min.x-ray.o.x)*ray.dRcp.x,
-		  ty0 = (m_aabb.min.y-ray.o.y)*ray.dRcp.y,
-		  tz0 = (m_aabb.min.z-ray.o.z)*ray.dRcp.z,
-		  tx1 = (m_aabb.max.x-ray.o.x)*ray.dRcp.x,
-		  ty1 = (m_aabb.max.y-ray.o.y)*ray.dRcp.y,
-		  tz1 = (m_aabb.max.z-ray.o.z)*ray.dRcp.z,
+	Float tx0 = (m_bbox.min.x-ray.o.x)*ray.dRcp.x,
+		  ty0 = (m_bbox.min.y-ray.o.y)*ray.dRcp.y,
+		  tz0 = (m_bbox.min.z-ray.o.z)*ray.dRcp.z,
+		  tx1 = (m_bbox.max.x-ray.o.x)*ray.dRcp.x,
+		  ty1 = (m_bbox.max.y-ray.o.y)*ray.dRcp.y,
+		  tz1 = (m_bbox.max.z-ray.o.z)*ray.dRcp.z,
 		  mint = std::max(std::max(tx0, ty0), tz0),
 		  maxt = std::min(ray.maxt, std::min(std::min(tx1, ty1), tz1));
 
@@ -308,30 +308,30 @@ bool SparseMipmap3D::invertLineIntegral(const Ray &r, Float desiredDensity,
 
 	uint8_t a = 0;
 	if (ray.d.x < 0) {
-		ray.o.x = m_aabbSum.x-ray.o.x;
+		ray.o.x = m_bboxSum.x-ray.o.x;
 		ray.d.x = -ray.d.x;
 		ray.dRcp.x = -ray.dRcp.x;
 		a |= 4;
 	}
 	if (ray.d.y < 0) {
-		ray.o.y = m_aabbSum.y-ray.o.y;
+		ray.o.y = m_bboxSum.y-ray.o.y;
 		ray.d.y = -ray.d.y;
 		ray.dRcp.y = -ray.dRcp.y;
 		a |= 2;
 	}
 	if (ray.d.z < 0) {
-		ray.o.z = m_aabbSum.z-ray.o.z;
+		ray.o.z = m_bboxSum.z-ray.o.z;
 		ray.d.z = -ray.d.z;
 		ray.dRcp.z = -ray.dRcp.z;
 		a |= 1;
 	}
 
-	Float tx0 = (m_aabb.min.x-ray.o.x)*ray.dRcp.x,
-		  ty0 = (m_aabb.min.y-ray.o.y)*ray.dRcp.y,
-		  tz0 = (m_aabb.min.z-ray.o.z)*ray.dRcp.z,
-		  tx1 = (m_aabb.max.x-ray.o.x)*ray.dRcp.x,
-		  ty1 = (m_aabb.max.y-ray.o.y)*ray.dRcp.y,
-		  tz1 = (m_aabb.max.z-ray.o.z)*ray.dRcp.z,
+	Float tx0 = (m_bbox.min.x-ray.o.x)*ray.dRcp.x,
+		  ty0 = (m_bbox.min.y-ray.o.y)*ray.dRcp.y,
+		  tz0 = (m_bbox.min.z-ray.o.z)*ray.dRcp.z,
+		  tx1 = (m_bbox.max.x-ray.o.x)*ray.dRcp.x,
+		  ty1 = (m_bbox.max.y-ray.o.y)*ray.dRcp.y,
+		  tz1 = (m_bbox.max.z-ray.o.z)*ray.dRcp.z,
 		  mint = std::max(std::max(tx0, ty0), tz0),
 		  maxt = std::min(ray.maxt, std::min(std::min(tx1, ty1), tz1));
 
@@ -521,7 +521,7 @@ std::string SparseMipmap3D::toString() const {
 	oss << "SparseMipmap3D[" << endl
 		<< "  res = " << m_size << "," << endl
 		<< "  levels = " << m_levels << "," << endl
-		<< "  aabb = " << m_aabb.toString() << "," << endl
+		<< "  bbox = " << m_bbox.toString() << "," << endl
 		<< "  mem = " << m_nodes.size() * sizeof(Node) / 1024 << " KiB" << endl
 		<< "]";
 	return oss.str();

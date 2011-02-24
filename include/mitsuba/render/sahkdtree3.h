@@ -41,10 +41,10 @@ public:
 	 * Precomputes some information so that traversal probabilities
 	 * of potential split planes can be evaluated efficiently
 	 */
-	inline SurfaceAreaHeuristic(const BoundingBox3 &aabb) {
-		const Vector extents(aabb.getExtents());
-		const Float temp = 1.0f / (extents.x * extents.y 
-				+ extents.y*extents.z + extents.x*extents.z);
+	inline SurfaceAreaHeuristic(const BoundingBox3 &bbox) {
+		const Vector extents(bbox.getExtents());
+		const Float temp = 1.0f / (extents[0]*extents[1] 
+				+ extents[1]*extents[2] + extents[0]*extents[2]);
 		m_temp0 = Vector(
 			extents[1] * extents[2],
 			extents[0] * extents[2],
@@ -71,8 +71,8 @@ public:
 	 * Compute the underlying quantity used by the tree construction
 	 * heuristic. This is used to compute the final cost of a kd-tree.
 	 */
-	inline static Float getQuantity(const BoundingBox3 &aabb) {
-		return aabb.getSurfaceArea();
+	inline static Float getQuantity(const BoundingBox3 &bbox) {
+		return bbox.getSurfaceArea();
 	}
 private:
 	Vector m_temp0, m_temp1;
@@ -86,7 +86,7 @@ private:
  * /// Check whether a primitive is intersected by the given ray. 
  * /// Some temporary space is supplied, which can be used to cache  
  * /// information about the intersection
- * bool intersect(const Ray &ray, index_type idx, 
+ * bool intersect(const Ray &ray, IndexType idx, 
  *     Float mint, Float maxt, Float &t, void *tmp);
  *
  * This class implements an epsilon-free version of the optimized ray 
@@ -98,13 +98,14 @@ private:
 template <typename Derived> 
 	class SAHKDTree3D : public GenericKDTree<BoundingBox3, SurfaceAreaHeuristic, Derived> {
 public:
-	typedef typename KDTreeBase<BoundingBox3>::size_type  size_type;
-	typedef typename KDTreeBase<BoundingBox3>::index_type index_type;
+	typedef BoundingBox3                                  BoundingBoxType;
+	typedef typename KDTreeBase<BoundingBox3>::SizeType   SizeType;
+	typedef typename KDTreeBase<BoundingBox3>::IndexType  IndexType;
 	typedef typename KDTreeBase<BoundingBox3>::KDNode     KDNode;
 
 protected:
 	void buildInternal() {
-		size_type primCount = this->cast()->getPrimitiveCount();
+		SizeType primCount = this->cast()->getPrimitiveCount();
 		KDLog(EInfo, "Constructing a SAH kd-tree (%i primitives) ..", primCount);
 		GenericKDTree<BoundingBox3, SurfaceAreaHeuristic, Derived>::buildInternal();
 	}
@@ -114,18 +115,18 @@ protected:
 	 */
 	struct HashedMailbox {
 		inline HashedMailbox() {
-			memset(entries, 0xFF, sizeof(index_type)*MTS_KD_MAILBOX_SIZE);
+			memset(entries, 0xFF, sizeof(IndexType)*MTS_KD_MAILBOX_SIZE);
 		}
 
-		inline void put(index_type primIndex) {
+		inline void put(IndexType primIndex) {
 			entries[primIndex & MTS_KD_MAILBOX_MASK] = primIndex;
 		}
 
-		inline bool contains(index_type primIndex) const {
+		inline bool contains(IndexType primIndex) const {
 			return entries[primIndex & MTS_KD_MAILBOX_MASK] == primIndex;
 		}
 
-		index_type entries[MTS_KD_MAILBOX_SIZE];
+		IndexType entries[MTS_KD_MAILBOX_SIZE];
 	};
 
 	/// Ray traversal stack entry for Wald-style incoherent ray tracing
@@ -245,9 +246,9 @@ protected:
 			}
 	
 			/* Reached a leaf node */
-			for (index_type entry=currNode->getPrimStart(),
+			for (IndexType entry=currNode->getPrimStart(),
 					last = currNode->getPrimEnd(); entry != last; entry++) {
-				const index_type primIdx = this->m_indices[entry];
+				const IndexType primIdx = this->m_indices[entry];
 	
 				#if defined(MTS_KD_MAILBOX_ENABLED)
 				if (mailbox.contains(primIdx)) 
@@ -370,7 +371,7 @@ protected:
 			/* Reached a leaf node */
 			for (unsigned int entry=currNode->getPrimStart(),
 					last = currNode->getPrimEnd(); entry != last; entry++) {
-				const index_type primIdx = this->m_indices[entry];
+				const IndexType primIdx = this->m_indices[entry];
 	
 				++numIntersections;
 				bool result = this->cast()->intersect(ray, primIdx, mint, maxt, t, temp);
@@ -436,7 +437,7 @@ protected:
 			} else {
 				for (unsigned int entry=node->getPrimStart(),
 						last = node->getPrimEnd(); entry != last; entry++) {
-					const index_type primIdx = this->m_indices[entry];
+					const IndexType primIdx = this->m_indices[entry];
 	
 					bool result;
 					if (!shadowRay)
@@ -517,7 +518,7 @@ protected:
 			bool foundIntersection = false;
 			for (unsigned int entry=node->getPrimStart(),
 					last = node->getPrimEnd(); entry != last; entry++) {
-				const index_type primIdx = this->m_indices[entry];
+				const IndexType primIdx = this->m_indices[entry];
 
 				bool result;
 				if (!shadowRay) {
@@ -560,10 +561,10 @@ public:
 	void findCosts(Float &traversalCost, Float &intersectionCost) {
 		ref<Random> random = new Random();
 		uint8_t temp[128];
-		BoundingSphere bsphere = this->m_aabb.getBoundingSphere();
+		BoundingSphere bsphere = this->m_bbox.getBoundingSphere();
 		int nRays = 10000000, warmup = nRays/4;
-		Vector *A = new Vector[nRays-warmup];
-		Float *b = new Float[nRays-warmup];
+		DynamicMatrix A(nRays-warmup, 3);
+		DynamicVector b(nRays-warmup);
 		int nIntersections = 0, idx = 0;
 	
 		for (int i=0; i<nRays; ++i) {
@@ -571,9 +572,9 @@ public:
 				sample2(random->nextFloat(), random->nextFloat());
 			Point p1 = bsphere.center + squareToSphere(sample1) * bsphere.radius;
 			Point p2 = bsphere.center + squareToSphere(sample2) * bsphere.radius;
-			Ray ray(p1, normalize(p2-p1), 0.0f);
+			Ray ray(p1, (p2-p1).normalized(), 0.0f);
 			Float mint, maxt, t;
-			if (this->m_aabb.rayIntersect(ray, mint, maxt)) {
+			if (this->m_bbox.rayIntersect(ray, mint, maxt)) {
 				if (ray.mint > mint) mint = ray.mint;
 				if (ray.maxt < maxt) maxt = ray.maxt;
 				if (EXPECT_TAKEN(maxt > mint)) {
@@ -582,10 +583,10 @@ public:
 					if (boost::get<0>(statistics))
 						nIntersections++;
 					if (i > warmup) {
-						A[idx].x = 1;
-						A[idx].y = (Float) boost::get<1>(statistics);
-						A[idx].z = (Float) boost::get<2>(statistics);
-						b[idx]   = (Float) boost::get<3>(statistics);
+						A(idx, 0) = 1;
+						A(idx, 1) = (Float) boost::get<1>(statistics);
+						A(idx, 2) = (Float) boost::get<2>(statistics);
+						b(idx)    = (Float) boost::get<3>(statistics);
 						idx++;
 					}
 				}
@@ -596,28 +597,15 @@ public:
 				" intersections)", idx, nIntersections);
 	
 		/* Solve using normal equations */
-		Matrix4x4 M(0.0f), Minv;
-		Vector4 rhs(0.0f), x;
-	
-		for (int i=0; i<3; ++i) {
-			for (int j=0; j<3; ++j) 
-				for (int k=0; k<idx; ++k) 
-					M.m[i][j] += A[k][i]*A[k][j];
-			for (int k=0; k<idx; ++k) 
-				rhs[i] += A[k][i]*b[k];
-		}
-		M.m[3][3] = 1.0f;
-		bool success = M.invert(Minv);
-		SAssert(success);
-	
-		Transform(Minv, M)(rhs, x);
-	
+		Matrix3x3 M = A.transpose() * A;
+		Vector x = M.inverse() * (A.transpose() * b);
+
 		Float avgRdtsc = 0, avgResidual = 0;
 		for (int i=0; i<idx; ++i) {
 			avgRdtsc += b[i];
-			Float model = x[0] * A[i][0]
-				+ x[1] * A[i][1]
-				+ x[2] * A[i][2];
+			Float model = x[0] * A(i, 0)
+				+ x[1] * A(i, 1)
+				+ x[2] * A(i, 2);
 			avgResidual += std::abs(b[i] - model);
 		}
 		avgRdtsc /= idx;
@@ -639,8 +627,6 @@ public:
 		KDLog(EDebug, "   Traversal cost       = %.2f", x[1]);
 		KDLog(EDebug, "   Intersection cost    = %.2f", x[2]);
 	
-		delete[] A;
-		delete[] b;
 		traversalCost = x[1];
 		intersectionCost = x[2];
 	}

@@ -79,9 +79,7 @@ public:
 		clampedCos.normalize();
 
 		//cout << "Projection error = " << clampedCosError << endl;
-		//cout << "Precomputing mip-maps" << endl;
 		ref<SHSampler> sampler = new SHSampler(bands, depth);
-		//cout << "Done: "<< sampler->toString() << endl;
 		Float accum = 0;
 		int nsamples = 100, nInAvg = 0;
 		for (int i=0; i<=nsamples; ++i) {

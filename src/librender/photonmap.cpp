@@ -119,7 +119,7 @@ PhotonMap::PhotonMap(size_t maxPhotons)
 	
 PhotonMap::PhotonMap(Stream *stream, InstanceManager *manager) 
  : m_numThreads(-1), m_context(NULL) {
-	m_aabb = BoundingBox3(stream);
+	m_bbox = BoundingBox3(stream);
 	m_balanced = stream->readBool();
 	m_maxPhotons = (size_t) stream->readULong();
 	m_minPhotons = (size_t) stream->readULong();
@@ -141,7 +141,7 @@ PhotonMap::~PhotonMap() {
 std::string PhotonMap::toString() const {
 	std::ostringstream oss;
 	oss << "PhotonMap[" << endl
-		<< "  aabb = " << m_aabb.toString() << "," << endl
+		<< "  bbox = " << m_bbox.toString() << "," << endl
 		<< "  photonCount = " << m_photonCount << "," << endl
 		<< "  maxPhotons = " << m_maxPhotons << "," << endl
 		<< "  minPhotons = " << m_minPhotons << "," << endl
@@ -154,7 +154,7 @@ std::string PhotonMap::toString() const {
 void PhotonMap::serialize(Stream *stream, InstanceManager *manager) const {
 	Log(EDebug, "Serializing a photon map (%.2f KB)", 
 		m_photonCount * 20.0f / 1024.0f);
-	m_aabb.serialize(stream);
+	m_bbox.serialize(stream);
 	stream->writeBool(m_balanced);
 	stream->writeULong(m_maxPhotons);
 	stream->writeULong(m_minPhotons);
@@ -175,7 +175,7 @@ bool PhotonMap::storePhoton(const Point &pos, const Normal &normal,
 		return false;
 
 	/* Keep track of the volume covered by all stored photons */
-	m_aabb.expandBy(pos);
+	m_bbox.expandBy(pos);
 
 	m_photons[++m_photonCount] = Photon(pos, normal, dir, power, depth);
 
@@ -190,7 +190,7 @@ bool PhotonMap::storePhoton(const Photon &photon) {
 		return false;
 
 	/* Keep track of the volume covered by all stored photons */
-	m_aabb.expandBy(Point(photon.pos[0], photon.pos[1], photon.pos[2]));
+	m_bbox.expandBy(Point(photon.pos[0], photon.pos[1], photon.pos[2]));
 	m_photons[++m_photonCount] = photon;
 
 	return true;
@@ -221,7 +221,7 @@ bool PhotonMap::storePhotonSMP(int thread, const Point &pos, const Normal &norma
 		return false;
 
 	/* Keep track of the volume covered by all stored photons */
-	m_context[thread].aabb.expandBy(pos);
+	m_context[thread].bbox.expandBy(pos);
 
 	size_t idx = m_context[thread].photonCount++;
 	m_photons[m_context[thread].photonOffset + idx] = Photon(pos, normal, dir, power, depth);
@@ -390,7 +390,7 @@ void PhotonMap::balance() {
 		for (int i=0; i<m_numThreads; ++i) {
 			Assert(m_context[i].maxPhotons == m_context[i].photonCount);
 			m_photonCount += m_context[i].photonCount;
-			m_aabb.expandBy(m_context[i].aabb);
+			m_bbox.expandBy(m_context[i].bbox);
 		}
 
 		/* Check if the photon map was properly filled */
@@ -408,7 +408,7 @@ void PhotonMap::balance() {
 
 	Log(EInfo, "Photon map: balancing %i photons ..", m_photonCount);
 	balanceRecursive(photonPointers.begin(), photonPointers.begin()+1, 
-		photonPointers.end(), heapPermutation, m_aabb, 1);
+		photonPointers.end(), heapPermutation, m_bbox, 1);
 
 	/* 'heapPointers' now contains a permutation representing
 	    the properly left-balanced photon map. Apply this permutation
@@ -427,7 +427,7 @@ void PhotonMap::balanceRecursive(photon_iterator basePtr,
 	photon_iterator sortStart,
 	photon_iterator sortEnd, 
 	std::vector<size_t> &heapPermutation,
-	BoundingBox3 &aabb, size_t heapIndex) const {
+	BoundingBox3 &bbox, size_t heapIndex) const {
 
 	/* A fully left-balanced binary tree has this many nodes on its
 	   left subtree */
@@ -439,7 +439,7 @@ void PhotonMap::balanceRecursive(photon_iterator basePtr,
 
 	/* Splitting along the axis with the widest spread
        works well in practice and is cheap to compute (p.71) */
-	int splitAxis = aabb.getLongestDimension();
+	int splitAxis = bbox.getLongestDimension();
 
 	/* QUICKSORT-like partitioning iterations until the entry referenced by 
 	   'pivot' imposes an ordering wrt. all other photons in the range */
@@ -454,10 +454,10 @@ void PhotonMap::balanceRecursive(photon_iterator basePtr,
 		if (pivot > sortStart + 1) {
 			/* There are more then two elements on the left
 			   subtree. Balance them recursively */
-			std::swap(aabb.max[splitAxis], splitPos);
+			std::swap(bbox.max[splitAxis], splitPos);
 			balanceRecursive(basePtr, sortStart, pivot, heapPermutation,
-				aabb, leftChild(heapIndex));
-			std::swap(aabb.max[splitAxis], splitPos);
+				bbox, leftChild(heapIndex));
+			std::swap(bbox.max[splitAxis], splitPos);
 		} else {
 			/* Leaf node - just copy. */
 			heapPermutation[leftChild(heapIndex)] = *sortStart - *basePtr;
@@ -468,10 +468,10 @@ void PhotonMap::balanceRecursive(photon_iterator basePtr,
 		if (pivot < sortEnd - 2) {
 			/* There are more then two elements on the right
 			   subtree. Balance them recursively */
-			std::swap(aabb.min[splitAxis], splitPos);
+			std::swap(bbox.min[splitAxis], splitPos);
 			balanceRecursive(basePtr, pivot+1, sortEnd, heapPermutation, 
-				aabb, rightChild(heapIndex));
-			std::swap(aabb.min[splitAxis], splitPos);
+				bbox, rightChild(heapIndex));
+			std::swap(bbox.min[splitAxis], splitPos);
 		} else {
 			/* Leaf node - just copy. */
 			heapPermutation[rightChild(heapIndex)] = *(sortEnd-1) - *basePtr;

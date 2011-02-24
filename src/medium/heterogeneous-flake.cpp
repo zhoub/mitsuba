@@ -309,9 +309,9 @@ public:
 
 		if (m_shapes.size() > 0) {
 			m_kdTree->build();
-			m_aabb = m_kdTree->getBoundingBox3();
+			m_bbox = m_kdTree->getBoundingBox();
 		} else {
-			m_aabb = m_densities->getBoundingBox3();
+			m_bbox = m_densities->getBoundingBox();
 		}
 	}
 
@@ -368,7 +368,7 @@ public:
 			t = its.t;
 		} else {
 			Float mint, maxt;
-			if (!m_aabb.rayIntersect(ray, mint, maxt))
+			if (!m_bbox.rayIntersect(ray, mint, maxt))
 				return false;
 			if (mint <= ray.mint && maxt <= ray.mint)
 				return false;
@@ -384,7 +384,7 @@ public:
 		if (lengthSqr != 0)
 			return orientation / std::sqrt(lengthSqr);
 		else
-			return Vector(0.0f);
+			return Vector::Zero();
 	}
 
 	inline Float sigmaT(const Point &p, const Vector &d) const {
@@ -396,7 +396,7 @@ public:
 		if (density == 0)
 			return 0.0f;
 		Vector orientation = lookupOrientation(p);
-		if (orientation == Vector(0.0f))
+		if (orientation == Vector::Zero())
 			return 0.0f;
 
 		Vector localD = Frame(orientation).toLocal(d);

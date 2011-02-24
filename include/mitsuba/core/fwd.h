@@ -64,7 +64,7 @@ class RemoteWorkerReader;
 class Scheduler;
 class Serializable;
 class SerializableObject;
-struct SHRotation;
+class SHRotation;
 class SHSampler;
 struct SHVector;
 struct SHVector4D;

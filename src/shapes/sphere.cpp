@@ -77,12 +77,12 @@ public:
 		stream->writeBool(m_inverted);
 	}
 
-	BoundingBox3 getBoundingBox3() const {
-		BoundingBox3 aabb;
+	BoundingBox3 getBoundingBox() const {
+		BoundingBox3 bbox;
 		Float absRadius = std::abs(m_radius);
-		aabb.min = m_center - Vector(absRadius);
-		aabb.max = m_center + Vector(absRadius);
-		return aabb;
+		bbox.min = m_center - Vector(absRadius);
+		bbox.max = m_center + Vector(absRadius);
+		return bbox;
 	}
 
 	Float getSurfaceArea() const {
