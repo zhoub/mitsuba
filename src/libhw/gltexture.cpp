@@ -72,10 +72,10 @@ void GLTexture::init() {
 
 						if (m_samples == 1) {
 							glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, 
-								GL_DEPTH_COMPONENT, m_size.x, m_size.y);
+								GL_DEPTH_COMPONENT, m_size.x(), m_size.y());
 
 							/* Allocate the texture memory */
-							glTexImage2D(m_glType, 0, m_internalFormat, m_size.x, m_size.y,
+							glTexImage2D(m_glType, 0, m_internalFormat, m_size.x(), m_size.y(),
 								0, m_format, m_dataFormat, NULL);
 						} else {
 							int samples;
@@ -86,9 +86,9 @@ void GLTexture::init() {
 								m_samples = samples;
 							}
 							glRenderbufferStorageMultisampleEXT(GL_RENDERBUFFER_EXT, 
-								m_samples, GL_DEPTH_COMPONENT, m_size.x, m_size.y);
+								m_samples, GL_DEPTH_COMPONENT, m_size.x(), m_size.y());
 							glTexImage2DMultisample(m_glType, 
-								m_samples, m_internalFormat, m_size.x, m_size.y, GL_FALSE);
+								m_samples, m_internalFormat, m_size.x(), m_size.y(), GL_FALSE);
 						}
 
 
@@ -102,11 +102,11 @@ void GLTexture::init() {
 						glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, 
 							GL_COLOR_ATTACHMENT0_EXT, m_glType, m_id, 0);
 					} else if (m_type == ETextureCubeMap) {
-						Assert(m_size.x == m_size.y && isPowerOfTwo(m_size.x));
+						Assert(m_size.x() == m_size.y() && isPowerOfTwo(m_size.x()));
 
 						for (int i=0; i<6; i++) 
-							glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, m_internalFormat, m_size.x, m_size.y,
-								0, m_format, m_dataFormat, NULL);
+							glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, m_internalFormat, 
+								m_size.x(), m_size.y(), 0, m_format, m_dataFormat, NULL);
 
 						if (isMipMapped())
 							glGenerateMipmapEXT(m_glType);
@@ -118,8 +118,8 @@ void GLTexture::init() {
 						glTexParameteri(m_glType, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
 						for (int i=0; i<6; i++) 
-							glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT24, m_size.x, m_size.y,
-								0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL);
+							glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT24, 
+								m_size.x(), m_size.y(), 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL);
 
 						if (glewIsSupported("GL_EXT_geometry_shader4"))
 							activateSide(-1);
@@ -140,16 +140,17 @@ void GLTexture::init() {
 				if (m_type == ETexture2D) {
 					/* Allocate the texture memory */
 					glTexImage2D(m_glType, 0, m_internalFormat, 
-						m_size.x, m_size.y, 0, GL_DEPTH_COMPONENT, 
+						m_size.x(), m_size.y(), 0, GL_DEPTH_COMPONENT, 
 						GL_UNSIGNED_BYTE, NULL);
 
 					/* Attach the texture as a depth target */
 					glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, 
 						GL_DEPTH_ATTACHMENT_EXT, m_glType, m_id, 0);
 				} else if (m_type == ETextureCubeMap) {
-					Assert(m_size.x == m_size.y && isPowerOfTwo(m_size.x));
+					Assert(m_size.x() == m_size.y() && isPowerOfTwo(m_size.x()));
 					for (int i=0; i<6; i++)
-						glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, m_internalFormat, m_size.x, m_size.y,
+						glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, 
+							m_internalFormat, m_size.x(), m_size.y(),
 							0, m_format, m_dataFormat, NULL);
 
 					if (glewIsSupported("GL_EXT_geometry_shader4"))
@@ -206,15 +207,15 @@ void GLTexture::refresh() {
 	glBindTexture(m_glType, m_id);
 	
 	if (m_type == ETexture1D) {
-		Assert((isPowerOfTwo(m_size.x) && m_size.y == 1)
-			|| (isPowerOfTwo(m_size.y) && m_size.x == 1));
+		Assert((isPowerOfTwo(m_size.x()) && m_size.y() == 1)
+			|| (isPowerOfTwo(m_size.y()) && m_size.x() == 1));
 
 		if (isMipMapped()) {
 			/* Let GLU generate mipmaps for us */
-			gluBuild1DMipmaps(m_glType, m_internalFormat, m_size.x == 1 ? m_size.y : m_size.x,
+			gluBuild1DMipmaps(m_glType, m_internalFormat, m_size.x() == 1 ? m_size.y() : m_size.x(),
 				m_format, m_dataFormat, bitmap->getData());
 		} else {
-			glTexImage1D(m_glType, 0, m_internalFormat, m_size.x == 1 ? m_size.y : m_size.x,
+			glTexImage1D(m_glType, 0, m_internalFormat, m_size.x() == 1 ? m_size.y() : m_size.x(),
 				0, m_format, m_dataFormat, bitmap->getData());
 		}
 	} else if (m_type == ETexture2D) {
@@ -237,7 +238,7 @@ void GLTexture::refresh() {
 					m_format, m_dataFormat, bitmap->getData());
 			else
 		*/
-		glTexImage2D(m_glType, 0, m_internalFormat, m_size.x, m_size.y,
+		glTexImage2D(m_glType, 0, m_internalFormat, m_size.x(), m_size.y(),
 			0, m_format, m_dataFormat, bitmap->getData());
 
 		if (isMipMapped())
@@ -460,7 +461,7 @@ Spectrum GLTexture::getPixel(int x, int y) const {
 
 	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, m_fboId);
 	glPushAttrib(GL_VIEWPORT_BIT);
-	glViewport(0, 0, m_size.x, m_size.y);
+	glViewport(0, 0, m_size.x(), m_size.y());
 	glReadPixels(x, y, 1, 1, GL_RGB, GL_FLOAT, &pixels);
 	glPopAttrib();
 	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
@@ -475,7 +476,7 @@ void GLTexture::activateTarget() {
 	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, m_fboId);
 
 	glPushAttrib(GL_VIEWPORT_BIT);
-	glViewport(0, 0, m_size.x, m_size.y);
+	glViewport(0, 0, m_size.x(), m_size.y());
 }
 
 void GLTexture::activateSide(int side) {
@@ -500,7 +501,7 @@ void GLTexture::activateSide(int side) {
 }
 	
 void GLTexture::setTargetRegion(const Point2i &offset, const Vector2i &size) {
-	glViewport(offset.x, offset.y, size.x, size.y);
+	glViewport(offset.x(), offset.y(), size.x(), size.y());
 }
 
 void GLTexture::releaseTarget() {
@@ -575,8 +576,8 @@ void GLTexture::blit(GPUTexture *texture) const {
 
 	glBindFramebufferEXT(GL_READ_FRAMEBUFFER_EXT, m_fboId);
 	glBindFramebufferEXT(GL_DRAW_FRAMEBUFFER_EXT, dest->m_fboId);
-	glBlitFramebufferEXT(0, 0, m_size.x, m_size.y, 0, 0, 
-		dest->m_size.x, dest->m_size.y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+	glBlitFramebufferEXT(0, 0, m_size.x(), m_size.y(), 0, 0, 
+		dest->m_size.x(), dest->m_size.y(), GL_COLOR_BUFFER_BIT, GL_LINEAR);
 }
 
 void GLTexture::clear() {

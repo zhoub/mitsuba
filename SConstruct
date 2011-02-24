@@ -26,7 +26,7 @@ SConscript('src/libcore/SConscript')
 # Rendering-related APIs
 # SConscript('src/librender/SConscript')
 # Hardware acceleration
-# SConscript('src/libhw/SConscript')
+SConscript('src/libhw/SConscript')
 
 # ===== Build the applications =====
 env = env.Clone()

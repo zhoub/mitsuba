@@ -29,6 +29,7 @@
 #include <mitsuba/hw/glprogram.h>
 #include <mitsuba/hw/glsync.h>
 #include <mitsuba/hw/font.h>
+#include <Eigen/OpenGLSupport>
 
 MTS_NAMESPACE_BEGIN
 
@@ -613,35 +614,36 @@ void GLRenderer::blitTexture(const GPUTexture *tex, bool flipVertically,
 		GLint viewport[4];	
 		glGetIntegerv(GL_VIEWPORT, viewport);
 		Vector2i scrSize = Vector2i(viewport[2], viewport[3]);
-		Vector2i texSize = Vector2i(tex->getSize().x, tex->getSize().y);
+		Vector2i texSize(tex->getSize().x(), tex->getSize().y());
 
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
-		glOrtho(0, scrSize.x, scrSize.y, 0, -1, 1);
+		glOrtho(0, scrSize.x(), scrSize.y(), 0, -1, 1);
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
 		glBegin(GL_QUADS);
 
-		Vector2i upperLeft(0), lowerRight(0);
+		Vector2i upperLeft(Vector2i::Zero()),
+			     lowerRight(Vector2i::Zero());
 		if (centerHoriz)
-			upperLeft.x = (scrSize.x - texSize.x)/2;
+			upperLeft.x() = (scrSize.x() - texSize.x())/2;
 		if (centerVert)
-			upperLeft.y = (scrSize.y - texSize.y)/2;
+			upperLeft.y() = (scrSize.y() - texSize.y())/2;
 		upperLeft += offset;
 		lowerRight = upperLeft + texSize;
 
 		if (flipVertically)
-			std::swap(upperLeft.y, lowerRight.y);
+			std::swap(upperLeft.y(), lowerRight.y());
 
 		const float zDepth = -1.0f; // just before the far plane
 		glTexCoord2f(0.0f, 0.0f);
-		glVertex3f(upperLeft.x, upperLeft.y, zDepth);
+		glVertex3f(upperLeft.x(), upperLeft.y(), zDepth);
 		glTexCoord2f(1.0f, 0.0f);
-		glVertex3f(lowerRight.x, upperLeft.y, zDepth);
+		glVertex3f(lowerRight.x(), upperLeft.y(), zDepth);
 		glTexCoord2f(1.0f, 1.0f);
-		glVertex3f(lowerRight.x, lowerRight.y, zDepth);
+		glVertex3f(lowerRight.x(), lowerRight.y(), zDepth);
 		glTexCoord2f(0.0f, 1.0f);
-		glVertex3f(upperLeft.x, lowerRight.y, zDepth);
+		glVertex3f(upperLeft.x(), lowerRight.y(), zDepth);
 		glEnd();
 	} else if (tex->getType() == GPUTexture::ETextureCubeMap) {
 		glMatrixMode(GL_PROJECTION);
@@ -721,7 +723,7 @@ void GLRenderer::blitQuad(bool flipVertically) {
 	Vector2 scrSize(viewport[2], viewport[3]);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glOrtho(0, scrSize.x, scrSize.y, 0, -1, 1);
+	glOrtho(0, scrSize.x(), scrSize.y(), 0, -1, 1);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	const Float zDepth = -1.0f;
@@ -729,11 +731,11 @@ void GLRenderer::blitQuad(bool flipVertically) {
 	glTexCoord2f(0.0f, flipVertically ? 1.0f : 0.0f);
 	glVertex3f(0.0f, 0.0f, zDepth);
 	glTexCoord2f(1.0f, flipVertically ? 1.0f : 0.0f);
-	glVertex3f(scrSize.x, 0.0f, zDepth);
+	glVertex3f(scrSize.x(), 0.0f, zDepth);
 	glTexCoord2f(1.0f, flipVertically ? 0.0f : 1.0f);
-	glVertex3f(scrSize.x, scrSize.y, zDepth);
+	glVertex3f(scrSize.x(), scrSize.y(), zDepth);
 	glTexCoord2f(0.0f, flipVertically ? 0.0f : 1.0f);
-	glVertex3f(0.0f, scrSize.y, zDepth);
+	glVertex3f(0.0f, scrSize.y(), zDepth);
 	glEnd();
 }
 
@@ -744,23 +746,23 @@ void GLRenderer::drawText(const Point2i &_pos,
 	Vector2i scrSize = Vector2i(viewport[2], viewport[3]);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glOrtho(0, scrSize.x, scrSize.y, 0, -1, 1);
+	glOrtho(0, scrSize.x(), scrSize.y(), 0, -1, 1);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	font->getTexture()->bind();
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	Point2i pos(_pos);
-	int initial = pos.x;
+	int initial = pos.x();
 
 	glBegin(GL_QUADS);
-	for (size_t i=0; i<text.norm(); i++) {
+	for (size_t i=0; i<text.length(); i++) {
 		char character = text[i];
 		if (character == '\r')
 			continue;
 		if (character == '\n') {
-			pos.x = initial;
-			pos.y += (int) (font->getMaxVerticalBearing()*4.0/3.0);
+			pos.x() = initial;
+			pos.y() += (int) (font->getMaxVerticalBearing()*4.0/3.0);
 			continue;
 		}
 
@@ -774,19 +776,19 @@ void GLRenderer::drawText(const Point2i &_pos,
 		Point2 txStart = glyph.tx;
 		Point2 txEnd = txStart + glyph.ts;
 
-		glTexCoord2f(txStart.x, txStart.y);
-		glVertex2f(    start.x,   start.y);
-		glTexCoord2f(txEnd.x,   txStart.y);
-		glVertex2f(    end.x,     start.y);
-		glTexCoord2f(txEnd.x,     txEnd.y);
-		glVertex2f(    end.x,       end.y);
-		glTexCoord2f(txStart.x,   txEnd.y);
-		glVertex2f(    start.x,     end.y);
+		glTexCoord2f(txStart.x(), txStart.y());
+		glVertex2f(    start.x(),   start.y());
+		glTexCoord2f(txEnd.x(),   txStart.y());
+		glVertex2f(    end.x(),     start.y());
+		glTexCoord2f(txEnd.x(),     txEnd.y());
+		glVertex2f(    end.x(),       end.y());
+		glTexCoord2f(txStart.x(),   txEnd.y());
+		glVertex2f(    start.x(),     end.y());
 
-		pos.x += glyph.horizontalAdvance;
+		pos.x() += glyph.horizontalAdvance;
 
-		if (i+1 < text.norm())
-			pos.x += font->getKerning(character, text[i+1]);
+		if (i+1 < text.length())
+			pos.x() += font->getKerning(character, text[i+1]);
 	}
 	glEnd();
 
@@ -800,14 +802,14 @@ void GLRenderer::setPointSize(Float size) {
 
 void GLRenderer::drawPoint(const Point &p) {
 	glBegin(GL_POINTS);
-	glVertex3f(p.x, p.y, p.z);
+	glVertex(p);
 	glEnd();
 }
 
 void GLRenderer::drawLine(const Point &a, const Point &b) {
 	glBegin(GL_LINES);
-	glVertex3f(a.x, a.y, a.z);
-	glVertex3f(b.x, b.y, b.z);
+	glVertex(a);
+	glVertex(b);
 	glEnd();
 }
 
@@ -816,16 +818,14 @@ void GLRenderer::drawEllipse(const Point &center,
 	const int nSteps = 100;
 	const float stepSize = 2*M_PI/nSteps;
 	glBegin(GL_LINE_LOOP);
-	for (int i=0; i<100; ++i) {
-		Point p = center + axis1 * std::cos(i*stepSize) 
-			+ axis2 * std::sin(i*stepSize);
-		glVertex3f(p.x, p.y, p.z);
-	}
+	for (int i=0; i<100; ++i) 
+		glVertex(center + axis1 * std::cos(i*stepSize) 
+			            + axis2 * std::sin(i*stepSize));
 	glEnd();
 }
 
 void GLRenderer::drawBoundingBox(const BoundingBox3 &bbox) {
-	#define V(a,b,c) glVertex3f(bbox.a.x, bbox.b.y, bbox.c.z)
+	#define V(a,b,c) glVertex3f(bbox.a.x(), bbox.b.y(), bbox.c.z())
 	glBegin(GL_LINE_LOOP); V(max,min,max); V(max,min,min); V(max,max,min); V(max,max,max); glEnd();
 	glBegin(GL_LINE_LOOP); V(max,max,max); V(max,max,min); V(min,max,min); V(min,max,max); glEnd();
 	glBegin(GL_LINE_LOOP); V(max,max,max); V(min,max,max); V(min,min,max); V(max,min,max); glEnd();
@@ -836,63 +836,26 @@ void GLRenderer::drawBoundingBox(const BoundingBox3 &bbox) {
 }
 
 void GLRenderer::setCamera(const ProjectiveCamera *camera) {
-	GLfloat temp1[16], temp2[16];
-	const Matrix4x4 &view = camera->getViewTransform().getMatrix();
-	const Matrix4x4 &proj = camera->getGLProjectionTransform().getMatrix();
-
-	int pos=0;
-	for (int j=0; j<4; j++) {
-		for (int i=0; i<4; i++) {
-			temp1[pos]=(GLfloat) proj.m[i][j];
-			temp2[pos++]=(GLfloat) view.m[i][j];
-		}
-	}
-
 	glMatrixMode(GL_PROJECTION);
-	glLoadMatrixf(temp1);
+	glLoadMatrix(camera->getGLProjectionTransform().getMatrix());
 	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-	glScalef(1.0f, 1.0f, -1.0f);
-	glMultMatrixf(temp2);
+	glLoadMatrix(camera->getViewTransform().getMatrix());
 }
 
 void GLRenderer::setCamera(const ProjectiveCamera *camera, const Point2 &jitter) {
-	GLfloat temp1[16], temp2[16];
-	const Matrix4x4 &view = camera->getViewTransform().getMatrix();
-	const Matrix4x4 &proj = camera->getGLProjectionTransform(jitter).getMatrix();
-
-	int pos=0;
-	for (int j=0; j<4; j++) {
-		for (int i=0; i<4; i++) {
-			temp1[pos]=(GLfloat) proj.m[i][j];
-			temp2[pos++]=(GLfloat) view.m[i][j];
-		}
-	}
-
+	Matrix4x4 proj = camera->getGLProjectionTransform(jitter).getMatrix();
+	
 	glMatrixMode(GL_PROJECTION);
-	glLoadMatrixf(temp1);
+	glLoadMatrix(proj);
 	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-	glScalef(1.0f, 1.0f, -1.0f);
-	glMultMatrixf(temp2);
+	glLoadMatrix(camera->getGLProjectionTransform().getMatrix());
 }
 
 void GLRenderer::setCamera(const Matrix4x4 &proj, const Matrix4x4 &view) {
-	GLfloat temp1[16], temp2[16];
-	int pos=0;
-	for (int j=0; j<4; j++) {
-		for (int i=0; i<4; i++) {
-			temp1[pos]=(GLfloat) proj.m[i][j];
-			temp2[pos++]=(GLfloat) view.m[i][j];
-		}
-	}
-
 	glMatrixMode(GL_PROJECTION);
-	glLoadMatrixf(temp1);
+	glLoadMatrix(proj);
 	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-	glScalef(1.0f, 1.0f, -1.0f);
-	glMultMatrixf(temp2);
+	glLoadMatrix(view);
 }
 
 void GLRenderer::setDepthOffset(Float value) {

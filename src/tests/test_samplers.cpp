@@ -16,9 +16,8 @@
     along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <mitsuba/render/testcase.h>
-#include <mitsuba/core/plugin.h>
-#include <mitsuba/core/sfcurve.h>
+#include <mitsuba/core/testcase.h>
+#include <mitsuba/render/sampler.h>
 
 MTS_NAMESPACE_BEGIN
 

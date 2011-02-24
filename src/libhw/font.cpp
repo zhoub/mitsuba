@@ -59,10 +59,10 @@ Font::Font(EFont font) {
 	for (int i=0; i<256; ++i) {
 		Glyph &g = m_glyphs[i];
 		
-		g.tx.x = dscStream->readSingle();
-		g.tx.y = dscStream->readSingle();
-		g.ts.x = dscStream->readSingle();
-		g.ts.y = dscStream->readSingle();
+		g.tx.x() = dscStream->readSingle();
+		g.tx.y() = dscStream->readSingle();
+		g.ts.x() = dscStream->readSingle();
+		g.ts.y() = dscStream->readSingle();
 		g.size = Vector2i(dscStream);
 		g.horizontalBearing = dscStream->readInt();
 		g.verticalBearing = dscStream->readInt();

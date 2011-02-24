@@ -16,8 +16,10 @@
     along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <mitsuba/render/testcase.h>
-#include <mitsuba/core/shvector.h>
+#include <mitsuba/core/testcase.h>
+#include <mitsuba/core/transform.h>
+#include <mitsuba/core/random.h>
+#include <mitsuba/core/sh.h>
 
 MTS_NAMESPACE_BEGIN
 
@@ -44,8 +46,8 @@ public:
 		Transform trafo = Transform::rotate(axis, random->nextFloat()*360);
 		Transform inv = trafo.inverse();
 		SHRotation rot(vec1.getBands());
+		rot.set(trafo);
 
-		SHVector::rotation(trafo, rot);
 		SHVector vec2(bands);
 
 		rot(vec1, vec2);
@@ -85,7 +87,7 @@ public:
 		for (int i=0; i<=nsamples; ++i) {
 			Point2 sample(random->nextFloat(), random->nextFloat());
 			Float pdf1 = sampler->warp(clampedCos, sample);
-			Float pdf2 = v.dot(sphericalDirection(sample.x, sample.y))/M_PI;
+			Float pdf2 = v.dot(sphericalDirection(sample.x(), sample.y()))/M_PI;
 			Float relerr = std::abs(pdf1-pdf2)/pdf2;
 			if (pdf2 > 0.01) {
 				accum += relerr; ++nInAvg;

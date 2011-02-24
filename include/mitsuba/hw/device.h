@@ -44,13 +44,13 @@ public:
 	inline void setType(int type) { m_type = type; }
 
 	/// Get the mouse position vector
-	inline void setMousePosition(const Point2i &position) { m_mouse.x = position.x; m_mouse.y = position.y; }
+	inline void setMousePosition(const Point2i &position) { m_mouse.x = position.x(); m_mouse.y = position.y(); }
 
 	/// Set the mouse position vector
 	inline Point2i getMousePosition() const { return Point2i(m_mouse.x, m_mouse.y); }
 
 	/// Get the relative mouse movement vector
-	inline void setMouseRelative(const Vector2i &relative) { m_mouse.xrel = relative.x; m_mouse.yrel = relative.y; }
+	inline void setMouseRelative(const Vector2i &relative) { m_mouse.xrel = relative.x(); m_mouse.yrel = relative.y(); }
 
 	/// Set the relative mouse movement vector
 	inline Vector2i getMouseRelative() const { return Vector2i(m_mouse.xrel, m_mouse.yrel); }
@@ -243,7 +243,7 @@ public:
 	void setSize(const Vector2i &dimension);
 
 	/// Return the aspect ratio of the device
-	inline Float getAspect() const { return (Float) m_size.x / (Float) m_size.y; }
+	inline Float getAspect() const { return (Float) m_size.x() / (Float) m_size.y(); }
 
 	/// Return the position of the device
 	inline Point2i getPosition() const { return m_position; }

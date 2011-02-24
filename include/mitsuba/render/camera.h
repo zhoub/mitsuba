@@ -95,7 +95,7 @@ public:
 
 	/// Return the image plane normal
 	inline Normal getImagePlaneNormal() const {
-		return Normal(normalize(m_cameraToWorld(Vector(0, 0, 1))));
+		return Normal(m_cameraToWorld(Vector(0, 0, 1)).normalized());
 	}
 
 	/// Return the view transformation

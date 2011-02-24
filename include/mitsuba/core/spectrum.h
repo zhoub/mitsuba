@@ -140,7 +140,7 @@ public:
 	/// Unserialize a spectral power distribution from a binary data stream
 	explicit inline Spectrum(Stream *stream) : Base(stream) { }
 
-    template<typename OtherDerived> Normal &operator=
+    template<typename OtherDerived> Spectrum &operator=
 			(const Eigen::ArrayBase<OtherDerived>& other) {
 		this->Base::operator=(other);
 		return *this;

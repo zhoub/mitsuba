@@ -67,21 +67,9 @@ public:
 
 	/// Set a Vector4 parameter
 	void setParameter(int id, const Vector4 &value);
-
-	/// Set a Point parameter
-	void setParameter(int id, const Point &value);
-
-	/// Set a Point3i parameter
-	void setParameter(int id, const Point3i &value);
-
-	/// Set a Point2 parameter
-	void setParameter(int id, const Point2 &value);
-
-	/// Set a Point2i parameter
-	void setParameter(int id, const Point2i &value);
-
-	/// Set a Point4 parameter
-	void setParameter(int id, const Point4 &value);
+	
+	/// Set a Vector4i parameter
+	void setParameter(int id, const Vector4i &value);
 
 	/// Set a Matrix2x2 parameter
 	void setParameter(int id, const Matrix2x2 &value);

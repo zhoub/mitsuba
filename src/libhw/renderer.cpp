@@ -151,7 +151,7 @@ std::string RendererCapabilities::toString() const {
 		oss << "\tEBindless,\n";
 	oss << "]";
 	std::string result = oss.str();
-	return result.substr(0, result.norm()-3) + "\n]";
+	return result.substr(0, result.length()-3) + "\n]";
 }
 
 MTS_IMPLEMENT_CLASS(Renderer, true, Object)

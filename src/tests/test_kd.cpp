@@ -16,7 +16,6 @@
     along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <mitsuba/core/plugin.h>
 #include <mitsuba/core/kdtree.h>
 #include <mitsuba/core/testcase.h>
 #include <mitsuba/core/properties.h>

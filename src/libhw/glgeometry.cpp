@@ -73,22 +73,22 @@ void GLGeometry::refresh() {
 
 	size_t pos = 0;
 	for (size_t i=0; i<m_mesh->getVertexCount(); ++i) {
-		vertices[pos++] = (float) sourcePositions[i].x;
-		vertices[pos++] = (float) sourcePositions[i].y;
-		vertices[pos++] = (float) sourcePositions[i].z;
+		vertices[pos++] = (float) sourcePositions[i].x();
+		vertices[pos++] = (float) sourcePositions[i].y();
+		vertices[pos++] = (float) sourcePositions[i].z();
 		if (sourceNormals) {
-			vertices[pos++] = (float) sourceNormals[i].x;
-			vertices[pos++] = (float) sourceNormals[i].y;
-			vertices[pos++] = (float) sourceNormals[i].z;
+			vertices[pos++] = (float) sourceNormals[i].x();
+			vertices[pos++] = (float) sourceNormals[i].y();
+			vertices[pos++] = (float) sourceNormals[i].z();
 		}
 		if (sourceTexcoords) {
-			vertices[pos++] = (float) sourceTexcoords[i].x;
-			vertices[pos++] = (float) sourceTexcoords[i].y;
+			vertices[pos++] = (float) sourceTexcoords[i].x();
+			vertices[pos++] = (float) sourceTexcoords[i].y();
 		}
 		if (sourceTangents) {
-			vertices[pos++] = (float) sourceTangents[i].dpdu.x;
-			vertices[pos++] = (float) sourceTangents[i].dpdu.y;
-			vertices[pos++] = (float) sourceTangents[i].dpdu.z;
+			vertices[pos++] = (float) sourceTangents[i].dpdu.x();
+			vertices[pos++] = (float) sourceTangents[i].dpdu.y();
+			vertices[pos++] = (float) sourceTangents[i].dpdu.z();
 		}
 		if (sourceColors) {
 			Float r, g, b;

@@ -19,7 +19,7 @@
 #if !defined(__VIEWER_H)
 #define __VIEWER_H
 
-#include <mitsuba/render/util.h>
+#include <mitsuba/core/plugin.h>
 #include <mitsuba/hw/renderer.h>
 #include <mitsuba/hw/font.h>
 

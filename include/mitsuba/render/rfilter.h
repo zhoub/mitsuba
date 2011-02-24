@@ -88,8 +88,8 @@ public:
 
 	/// Evaluate the filter function
 	inline Float evaluate(Float x, Float y) const {
-		int xPos = (int) (m_factor.x * std::abs(x));
-		int yPos = (int) (m_factor.y * std::abs(y));
+		int xPos = (int) (m_factor.x() * std::abs(x));
+		int yPos = (int) (m_factor.y() * std::abs(y));
 		if (xPos >= FILTER_RESOLUTION || yPos >= FILTER_RESOLUTION)
 			return 0.0f;
 		else

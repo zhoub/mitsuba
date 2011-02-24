@@ -93,15 +93,15 @@ public:
 		}
 
 		/* Find the affected pixel region in discrete coordinates */
-		sample.x = sample.x - 0.5f - (offset.x - border);
-		sample.y = sample.y - 0.5f - (offset.y - border);
-		int xStart = (int) std::ceil(sample.x - filterSize.x);
-		int xEnd   = (int) std::floor(sample.x + filterSize.x);
-		int yStart = (int) std::ceil(sample.y - filterSize.y);
-		int yEnd   = (int) std::floor(sample.y + filterSize.y);
+		sample.x() = sample.x() - 0.5f - (offset.x() - border);
+		sample.y() = sample.y() - 0.5f - (offset.y() - border);
+		int xStart = (int) std::ceil(sample.x() - filterSize.x());
+		int xEnd   = (int) std::floor(sample.x() + filterSize.x());
+		int yStart = (int) std::ceil(sample.y() - filterSize.y());
+		int yEnd   = (int) std::floor(sample.y() + filterSize.y());
 
 		xStart = std::max(0, xStart); yStart = std::max(0, yStart);
-		xEnd = std::min(xEnd, fullSize.x-1); yEnd = std::min(yEnd, fullSize.y-1);
+		xEnd = std::min(xEnd, fullSize.x()-1); yEnd = std::min(yEnd, fullSize.y()-1);
 		const int xWidth = xEnd-xStart+1, yWidth = yEnd-yStart+1;
 
 		/* Precompute array lookup indices and store them the stack (alloca) */
@@ -109,19 +109,19 @@ public:
 		int *idxY = (int *) alloca(yWidth * sizeof(int));
 
 		for (int x=xStart; x<=xEnd; ++x) {
-			const Float trafoX = filter->getSizeFactor().x * std::abs(x - sample.x);
+			const Float trafoX = filter->getSizeFactor().x() * std::abs(x - sample.x());
 			idxX[x-xStart] = std::min((int) trafoX, FILTER_RESOLUTION);
 		}
 
 		for (int y=yStart; y<=yEnd; ++y) {
-			const Float trafoY = filter->getSizeFactor().y * std::abs(y - sample.y);
+			const Float trafoY = filter->getSizeFactor().y() * std::abs(y - sample.y());
 			idxY[y-yStart] = std::min((int) trafoY, FILTER_RESOLUTION);
 		}
 
 		/* Update the weights+pixels */
 		if (alpha) {
 			for (int y=yStart; y<=yEnd; ++y) {
-				int index = y*fullSize.x + xStart;
+				int index = y*fullSize.x() + xStart;
 				for (int x=xStart; x<=xEnd; ++x) {
 					Float weight = filter->lookup(idxX[x-xStart], idxY[y-yStart]);
 					pixels[index] += spec * weight;
@@ -131,7 +131,7 @@ public:
 			}
 		} else {
 			for (int y=yStart; y<=yEnd; ++y) {
-				int index = y*fullSize.x + xStart;
+				int index = y*fullSize.x() + xStart;
 				for (int x=xStart; x<=xEnd; ++x) {
 					Float weight = filter->lookup(idxX[x-xStart], idxY[y-yStart]);
 					pixels[index] += spec * weight;
@@ -157,15 +157,15 @@ public:
 		}
 
 		/* Find the affected pixel region in discrete coordinates */
-		sample.x = sample.x - 0.5f - (offset.x - border);
-		sample.y = sample.y - 0.5f - (offset.y - border);
-		int xStart = (int) std::ceil(sample.x - filterSize.x);
-		int xEnd   = (int) std::floor(sample.x + filterSize.x);
-		int yStart = (int) std::ceil(sample.y - filterSize.y);
-		int yEnd   = (int) std::floor(sample.y + filterSize.y);
+		sample.x() = sample.x() - 0.5f - (offset.x() - border);
+		sample.y() = sample.y() - 0.5f - (offset.y() - border);
+		int xStart = (int) std::ceil(sample.x() - filterSize.x());
+		int xEnd   = (int) std::floor(sample.x() + filterSize.x());
+		int yStart = (int) std::ceil(sample.y() - filterSize.y());
+		int yEnd   = (int) std::floor(sample.y() + filterSize.y());
 
 		xStart = std::max(0, xStart); yStart = std::max(0, yStart);
-		xEnd = std::min(xEnd, fullSize.x-1); yEnd = std::min(yEnd, fullSize.y-1);
+		xEnd = std::min(xEnd, fullSize.x()-1); yEnd = std::min(yEnd, fullSize.y()-1);
 		const int xWidth = xEnd-xStart+1, yWidth = yEnd-yStart+1;
 
 		/* Precompute array lookup indices and store them the stack (alloca) */
@@ -173,18 +173,18 @@ public:
 		int *idxY = (int *) alloca(yWidth * sizeof(int));
 
 		for (int x=xStart; x<=xEnd; ++x) {
-			const Float trafoX = filter->getSizeFactor().x * std::abs(x - sample.x);
+			const Float trafoX = filter->getSizeFactor().x() * std::abs(x - sample.x());
 			idxX[x-xStart] = std::min((int) trafoX, FILTER_RESOLUTION);
 		}
 
 		for (int y=yStart; y<=yEnd; ++y) {
-			const Float trafoY = filter->getSizeFactor().y * std::abs(y - sample.y);
+			const Float trafoY = filter->getSizeFactor().y() * std::abs(y - sample.y());
 			idxY[y-yStart] = std::min((int) trafoY, FILTER_RESOLUTION);
 		}
 
 		/* Update the weights+pixels */
 		for (int y=yStart; y<=yEnd; ++y) {
-			int index = y*fullSize.x + xStart;
+			int index = y*fullSize.x() + xStart;
 			for (int x=xStart; x<=xEnd; ++x) {
 				Float weight = filter->lookup(idxX[x-xStart], idxY[y-yStart]);
 				pixels[index++] += spec * weight;
@@ -202,12 +202,12 @@ public:
 	 * not be disproportionately biased by this pixel's contributions.
 	 */
 	inline void snapshot(int px, int py) {
-		const int xStart = px - offset.x, xEnd = xStart + 2*border;
-		const int yStart = py - offset.y, yEnd = yStart + 2*border;
+		const int xStart = px - offset.x(), xEnd = xStart + 2*border;
+		const int yStart = py - offset.y(), yEnd = yStart + 2*border;
 
 		int snapshotIndex = 0, pixelIndex;
 		for (int y=yStart; y<=yEnd; ++y) {
-			pixelIndex = y*fullSize.x + xStart;
+			pixelIndex = y*fullSize.x() + xStart;
 			for (int x=xStart; x<=xEnd; ++x) {
 				pixelSnapshot[snapshotIndex] = pixels[pixelIndex];
 				alphaSnapshot[snapshotIndex] = alpha[pixelIndex];
@@ -225,12 +225,12 @@ public:
 	 * For use together with \ref snapshot()
 	 */
 	inline void normalize(int px, int py, Float factor) {
-		const int xStart = px - offset.x, xEnd = xStart + 2*border;
-		const int yStart = py - offset.y, yEnd = yStart + 2*border;
+		const int xStart = px - offset.x(), xEnd = xStart + 2*border;
+		const int yStart = py - offset.y(), yEnd = yStart + 2*border;
 		int snapshotIndex = 0, pixelIndex;
 
 		for (int y=yStart; y<=yEnd; ++y) {
-			pixelIndex = y*fullSize.x + xStart;
+			pixelIndex = y*fullSize.x() + xStart;
 			for (int x=xStart; x<=xEnd; ++x) {
 				pixels[pixelIndex] = pixelSnapshot[snapshotIndex] + 
 					(pixels[pixelIndex] - pixelSnapshot[snapshotIndex]) * factor;
@@ -252,9 +252,9 @@ public:
 	/// Test case mode - set the variance of a pixel
 	inline void setVariance(int px, int py, Spectrum value, uint32_t sampleCount) {
 		Assert(border == 0);
-		const int x = px - offset.x, y = py - offset.y;
-		variances[y*fullSize.x + x] = value;
-		nSamples[y*fullSize.x + x] = sampleCount;
+		const int x = px - offset.x(), y = py - offset.y();
+		variances[y*fullSize.x() + x] = value;
+		nSamples[y*fullSize.x() + x] = sampleCount;
 	}
 
 	/// Return the border size
@@ -274,8 +274,7 @@ public:
 	/// Set the size of this image block
 	inline void setSize(const Vector2i &_size) {
 		size = _size;
-		fullSize.x = size.x + 2*border;
-		fullSize.y = size.y + 2*border;
+		fullSize = (_size.array() + 2*border).matrix();
 	}
 
 	/// Return the size of this image block (including borders)

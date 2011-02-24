@@ -24,6 +24,7 @@
 #endif
 #include <mitsuba/hw/glprogram.h>
 #include <mitsuba/hw/gputexture.h>
+#include <Eigen/OpenGLSupport>
 
 MTS_NAMESPACE_BEGIN
 
@@ -87,7 +88,7 @@ int GLProgram::createShader(int type, const std::string &source) {
 	int id = glCreateShaderObjectARB(type);
 
 	const char *string = source.c_str();
-	GLint stringLength = (GLint) source.norm();
+	GLint stringLength = (GLint) source.length();
 	glShaderSourceARB(id, 1, &string, &stringLength);
 	glCompileShaderARB(id);
 
@@ -165,65 +166,40 @@ void GLProgram::setParameter(int id, Float value) {
 		return;
 	glUniform1f(id, (GLfloat) value);
 }
-
-void GLProgram::setParameter(int id, const Vector &value) {
-	if (id == -1)
-		return;
-	glUniform3f(id, (GLfloat) value.x, (GLfloat) value.y, (GLfloat) value.z);
-}
-
-void GLProgram::setParameter(int id, const Vector3i &value) {
-	if (id == -1)
-		return;
-	glUniform3i(id, value.x, value.y, value.z);
-}
-
 void GLProgram::setParameter(int id, const Vector2 &value) {
 	if (id == -1)
 		return;
-	glUniform2f(id, (GLfloat) value.x, (GLfloat) value.y);
+	glUniform(id, value);
 }
 
 void GLProgram::setParameter(int id, const Vector2i &value) {
 	if (id == -1)
 		return;
-	glUniform2i(id, value.x, value.y);
+	glUniform(id, value);
+}
+
+void GLProgram::setParameter(int id, const Vector &value) {
+	if (id == -1)
+		return;
+	glUniform(id, value);
+}
+
+void GLProgram::setParameter(int id, const Vector3i &value) {
+	if (id == -1)
+		return;
+	glUniform(id, value);
 }
 
 void GLProgram::setParameter(int id, const Vector4 &value) {
 	if (id == -1)
 		return;
-	glUniform4f(id, (GLfloat) value.x, (GLfloat) value.y, (GLfloat) value.z, (GLfloat) value.w);
+	glUniform(id, value);
 }
 
-void GLProgram::setParameter(int id, const Point &value) {
+void GLProgram::setParameter(int id, const Vector4i &value) {
 	if (id == -1)
 		return;
-	glUniform3f(id, (GLfloat) value.x, (GLfloat) value.y, (GLfloat) value.z);
-}
-
-void GLProgram::setParameter(int id, const Point3i &value) {
-	if (id == -1)
-		return;
-	glUniform3i(id, value.x, value.y, value.z);
-}
-
-void GLProgram::setParameter(int id, const Point2 &value) {
-	if (id == -1)
-		return;
-	glUniform2f(id, (GLfloat) value.x, (GLfloat) value.y);
-}
-
-void GLProgram::setParameter(int id, const Point2i &value) {
-	if (id == -1)
-		return;
-	glUniform2i(id, value.x, value.y);
-}
-
-void GLProgram::setParameter(int id, const Point4 &value) {
-	if (id == -1)
-		return;
-	glUniform4f(id, (GLfloat) value.x, (GLfloat) value.y, (GLfloat) value.z, (GLfloat) value.w);
+	glUniform(id, value);
 }
 
 void GLProgram::setParameter(int id, const GPUTexture *value) {
@@ -240,47 +216,19 @@ void GLProgram::setParameter(int id, const GPUTexture *value) {
 void GLProgram::setParameter(int id, const Matrix2x2 &matrix) {
 	if (id == -1)
 		return;
-#ifdef SINGLE_PRECISION
-	glUniformMatrix2fv(id, 1, true, reinterpret_cast<const GLfloat *>(matrix.m));
-#else
-	GLfloat tmp[4];
-	int idx=0;
-	for (int i=0; i<2; i++)
-		for (int j=0; j<2; j++)
-			tmp[idx++] = (GLfloat) matrix.m[i][j];
-	glUniformMatrix2fv(id, 1, true, tmp);
-#endif
+	glUniform(id, matrix);
 }
 
 void GLProgram::setParameter(int id, const Matrix3x3 &matrix) {
 	if (id == -1)
 		return;
-#ifdef SINGLE_PRECISION
-	glUniformMatrix3fv(id, 1, true, reinterpret_cast<const GLfloat *>(matrix.m));
-#else
-	GLfloat tmp[9];
-	int idx=0;
-	for (int i=0; i<3; i++)
-		for (int j=0; j<3; j++)
-			tmp[idx++] = (GLfloat) matrix.m[i][j];
-	glUniformMatrix3fv(id, 1, true, tmp);
-#endif
+	glUniform(id, matrix);
 }
-
 
 void GLProgram::setParameter(int id, const Matrix4x4 &matrix) {
 	if (id == -1)
 		return;
-#ifdef SINGLE_PRECISION
-	glUniformMatrix4fv(id, 1, true, reinterpret_cast<const GLfloat *>(matrix.m));
-#else
-	GLfloat tmp[16];
-	int idx=0;
-	for (int i=0; i<4; i++)
-		for (int j=0; j<4; j++)
-			tmp[idx++] = (GLfloat) matrix.m[i][j];
-	glUniformMatrix4fv(id, 1, true, tmp);
-#endif
+	glUniform(id, matrix);
 }
 
 void GLProgram::setParameter(int id, const Spectrum &value) {

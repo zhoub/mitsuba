@@ -179,7 +179,7 @@ void VPLShaderManager::setVPL(const VPL &vpl) {
 	Ray ray;
 	ray.o = p;
 
-	if (m_shadowMap == NULL || m_shadowMapResolution != m_shadowMap->getSize().x) {
+	if (m_shadowMap == NULL || m_shadowMapResolution != m_shadowMap->getSize().x()) {
 		m_shadowMap = m_renderer->createGPUTexture("Shadow cube map", NULL);
 		m_shadowMap->setSize(Point3i(m_shadowMapResolution, m_shadowMapResolution, 1));
 		m_shadowMap->setFrameBufferType(GPUTexture::EDepthBuffer);
@@ -245,10 +245,10 @@ void VPLShaderManager::setVPL(const VPL &vpl) {
 			const Matrix4x4 &viewMatrix = lightViewTrafo.getMatrix();
 			m_shadowProgram->setParameter(m_shadowProgramParam_cubeMapTransform[i], lightProjTrafo * lightViewTrafo);
 			m_shadowProgram->setParameter(m_shadowProgramParam_depthVec[i], Vector4(
-				-viewMatrix.m[2][0] * m_invClipRange,
-				-viewMatrix.m[2][1] * m_invClipRange,
-				-viewMatrix.m[2][2] * m_invClipRange,
-				(-viewMatrix.m[2][3] - m_nearClip) * m_invClipRange
+				-viewMatrix(2, 0) * m_invClipRange,
+				-viewMatrix(2, 1) * m_invClipRange,
+				-viewMatrix(2, 2) * m_invClipRange,
+				(-viewMatrix(2, 3) - m_nearClip) * m_invClipRange
 			));
 		}
 		m_renderer->drawAll();
@@ -269,10 +269,10 @@ void VPLShaderManager::setVPL(const VPL &vpl) {
 
 			m_altShadowProgram->setParameter(m_altShadowProgramParam_cubeMapTransform, lightProjTrafo * lightViewTrafo);
 			m_altShadowProgram->setParameter(m_altShadowProgramParam_depthVec, Vector4(
-				-viewMatrix.m[2][0] * m_invClipRange,
-				-viewMatrix.m[2][1] * m_invClipRange,
-				-viewMatrix.m[2][2] * m_invClipRange,
-				(-viewMatrix.m[2][3] - m_nearClip) * m_invClipRange
+				-viewMatrix(2, 0) * m_invClipRange,
+				-viewMatrix(2, 1) * m_invClipRange,
+				-viewMatrix(2, 2) * m_invClipRange,
+				(-viewMatrix(2, 3) - m_nearClip) * m_invClipRange
 			));
 
 			m_shadowMap->activateSide(i);

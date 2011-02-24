@@ -50,7 +50,7 @@ public:
 			return;
 		m_points.clear();
 		m_points.reserve(m_size.x*m_size.y);
-		m_size = size; m_pos = PointType(0);
+		m_size = size; m_pos = PointType::Zero();
 		generate(
 			log2i(std::max(m_size.x, m_size.y)),
 			ENorth, EEast, ESouth, EWest);

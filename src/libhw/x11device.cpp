@@ -168,8 +168,8 @@ void X11Device::init(Device *other) {
 
 		/* Find the best matching screen resolution */
 		for (int i=0; i<modeCount; ++i) {
-			if (modes[i]->hdisplay == m_size.x &&
-				modes[i]->vdisplay == m_size.y)
+			if (modes[i]->hdisplay == m_size.x() &&
+				modes[i]->vdisplay == m_size.y())
 				modeList.push_back(modes[i]);
 		}
 		/* Release the memory held by the resolution list */
@@ -201,7 +201,7 @@ void X11Device::init(Device *other) {
 
 		m_window = XCreateWindow(session->m_display, session->m_root,
 			0, 0, /* x,y position*/
-			m_size.x, m_size.y,
+			m_size.x(), m_size.y(),
 			0, m_visinfo->depth, /* border width, color depth */
 			InputOutput, m_visinfo->visual,
 			CWBackPixel | CWBorderPixel | CWColormap | 
@@ -221,14 +221,14 @@ void X11Device::init(Device *other) {
 	} else {
 		/* Center the window if needed */
 		if (m_center) {
-			m_position.x = (DisplayWidth(session->m_display, session->m_screen) - m_size.x) / 2;
-			m_position.y = (DisplayHeight(session->m_display, session->m_screen) - m_size.y) / 2;
+			m_position.x() = (DisplayWidth(session->m_display, session->m_screen) - m_size.x()) / 2;
+			m_position.y() = (DisplayHeight(session->m_display, session->m_screen) - m_size.y()) / 2;
 		}
 
 		/* Create the X window */
 		unsigned long mask = CWBackPixel | CWBorderPixel | CWColormap;
 		m_window = XCreateWindow(session->m_display, session->m_root,
-				m_position.x, m_position.y, m_size.x, m_size.y, 0, m_visinfo->depth,
+				m_position.x(), m_position.y(), m_size.x(), m_size.y(), 0, m_visinfo->depth,
 				InputOutput, m_visinfo->visual, mask, &x11attr);
 
 		if (!m_window)
@@ -236,9 +236,9 @@ void X11Device::init(Device *other) {
 
 		/* Make the window non-resizable */
 		XSizeHints *hints = XAllocSizeHints();
-		hints->min_width = hints->max_width = hints->width = m_size.x;
-		hints->min_height = hints->max_height = hints->height = m_size.y;
-		hints->x = m_position.x; hints->y = m_position.y;
+		hints->min_width = hints->max_width = hints->width = m_size.x();
+		hints->min_height = hints->max_height = hints->height = m_size.y();
+		hints->x = m_position.x(); hints->y = m_position.y();
 		hints->flags = PMaxSize | PMinSize | USSize | USPosition;
 		XSetNormalHints(session->m_display, m_window, hints);
 		XFree(hints);
@@ -295,7 +295,7 @@ void X11Device::setPosition(const Point2i &position) {
 
 	Device::setPosition(position);
 	if (m_initialized && !m_fullscreen) {
-		XMoveWindow(session->m_display, m_window, m_position.x, m_position.y);
+		XMoveWindow(session->m_display, m_window, m_position.x(), m_position.y());
 		XFlush(session->m_display);
 	}
 }
@@ -321,11 +321,11 @@ void X11Device::warpMouse(const Point2i &position) {
 
 	X11Session *session = static_cast<X11Session *>(getSession());
 	XEvent event;
-	XWarpPointer(session->m_display, None, m_window, 0, 0, 0, 0, position.x, position.y);
+	XWarpPointer(session->m_display, None, m_window, 0, 0, 0, 0, position.x(), position.y());
 	XSync(session->m_display, False);
 	/* Remove the caused event from the queue */
 	XCheckTypedWindowEvent(session->m_display, m_window, MotionNotify, &event);
-	m_mouse = Point2i(position.x, position.y);
+	m_mouse = Point2i(position.x(), position.y());
 }
 
 void X11Device::showCursor(bool enabled) {
@@ -426,10 +426,10 @@ void X11Device::processEvent(const XEvent &event) {
 		translateMouse(event, deviceEvent);
 		deviceEvent.setMouseButton(m_buttonState);
 		if (m_grab)
-			warpMouse(Point2i(getSize().x / 2, getSize().y/2));
-		int xpos = deviceEvent.getMousePosition().x;
-		int ypos = deviceEvent.getMousePosition().y;
-		if (xpos > m_size.x || xpos < 0 || ypos > m_size.y || ypos < 0)
+			warpMouse(getSize() / 2);
+		int xpos = deviceEvent.getMousePosition().x();
+		int ypos = deviceEvent.getMousePosition().y();
+		if (xpos > m_size.x() || xpos < 0 || ypos > m_size.y() || ypos < 0)
 			return;
 		}
 		break;
@@ -489,7 +489,7 @@ void X11Device::translateMouse(const XEvent &xEvent, DeviceEvent &event) {
 	event.setMousePosition(Point2i(xEvent.xbutton.x, xEvent.xbutton.y));
 
 	/* Calculate relative coordinates */
-	if (m_mouse.x != -1 && m_mouse.y != -1) {
+	if (m_mouse.x() != -1 && m_mouse.y() != -1) {
 		event.setMouseRelative(Vector2i(event.getMousePosition() - m_mouse));
 	} else {
 		event.setMouseRelative(Vector2i(0,0));
