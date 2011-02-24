@@ -308,7 +308,7 @@ protected:
 
 			its.geoFrame = Frame(faceNormal);
 
-			if (EXPECT_TAKEN(vertexNormals)) {
+			if (EXPECT_TAKEN(vertexNormals != NULL)) {
 				const Normal &n0 = vertexNormals[idx0];
 				const Normal &n1 = vertexNormals[idx1];
 				const Normal &n2 = vertexNormals[idx2];
@@ -330,16 +330,16 @@ protected:
 				its.shFrame = its.geoFrame;
 			}
 
-			if (EXPECT_TAKEN(vertexTexcoords)) {
+			if (EXPECT_TAKEN(vertexTexcoords != NULL)) {
 				const Point2 &t0 = vertexTexcoords[idx0];
 				const Point2 &t1 = vertexTexcoords[idx1];
 				const Point2 &t2 = vertexTexcoords[idx2];
 				its.uv = t0 * b.x() + t1 * b.y() + t2 * b.z();
 			} else {
-				its.uv = Point2(0.0f);
+				its.uv.setZero();
 			}
 
-			if (EXPECT_NOT_TAKEN(vertexColors)) {
+			if (EXPECT_NOT_TAKEN(vertexColors != NULL)) {
 				const Spectrum &c0 = vertexColors[idx0],
 							&c1 = vertexColors[idx1],
 							&c2 = vertexColors[idx2];

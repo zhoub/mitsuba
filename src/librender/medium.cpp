@@ -39,7 +39,7 @@ Medium::Medium(const Properties &props)
 	m_sigmaA *= m_densityMultiplier;
 	m_sigmaS *= m_densityMultiplier;
 	m_sigmaT = m_sigmaA + m_sigmaS;
-	m_albedo = (m_sigmaS/m_sigmaT).max();
+	m_albedo = (m_sigmaS/m_sigmaT).maxCoeff();
 }
 
 Medium::Medium(Stream *stream, InstanceManager *manager)
@@ -49,7 +49,7 @@ Medium::Medium(Stream *stream, InstanceManager *manager)
 	m_sigmaA = Spectrum(stream);
 	m_sigmaS = Spectrum(stream);
 	m_sigmaT = m_sigmaA + m_sigmaS;
-	m_albedo = (m_sigmaS/m_sigmaT).max();
+	m_albedo = (m_sigmaS/m_sigmaT).maxCoeff();
 	m_phaseFunction = static_cast<PhaseFunction *>(manager->getInstance(stream));
 }
 	

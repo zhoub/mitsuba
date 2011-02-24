@@ -77,9 +77,9 @@ void Camera::generateRayDifferential(const Point2 &sample,
 	const Point2 &lensSample, Float timeSample, RayDifferential &ray) const {
 
 	generateRay(sample, lensSample, timeSample, ray);
-	Point2 temp = sample; temp.x += 1; 
+	Point2 temp = sample; temp.x() += 1; 
 	generateRay(temp, lensSample, timeSample, ray.rx);
-	temp = sample; temp.y += 1;
+	temp = sample; temp.y() += 1;
 	generateRay(temp, lensSample, timeSample, ray.ry);
 	ray.hasDifferentials = true;
 }
@@ -119,7 +119,7 @@ void ProjectiveCamera::configure() {
 				createObject(Sampler::m_theClass, props));
 		m_sampler->configure();
 	}
-	m_aspect = (Float) m_film->getSize().x / (Float) m_film->getSize().y;
+	m_aspect = (Float) m_film->getSize().x() / (Float) m_film->getSize().y();
 }
 
 void ProjectiveCamera::serialize(Stream *stream, InstanceManager *manager) const {
@@ -167,25 +167,25 @@ void PinholeCamera::configure() {
 		m_xfov = m_fov;
 		m_yfov = radToDeg(2 * std::atan(std::tan(degToRad(m_fov)/2) / m_aspect));
 	}
-	m_imagePlaneSize.x = 2 * std::tan(degToRad(m_xfov)/2);
-	m_imagePlaneSize.y = 2 * std::tan(degToRad(m_yfov)/2);
-	m_imagePlanePixelSize.x = m_imagePlaneSize.x / getFilm()->getSize().x;
-	m_imagePlanePixelSize.y = m_imagePlaneSize.y / getFilm()->getSize().y;
-	m_imagePlaneInvArea = 1 / (m_imagePlaneSize.x * m_imagePlaneSize.y);
+	m_imagePlaneSize.x() = 2 * std::tan(degToRad(m_xfov)/2);
+	m_imagePlaneSize.y() = 2 * std::tan(degToRad(m_yfov)/2);
+	m_imagePlanePixelSize.x() = m_imagePlaneSize.x() / getFilm()->getSize().x();
+	m_imagePlanePixelSize.y() = m_imagePlaneSize.y() / getFilm()->getSize().y();
+	m_imagePlaneInvArea = 1 / (m_imagePlaneSize.x() * m_imagePlaneSize.y());
 }
 
 Float PinholeCamera::importance(const Point2 &p) const {
-	Float x = (p.x * m_imagePlanePixelSize.x) - .5f * m_imagePlaneSize.x;
-	Float y = (p.y * m_imagePlanePixelSize.y) - .5f * m_imagePlaneSize.y;
+	Float x = (p.x() * m_imagePlanePixelSize.x()) - .5f * m_imagePlaneSize.x();
+	Float y = (p.y() * m_imagePlanePixelSize.y()) - .5f * m_imagePlaneSize.y();
 
 	return std::pow(1 + x*x+y*y, (Float) (3.0/2.0)) * m_imagePlaneInvArea;
 }
 
 Float PinholeCamera::solidAngle(Float xs, Float xe, Float ys, Float ye) const {
-	xs = (xs * m_imagePlanePixelSize.x) - .5f * m_imagePlaneSize.x;
-	ys = (ys * m_imagePlanePixelSize.y) - .5f * m_imagePlaneSize.y;
-	xe = (xe * m_imagePlanePixelSize.x) - .5f * m_imagePlaneSize.x;
-	ye = (ye * m_imagePlanePixelSize.y) - .5f * m_imagePlaneSize.y;
+	xs = (xs * m_imagePlanePixelSize.x()) - .5f * m_imagePlaneSize.x();
+	ys = (ys * m_imagePlanePixelSize.y()) - .5f * m_imagePlaneSize.y();
+	xe = (xe * m_imagePlanePixelSize.x()) - .5f * m_imagePlaneSize.x();
+	ye = (ye * m_imagePlanePixelSize.y()) - .5f * m_imagePlaneSize.y();
 
 	/* cos(theta) / d^2 with respect to the image plane integrated
 	   over the specified footprint */
@@ -200,14 +200,14 @@ Float PinholeCamera::solidAngle(Float xs, Float xe, Float ys, Float ye) const {
 Float PinholeCamera::importance(const Vector &v) const {
 	Vector localV;
 	m_worldToCamera(v, localV);
-	if (localV.z <= 0.0f) 
+	if (localV.z() <= 0.0f) 
 		return 0.0f;
-	Float invZ = 1.0f / localV.z;
-	localV.x *= invZ; localV.y *= invZ;
-	if (2*std::abs(localV.x)>m_imagePlaneSize.x 
-	 || 2*std::abs(localV.y)>m_imagePlaneSize.y) 
+	Float invZ = 1.0f / localV.z();
+	localV.x() *= invZ; localV.y() *= invZ;
+	if (2*std::abs(localV.x())>m_imagePlaneSize.x() 
+	 || 2*std::abs(localV.y())>m_imagePlaneSize.y()) 
 		return 0.0f;
-	return std::pow(1 + localV.x*localV.x+localV.y*localV.y, 
+	return std::pow(1 + localV.x()*localV.x()+localV.y()*localV.y(), 
 		(Float) (3.0/2.0)) * m_imagePlaneInvArea;
 }
 

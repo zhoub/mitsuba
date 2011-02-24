@@ -115,8 +115,8 @@ bool ShapeKDTree::rayIntersect(const Ray &ray, Intersection &its) const {
 		/* Use an adaptive ray epsilon */
 		Float rayMinT = ray.mint;
 		if (rayMinT == Epsilon) 
-			rayMinT *= std::max(std::max(std::max(std::abs(ray.o.x), 
-				std::abs(ray.o.y)), std::abs(ray.o.z)), Epsilon);
+			rayMinT *= std::max(std::max(std::max(std::abs(ray.o.x()), 
+				std::abs(ray.o.y())), std::abs(ray.o.z())), Epsilon);
 
 		if (rayMinT > mint) mint = rayMinT;
 		if (ray.maxt < maxt) maxt = ray.maxt;
@@ -139,8 +139,8 @@ bool ShapeKDTree::rayIntersect(const Ray &ray) const {
 		/* Use an adaptive ray epsilon */
 		Float rayMinT = ray.mint;
 		if (rayMinT == Epsilon)
-			rayMinT *= std::max(std::max(std::abs(ray.o.x), 
-				std::abs(ray.o.y)), std::abs(ray.o.z));
+			rayMinT *= std::max(std::max(std::abs(ray.o.x()), 
+				std::abs(ray.o.y())), std::abs(ray.o.z()));
 
 		if (rayMinT > mint) mint = rayMinT;
 		if (ray.maxt < maxt) maxt = ray.maxt;

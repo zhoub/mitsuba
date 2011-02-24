@@ -140,16 +140,14 @@ void BlockedRenderProcess::bindResource(const std::string &name, int id) {
 	if (name == "camera") {
 		m_film = static_cast<Camera *>(Scheduler::getInstance()->getResource(id))->getFilm();
 		const TabulatedFilter *filter = m_film->getTabulatedFilter();
-		m_borderSize = (int) std::ceil(std::max(filter->getFilterSize().x,
-			filter->getFilterSize().y) - (Float) 0.5);
+		m_borderSize = (int) std::ceil(std::max(filter->getFilterSize().x(),
+			filter->getFilterSize().y()) - (Float) 0.5);
 
 		Point2i offset = m_film->getCropOffset();
 		Vector2i size = m_film->getCropSize();
 		if (m_film->hasHighQualityEdges()) {	
-			offset.x -= m_borderSize;
-			offset.y -= m_borderSize;
-			size.x += 2 * m_borderSize;
-			size.y += 2 * m_borderSize;
+			offset.array() -= m_borderSize;
+			size.array() += 2 * m_borderSize;
 		}
 		BlockedImageProcess::init(offset, size, m_blockSize);
 		if (m_progress)

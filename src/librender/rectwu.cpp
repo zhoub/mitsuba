@@ -33,18 +33,18 @@ void RectangularWorkUnit::set(const WorkUnit *wu) {
 void RectangularWorkUnit::load(Stream *stream) {
 	int data[4];
 	stream->readIntArray(data, 4);
-	m_offset.x = data[0];
-	m_offset.y = data[1];
-	m_size.x   = data[2];
-	m_size.y   = data[3];
+	m_offset.x() = data[0];
+	m_offset.y() = data[1];
+	m_size.x()   = data[2];
+	m_size.y()   = data[3];
 }
 
 void RectangularWorkUnit::save(Stream *stream) const {
 	int data[4];
-	data[0] = m_offset.x;
-	data[1] = m_offset.y;
-	data[2] = m_size.x;
-	data[3] = m_size.y;
+	data[0] = m_offset.x();
+	data[1] = m_offset.y();
+	data[2] = m_size.x();
+	data[3] = m_size.y();
 	stream->writeIntArray(data, 4);
 }
 

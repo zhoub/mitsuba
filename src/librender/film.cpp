@@ -35,13 +35,12 @@ Film::Film(const Properties &props)
 		props.getInteger("cropOffsetY", 0)
 	);
 	m_cropSize = Vector2i(
-		props.getInteger("cropWidth", m_size.x),
-		props.getInteger("cropHeight", m_size.y)
+		props.getInteger("cropWidth", m_size.x()),
+		props.getInteger("cropHeight", m_size.y())
 	);
-	if (m_cropOffset.x < 0 || m_cropOffset.y < 0 ||
-		m_cropSize.x <= 0 || m_cropSize.y <= 0 ||
-		m_cropOffset.x + m_cropSize.x > m_size.x ||
-		m_cropOffset.y + m_cropSize.y > m_size.y )
+	if ((m_cropOffset.array() < 0).any() ||
+	    (m_cropSize.array() <= 0).any() ||
+		(m_cropOffset.array() + m_cropSize.array() > m_size.array()).any())
 		Log(EError, "Invalid crop window specification!");
 
 	/* If set to true, regions slightly outside of the film 

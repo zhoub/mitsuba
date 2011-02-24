@@ -96,7 +96,7 @@ bool SampleIntegrator::render(Scene *scene,
 	uint64_t sampleCount = sampler->getSampleCount();
 
 	Log(EInfo, "Starting render job (%ix%i, %lld %s, " SIZE_T_FMT 
-		" %s, " SSE_STR ") ..", film->getCropSize().x, film->getCropSize().y, 
+		" %s, " SSE_STR ") ..", film->getCropSize().x(), film->getCropSize().y(), 
 		sampleCount, sampleCount == 1 ? "sample" : "samples", nCores, 
 		nCores == 1 ? "core" : "cores");
 
@@ -160,7 +160,7 @@ void SampleIntegrator::renderBlock(const Scene *scene,
 					if (needsTimeSample)
 						timeSample = rRec.nextSample1D();
 					sample = rRec.nextSample2D();
-					sample.x += offset.x; sample.y += offset.y;
+					sample += offset.cast<Float>();
 					camera->generateRayDifferential(sample, 
 						lensSample, timeSample, eyeRay);
 					eyeRay.scaleDifferential(scaleFactor);
@@ -185,7 +185,7 @@ void SampleIntegrator::renderBlock(const Scene *scene,
 					if (needsTimeSample)
 						timeSample = rRec.nextSample1D();
 					sample = rRec.nextSample2D();
-					sample.x += offset.x; sample.y += offset.y;
+					sample += offset.cast<Float>();
 					camera->generateRayDifferential(sample, 
 						lensSample, timeSample, eyeRay);
 					eyeRay.scaleDifferential(scaleFactor);
@@ -197,7 +197,7 @@ void SampleIntegrator::renderBlock(const Scene *scene,
 					mean += delta / ((Float) j+1);
 					meanSqr += delta * (spec - mean);
 					block->putSample(sample, spec, rRec.alpha, filter);
-					block->setVariance(offset.x, offset.y,
+					block->setVariance(offset.x(), offset.y(),
 						meanSqr / (Float) j, (int) j+1);
 					sampler->advance();
 				}
@@ -206,10 +206,10 @@ void SampleIntegrator::renderBlock(const Scene *scene,
 	} else {
 		/* Simple scanline traversal order */
 		const int
-			sx = block->getOffset().x,
-			sy = block->getOffset().y,
-			ex = sx + block->getSize().x,
-			ey = sy + block->getSize().y;
+			sx = block->getOffset().x(),
+			sy = block->getOffset().y(),
+			ex = sx + block->getSize().x(),
+			ey = sy + block->getSize().y();
 		if (!block->collectStatistics()) {
 			for (int y = sy; y < ey; y++) {
 				for (int x = sx; x < ex; x++) {
@@ -223,7 +223,7 @@ void SampleIntegrator::renderBlock(const Scene *scene,
 						if (needsTimeSample)
 							timeSample = rRec.nextSample1D();
 						sample = rRec.nextSample2D();
-						sample.x += x; sample.y += y;
+						sample.x() += x; sample.y() += y;
 						camera->generateRayDifferential(sample, 
 							lensSample, timeSample, eyeRay);
 						eyeRay.scaleDifferential(scaleFactor);
@@ -248,7 +248,7 @@ void SampleIntegrator::renderBlock(const Scene *scene,
 						if (needsTimeSample)
 							timeSample = rRec.nextSample1D();
 						sample = rRec.nextSample2D();
-						sample.x += x; sample.y += y;
+						sample.x() += x; sample.y() += y;
 						camera->generateRayDifferential(sample, 
 							lensSample, timeSample, eyeRay);
 						eyeRay.scaleDifferential(scaleFactor);

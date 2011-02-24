@@ -31,9 +31,9 @@ void BlockedImageProcess::init(const Point2i &offset, const Vector2i &size, int 
 	m_blockSize = blockSize;
 	m_direction = ERight;
 	m_numBlocks = Vector2i(
-		(int) std::ceil((Float) size.x / (Float) blockSize),
-		(int) std::ceil((Float) size.y / (Float) blockSize));
-	m_numBlocksTotal = m_numBlocks.x * m_numBlocks.y;
+		(int) std::ceil((Float) size.x() / (Float) blockSize),
+		(int) std::ceil((Float) size.y() / (Float) blockSize));
+	m_numBlocksTotal = m_numBlocks.x() * m_numBlocks.y();
 	m_numBlocksGenerated = 0;
 	m_curBlock = Point2i(m_numBlocks / 2);
 	m_stepsLeft = 1;
@@ -50,18 +50,18 @@ ParallelProcess::EStatus BlockedImageProcess::generateWork(WorkUnit *unit, int w
 	Point2i pos = m_curBlock * m_blockSize;
 	rect.setOffset(pos + m_offset);
 	rect.setSize(Vector2i(
-		std::min(m_size.x-pos.x, m_blockSize),
-		std::min(m_size.y-pos.y, m_blockSize)));
+		std::min(m_size.x()-pos.x(), m_blockSize),
+		std::min(m_size.y()-pos.y(), m_blockSize)));
 
 	if (++m_numBlocksGenerated == m_numBlocksTotal)
 		return ESuccess;
 
 	do {
 		switch (m_direction) {
-			case ERight: ++m_curBlock.x; break;
-			case EDown:  ++m_curBlock.y; break;
-			case ELeft:  --m_curBlock.x; break;
-			case EUp:    --m_curBlock.y; break;
+			case ERight: ++m_curBlock.x(); break;
+			case EDown:  ++m_curBlock.y(); break;
+			case ELeft:  --m_curBlock.x(); break;
+			case EUp:    --m_curBlock.y(); break;
 		}
 
 		if (--m_stepsLeft == 0) {
@@ -70,9 +70,9 @@ ParallelProcess::EStatus BlockedImageProcess::generateWork(WorkUnit *unit, int w
 				++m_numSteps;
 			m_stepsLeft = m_numSteps;
 		}
-	} while (m_curBlock.x < 0 || m_curBlock.y < 0
-		|| m_curBlock.x >= m_numBlocks.x
-		|| m_curBlock.y >= m_numBlocks.y);
+	} while (m_curBlock.x() < 0 || m_curBlock.y() < 0
+		|| m_curBlock.x() >= m_numBlocks.x()
+		|| m_curBlock.y() >= m_numBlocks.y());
 
 	return ESuccess;
 }

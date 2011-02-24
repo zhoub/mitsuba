@@ -24,7 +24,7 @@ if sys.platform == 'win32':
 # Core support library
 SConscript('src/libcore/SConscript')
 # Rendering-related APIs
-# SConscript('src/librender/SConscript')
+SConscript('src/librender/SConscript')
 # Hardware acceleration
 SConscript('src/libhw/SConscript')
 

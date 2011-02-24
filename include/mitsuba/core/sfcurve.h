@@ -42,17 +42,18 @@ public:
 	typedef TPoint<T, 2>            PointType;
 
 	/// Create an empty Hilbert curve
-	inline HilbertCurve2D() : m_size(0), m_pos(0) { }
+	inline HilbertCurve2D() : m_size(VectorType::Zero()),
+		m_pos(PointType::Zero()) { }
 
 	/// Initialize for the specified 2D size
 	void initialize(const VectorType &size) {
 		if (size == m_size)
 			return;
 		m_points.clear();
-		m_points.reserve(m_size.x*m_size.y);
+		m_points.reserve(m_size.x()*m_size.y());
 		m_size = size; m_pos = PointType::Zero();
 		generate(
-			log2i(std::max(m_size.x, m_size.y)),
+			log2i(m_size.maxCoeff()),
 			ENorth, EEast, ESouth, EWest);
 	}
 
@@ -78,10 +79,10 @@ public:
 protected:
 	inline void move(EDirection dir) {
 		switch (dir) {
-			case ENorth: m_pos.y--; break;
-			case EEast:  m_pos.x++; break;
-			case ESouth: m_pos.y++; break;
-			case EWest:  m_pos.x--; break;
+			case ENorth: m_pos.y()--; break;
+			case EEast:  m_pos.x()++; break;
+			case ESouth: m_pos.y()++; break;
+			case EWest:  m_pos.x()--; break;
 		}
 	}
 
@@ -89,7 +90,7 @@ protected:
 			EDirection front, EDirection right,
 			EDirection back, EDirection left) {
 		if (order == 0) {
-			if (m_pos.x < m_size.x && m_pos.y < m_size.y)
+			if ((m_pos.array() < m_size.array()).all())
 				m_points.push_back(m_pos);
 		} else {
 			generate(order-1, left,  back,  right, front); move(right);
