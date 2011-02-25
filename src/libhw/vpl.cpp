@@ -235,12 +235,12 @@ void VPLShaderManager::setVPL(const VPL &vpl) {
 		m_shadowProgram->bind();
 		for (int i=0; i<6; ++i) {
 			switch (i) {
-				case 0: lightViewTrafo = Transform::lookAt(p, p + Vector(1, 0, 0), Vector(0, 1, 0)).inverse(); break;
-				case 1: lightViewTrafo = Transform::lookAt(p, p + Vector(-1, 0, 0), Vector(0, 1, 0)).inverse(); break;
-				case 2: lightViewTrafo = Transform::lookAt(p, p + Vector(0, 1, 0), Vector(0, 0, -1)).inverse(); break;
-				case 3: lightViewTrafo = Transform::lookAt(p, p + Vector(0, -1, 0), Vector(0, 0, 1)).inverse(); break;
-				case 4: lightViewTrafo = Transform::lookAt(p, p + Vector(0, 0, 1), Vector(0, 1, 0)).inverse(); break;
-				case 5: lightViewTrafo = Transform::lookAt(p, p + Vector(0, 0, -1), Vector(0, 1, 0)).inverse(); break;
+				case 0: lightViewTrafo = Transform::lookAt(p, p + Vector::UnitX(), Vector::UnitY()).inverse(); break;
+				case 1: lightViewTrafo = Transform::lookAt(p, p + Vector(-1, 0, 0), Vector::UnitY()).inverse(); break;
+				case 2: lightViewTrafo = Transform::lookAt(p, p + Vector::UnitY(), Vector(0, 0, -1)).inverse(); break;
+				case 3: lightViewTrafo = Transform::lookAt(p, p + Vector(0, -1, 0), Vector::UnitZ()).inverse(); break;
+				case 4: lightViewTrafo = Transform::lookAt(p, p + Vector::UnitZ(), Vector::UnitY()).inverse(); break;
+				case 5: lightViewTrafo = Transform::lookAt(p, p + Vector(0, 0, -1), Vector::UnitY()).inverse(); break;
 			}
 			const Matrix4x4 &viewMatrix = lightViewTrafo.getMatrix();
 			m_shadowProgram->setParameter(m_shadowProgramParam_cubeMapTransform[i], lightProjTrafo * lightViewTrafo);
@@ -258,12 +258,12 @@ void VPLShaderManager::setVPL(const VPL &vpl) {
 		m_altShadowProgram->bind();
 		for (int i=0; i<6; ++i) {
 			switch (i) {
-				case 0: lightViewTrafo = Transform::lookAt(p, p + Vector(1, 0, 0), Vector(0, 1, 0)).inverse(); break;
-				case 1: lightViewTrafo = Transform::lookAt(p, p + Vector(-1, 0, 0), Vector(0, 1, 0)).inverse(); break;
-				case 2: lightViewTrafo = Transform::lookAt(p, p + Vector(0, 1, 0), Vector(0, 0, -1)).inverse(); break;
-				case 3: lightViewTrafo = Transform::lookAt(p, p + Vector(0, -1, 0), Vector(0, 0, 1)).inverse(); break;
-				case 4: lightViewTrafo = Transform::lookAt(p, p + Vector(0, 0, 1), Vector(0, 1, 0)).inverse(); break;
-				case 5: lightViewTrafo = Transform::lookAt(p, p + Vector(0, 0, -1), Vector(0, 1, 0)).inverse(); break;
+				case 0: lightViewTrafo = Transform::lookAt(p, p + Vector::UnitX(), Vector::UnitY()).inverse(); break;
+				case 1: lightViewTrafo = Transform::lookAt(p, p + Vector(-1, 0, 0), Vector::UnitY()).inverse(); break;
+				case 2: lightViewTrafo = Transform::lookAt(p, p + Vector::UnitY(), Vector(0, 0, -1)).inverse(); break;
+				case 3: lightViewTrafo = Transform::lookAt(p, p + Vector(0, -1, 0), Vector::UnitZ()).inverse(); break;
+				case 4: lightViewTrafo = Transform::lookAt(p, p + Vector::UnitZ(), Vector::UnitY()).inverse(); break;
+				case 5: lightViewTrafo = Transform::lookAt(p, p + Vector(0, 0, -1), Vector::UnitY()).inverse(); break;
 			}
 			const Matrix4x4 &viewMatrix = lightViewTrafo.getMatrix();
 

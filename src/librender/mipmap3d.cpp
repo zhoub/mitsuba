@@ -181,13 +181,13 @@ uint32_t SparseMipmap3D::build(int level, const Point3i &p, float **pyramid,
 	std::vector<bool> *bitPyramid) {
 	bool leaf = (level == 0);
 
-	int x2 = p.x << 1, y2 = p.y << 1, z2 = p.z << 1, 
+	int x2 = p.x() << 1, y2 = p.y() << 1, z2 = p.z() << 1, 
 		res = m_size >> level, res2 = res << 1,
 		slab = res*res, slab2 = slab << 2;
 
-	Assert(p.x < res);
-	Assert(p.y < res);
-	Assert(p.z < res);
+	Assert(p.x() < res);
+	Assert(p.y() < res);
+	Assert(p.z() < res);
 
 	if (level > 0) {
 		const std::vector<bool> &childUsed = bitPyramid[level-1];
@@ -202,7 +202,7 @@ uint32_t SparseMipmap3D::build(int level, const Point3i &p, float **pyramid,
 			leaf = true;
 	}
 
-	float value = pyramid[level][p.z * slab + p.y * res + p.x] ;
+	float value = pyramid[level][p.z() * slab + p.y() * res + p.x()] ;
 
 	if (leaf) {
 		union {
@@ -265,39 +265,35 @@ Float SparseMipmap3D::lineIntegral(const Ray &r) const {
 	Ray ray(r(r.mint), r.d/length, 0, (r.maxt-r.mint)*length, 0.0f);
 
 	uint8_t a = 0;
-	if (ray.d.x < 0) {
-		ray.o.x = m_bboxSum.x-ray.o.x;
-		ray.d.x = -ray.d.x;
-		ray.dRcp.x = -ray.dRcp.x;
+	if (ray.d.x() < 0) {
+		ray.o.x() = m_bboxSum.x()-ray.o.x();
+		ray.d.x() = -ray.d.x();
+		ray.dRcp.x() = -ray.dRcp.x();
 		a |= 4;
 	}
-	if (ray.d.y < 0) {
-		ray.o.y = m_bboxSum.y-ray.o.y;
-		ray.d.y = -ray.d.y;
-		ray.dRcp.y = -ray.dRcp.y;
+	if (ray.d.y() < 0) {
+		ray.o.y() = m_bboxSum.y()-ray.o.y();
+		ray.d.y() = -ray.d.y();
+		ray.dRcp.y() = -ray.dRcp.y();
 		a |= 2;
 	}
-	if (ray.d.z < 0) {
-		ray.o.z = m_bboxSum.z-ray.o.z;
-		ray.d.z = -ray.d.z;
-		ray.dRcp.z = -ray.dRcp.z;
+	if (ray.d.z() < 0) {
+		ray.o.z() = m_bboxSum.z()-ray.o.z();
+		ray.d.z() = -ray.d.z();
+		ray.dRcp.z() = -ray.dRcp.z();
 		a |= 1;
 	}
+	
+	Vector t0 = (m_bbox.min-ray.o).cwiseProduct(ray.dRcp);
+	Vector t1 = (m_bbox.max-ray.o).cwiseProduct(ray.dRcp);
 
-	Float tx0 = (m_bbox.min.x-ray.o.x)*ray.dRcp.x,
-		  ty0 = (m_bbox.min.y-ray.o.y)*ray.dRcp.y,
-		  tz0 = (m_bbox.min.z-ray.o.z)*ray.dRcp.z,
-		  tx1 = (m_bbox.max.x-ray.o.x)*ray.dRcp.x,
-		  ty1 = (m_bbox.max.y-ray.o.y)*ray.dRcp.y,
-		  tz1 = (m_bbox.max.z-ray.o.z)*ray.dRcp.z,
-		  mint = std::max(std::max(tx0, ty0), tz0),
-		  maxt = std::min(ray.maxt, std::min(std::min(tx1, ty1), tz1));
+	Float mint = t0.maxCoeff(), maxt = std::min(ray.maxt, t1.minCoeff());
 
 	if (mint >= maxt)
 		return 0.0f;
 
 	const QueryContext ctx(a, maxt);
-	return lineIntegral(0, tx0, ty0, tz0, tx1, ty1, tz1, ctx);
+	return lineIntegral(0, t0.x(), t0.y(), t0.z(), t1.x(), t1.y(), t1.z(), ctx);
 }
 
 bool SparseMipmap3D::invertLineIntegral(const Ray &r, Float desiredDensity,
@@ -307,33 +303,29 @@ bool SparseMipmap3D::invertLineIntegral(const Ray &r, Float desiredDensity,
 	Ray ray(r(r.mint), r.d/length, 0, (r.maxt-r.mint)*length, 0.0f);
 
 	uint8_t a = 0;
-	if (ray.d.x < 0) {
-		ray.o.x = m_bboxSum.x-ray.o.x;
-		ray.d.x = -ray.d.x;
-		ray.dRcp.x = -ray.dRcp.x;
+	if (ray.d.x() < 0) {
+		ray.o.x() = m_bboxSum.x()-ray.o.x();
+		ray.d.x() = -ray.d.x();
+		ray.dRcp.x() = -ray.dRcp.x();
 		a |= 4;
 	}
-	if (ray.d.y < 0) {
-		ray.o.y = m_bboxSum.y-ray.o.y;
-		ray.d.y = -ray.d.y;
-		ray.dRcp.y = -ray.dRcp.y;
+	if (ray.d.y() < 0) {
+		ray.o.y() = m_bboxSum.y()-ray.o.y();
+		ray.d.y() = -ray.d.y();
+		ray.dRcp.y() = -ray.dRcp.y();
 		a |= 2;
 	}
-	if (ray.d.z < 0) {
-		ray.o.z = m_bboxSum.z-ray.o.z;
-		ray.d.z = -ray.d.z;
-		ray.dRcp.z = -ray.dRcp.z;
+	if (ray.d.z() < 0) {
+		ray.o.z() = m_bboxSum.z()-ray.o.z();
+		ray.d.z() = -ray.d.z();
+		ray.dRcp.z() = -ray.dRcp.z();
 		a |= 1;
 	}
 
-	Float tx0 = (m_bbox.min.x-ray.o.x)*ray.dRcp.x,
-		  ty0 = (m_bbox.min.y-ray.o.y)*ray.dRcp.y,
-		  tz0 = (m_bbox.min.z-ray.o.z)*ray.dRcp.z,
-		  tx1 = (m_bbox.max.x-ray.o.x)*ray.dRcp.x,
-		  ty1 = (m_bbox.max.y-ray.o.y)*ray.dRcp.y,
-		  tz1 = (m_bbox.max.z-ray.o.z)*ray.dRcp.z,
-		  mint = std::max(std::max(tx0, ty0), tz0),
-		  maxt = std::min(ray.maxt, std::min(std::min(tx1, ty1), tz1));
+	Vector t0 = (m_bbox.min-ray.o).cwiseProduct(ray.dRcp);
+	Vector t1 = (m_bbox.max-ray.o).cwiseProduct(ray.dRcp);
+
+	Float mint = t0.maxCoeff(), maxt = std::min(ray.maxt, t1.minCoeff());
 
 	if (mint >= maxt) {
 		accumDensity = 0.0f;
@@ -345,7 +337,7 @@ bool SparseMipmap3D::invertLineIntegral(const Ray &r, Float desiredDensity,
 	ctx.sampleDensity = -std::numeric_limits<Float>::infinity();
 	ctx.remaining = desiredDensity;
 
-	invertLineIntegral(0, tx0, ty0, tz0, tx1, ty1, tz1, ctx);
+	invertLineIntegral(0, t0.x(), t0.y(), t0.z(), t1.x(), t1.y(), t1.z(), ctx);
 
 	if (ctx.remaining == 0) {
 		accumDensity = desiredDensity;

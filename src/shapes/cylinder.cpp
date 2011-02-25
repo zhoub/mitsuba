@@ -187,7 +187,7 @@ public:
 	inline BoundingBox3 getBoundingBox() const {
 		Vector x1 = m_objectToWorld(Vector(m_radius, 0, 0));
 		Vector x2 = m_objectToWorld(Vector(0, m_radius, 0));
-		Point p0 = m_objectToWorld(Point(0, 0, 0));
+		Point p0 = m_objectToWorld(Point::Zero());
 		Point p1 = m_objectToWorld(Point(0, 0, m_length));
 		BoundingBox3 result;
 
@@ -334,8 +334,8 @@ public:
 		BoundingBox3 base(getBoundingBox());
 		base.clip(box);
 		
-		Point cylPt = m_objectToWorld(Point(0, 0, 0));
-		Vector cylD(m_objectToWorld(Vector(0, 0, 1)));
+		Point cylPt = m_objectToWorld(Point::Zero());
+		Vector cylD(m_objectToWorld(Vector::UnitZ()));
 
 		/* Now forget about the cylinder ends and 
 		   intersect an infinite cylinder with each BoundingBox3 face */
@@ -416,7 +416,7 @@ public:
 
 #if 0
 	BoundingBox3 getBoundingBox() const {
-		const Point a = m_objectToWorld(Point(0, 0, 0));
+		const Point a = m_objectToWorld(Point::Zero());
 		const Point b = m_objectToWorld(Point(0, 0, m_length));
 
 		const Float r = m_radius;

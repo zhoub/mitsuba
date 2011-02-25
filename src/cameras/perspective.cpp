@@ -126,7 +126,7 @@ public:
 		m_rasterToCamera(rasterCoords, imageCoords);
 
 		/* Construct ray in camera space */
-		Ray localRay(Point(0, 0, 0), Vector(imageCoords),
+		Ray localRay(Point::Zero(), Vector(imageCoords),
 			m_shutterOpen + m_shutterOpenTime * timeSample);
 
 		if (m_lensRadius > 0.0f) {

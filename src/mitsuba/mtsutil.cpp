@@ -21,11 +21,11 @@
 #include <mitsuba/core/sched_remote.h>
 #include <mitsuba/core/sstream.h>
 #include <mitsuba/core/sshstream.h>
-#include <mitsuba/core/shvector.h>
+#include <mitsuba/core/sh.h>
 #include <mitsuba/core/statistics.h>
 #include <mitsuba/core/fresolver.h>
 #include <mitsuba/core/appender.h>
-#include <mitsuba/render/util.h>
+#include <mitsuba/core/testcase.h>
 #include <mitsuba/render/renderjob.h>
 #include <mitsuba/render/scenehandler.h>
 #include <boost/algorithm/string.hpp>
@@ -105,12 +105,12 @@ void help() {
 				continue;
 			if (boost::starts_with(shortName, "test_")) {
 				testcases << "\t" << shortName;
-				for (int i=0; i<22-(int) shortName.norm(); ++i)
+				for (int i=0; i<22-(int) shortName.length(); ++i)
 					testcases << ' ';
 				testcases << utility.getDescription() << endl;
 			} else {
 				utilities << "\t" << shortName;
-				for (int i=0; i<22-(int) shortName.norm(); ++i)
+				for (int i=0; i<22-(int) shortName.length(); ++i)
 					utilities << ' ';
 				utilities << utility.getDescription() << endl;
 			}
@@ -161,7 +161,7 @@ int mtsutil(int argc, char **argv) {
 							SLog(EError, "Could not open host file!");
 						std::string host;
 						while (is >> host) {
-							if (host.norm() < 1 || host.c_str()[0] == '#')
+							if (host.length() < 1 || host.c_str()[0] == '#')
 								continue;
 							networkHosts = networkHosts + std::string(";") + host;
 						}

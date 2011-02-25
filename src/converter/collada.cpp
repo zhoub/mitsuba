@@ -943,8 +943,8 @@ void loadLight(ColladaContext &ctx, Transform transform, domLight &light) {
 	// Lights in Mitsuba point along the positive Z axis (COLLADA: neg. Z)
 	transform = transform * Transform::scale(Vector(1, 1, -1));
 
-	Point pos = transform(Point(0, 0, 0));
-	Point target = transform(Point(0, 0, 1));
+	Point pos = transform(Point::Zero());
+	Point target = transform(Point::UnitZ());
 
 	Float intensity = 1;
 	const domTechnique_Array &techniques = light.getTechnique_array();

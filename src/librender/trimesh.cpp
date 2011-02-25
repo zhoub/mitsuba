@@ -530,7 +530,7 @@ void TriMesh::computeNormals() {
 				} else {
 					/* Choose some bogus value */
 					invalidNormals++;
-					n = Normal(1, 0, 0);
+					n = Normal::UnitX();
 				}
 			}
 		}
@@ -567,7 +567,7 @@ bool TriMesh::computeTangentSpaceBasis() {
 		m_tangents[i].dpdv = Vector::Zero();
 		if (m_normals[i].isZero()) {
 			zeroNormals++;
-			m_normals[i] = Normal(1.0f, 0.0f, 0.0f);
+			m_normals[i] = Normal::UnitX();
 		}
 		sharers[i] = 0;
 	}

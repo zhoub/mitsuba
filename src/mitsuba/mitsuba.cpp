@@ -23,7 +23,7 @@
 #include <mitsuba/core/fresolver.h>
 #include <mitsuba/core/appender.h>
 #include <mitsuba/core/sshstream.h>
-#include <mitsuba/core/shvector.h>
+#include <mitsuba/core/sh.h>
 #include <mitsuba/core/statistics.h>
 #include <mitsuba/render/renderjob.h>
 #include <mitsuba/render/scenehandler.h>
@@ -159,7 +159,7 @@ int ubi_main(int argc, char **argv) {
 							SLog(EError, "Could not open host file!");
 						std::string host;
 						while (is >> host) {
-							if (host.norm() < 1 || host.c_str()[0] == '#')
+							if (host.length() < 1 || host.c_str()[0] == '#')
 								continue;
 							networkHosts = networkHosts + std::string(";") + host;
 						}
@@ -344,7 +344,7 @@ int ubi_main(int argc, char **argv) {
 			ref<Scene> scene = handler->getScene();
 
 			scene->setSourceFile(filename.file_string());
-			scene->setDestinationFile(destFile.norm() > 0 ? destFile 
+			scene->setDestinationFile(destFile.length() > 0 ? destFile 
 				: baseName.file_string());
 			scene->setBlockSize(blockSize);
 

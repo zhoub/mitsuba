@@ -21,9 +21,6 @@
 
 MTS_NAMESPACE_BEGIN
 
-template <typename T> struct TQuaternion;
-typedef TQuaternion<Float> Quaternion;
-
 class Appender;
 class Bitmap;
 class BlackBodySpectrum;
@@ -90,6 +87,7 @@ class Worker;
 class WorkProcessor;
 class WorkResult;
 class WorkUnit;
+struct Quaternion;
 class ZStream;
 
 MTS_NAMESPACE_END

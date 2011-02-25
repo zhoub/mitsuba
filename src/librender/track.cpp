@@ -62,25 +62,25 @@ void AnimatedTransform::eval(Float t, Transform &trafo) const {
 		AbstractAnimationTrack *track = m_tracks[i];
 		switch (track->getType()) {
 			case AbstractAnimationTrack::ETranslationX:
-				translation.x = static_cast<FloatTrack *>(track)->eval(t);
+				translation.x() = static_cast<FloatTrack *>(track)->eval(t);
 				break;
 			case AbstractAnimationTrack::ETranslationY: 
-				translation.y = static_cast<FloatTrack *>(track)->eval(t);
+				translation.y() = static_cast<FloatTrack *>(track)->eval(t);
 				break;
 			case AbstractAnimationTrack::ETranslationZ: 
-				translation.z = static_cast<FloatTrack *>(track)->eval(t);
+				translation.z() = static_cast<FloatTrack *>(track)->eval(t);
 				break;
 			case AbstractAnimationTrack::ETranslationXYZ: 
 				translation = static_cast<VectorTrack *>(track)->eval(t);
 				break;
 			case AbstractAnimationTrack::EScaleX:
-				scale.x = static_cast<FloatTrack *>(track)->eval(t);
+				scale.x() = static_cast<FloatTrack *>(track)->eval(t);
 				break;
 			case AbstractAnimationTrack::EScaleY: 
-				scale.y = static_cast<FloatTrack *>(track)->eval(t);
+				scale.y() = static_cast<FloatTrack *>(track)->eval(t);
 				break;
 			case AbstractAnimationTrack::EScaleZ: 
-				scale.z = static_cast<FloatTrack *>(track)->eval(t);
+				scale.z() = static_cast<FloatTrack *>(track)->eval(t);
 				break;
 			case AbstractAnimationTrack::EScaleXYZ: 
 				scale = static_cast<VectorTrack *>(track)->eval(t);

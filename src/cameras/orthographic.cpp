@@ -40,7 +40,7 @@ public:
 		/* Calculate the perspective transform */
 		m_cameraToScreen = Transform::orthographic(m_nearClip, m_farClip);
 		m_cameraToScreenGL = Transform::glOrthographic(m_nearClip, m_farClip);
-		if (std::abs(1-m_cameraToWorld(Vector(0, 0, 1)).norm()) > Epsilon) 
+		if (std::abs(1-m_cameraToWorld(Vector::UnitZ()).norm()) > Epsilon) 
 			Log(EError, "The orthographic camera does not allow non-unity scale factors in the 'Z' direction!");
 	}
 
@@ -116,7 +116,7 @@ public:
 		m_rasterToCamera(rasterCoords, imageCoords);
 
 		/* Construct ray in camera space */
-		Ray localRay(imageCoords, Vector(0, 0, 1),
+		Ray localRay(imageCoords, Vector::UnitZ(),
 			m_shutterOpen + m_shutterOpenTime * timeSample);
 		localRay.mint = 0;
 		localRay.maxt = m_farClip - m_nearClip;

@@ -107,7 +107,7 @@ void IrradianceOctree::preprocess(OctreeNode *node) {
 	/* Initialize the cluster values */
 	node->cluster.E = Spectrum::Zero();
 	node->cluster.area = 0.0f;
-	node->cluster.p = Point(0.0f, 0.0f, 0.0f);
+	node->cluster.p = Point::Zero();
 	Float combinedWeight = 0.0f;
 
 	if (!node->samples.empty()) {

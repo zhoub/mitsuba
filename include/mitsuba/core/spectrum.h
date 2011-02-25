@@ -124,14 +124,12 @@ public:
 	inline Spectrum() : Base() { }
 #else
 	inline Spectrum() : Base() {
-		setConstant(s[i] = std::numeric_limits<double>::quiet_NaN());
+		setConstant(std::numeric_limits<double>::quiet_NaN()))
 	}
 #endif
 
 	/// Create a new spectral power distribution with all samples set to the given value
-	explicit inline Spectrum(Float v) : Base() {
-		setConstant(v);
-	}
+	explicit inline Spectrum(Float v) : Base(Spectrum::Constant(v)) { }
 
 	/// Generic copy constructor
     template<typename OtherDerived> Spectrum(
@@ -164,12 +162,12 @@ public:
 	/// Clamp negative values
 	inline void clampNegative() {
 		for (int i=0; i<SPECTRUM_SAMPLES; i++)
-			s[i] = std::max((Float) 0.0f, s[i]);
+			operator[](i) = std::max((Float) 0.0f, operator[](i));
 	}
 
 	/// Check if this spectrum is zero at all wavelengths
 	inline bool isZero() const {
-		return operator==(Spectrum::Zero()).all();
+		return (array() == 0).all();
 	}
 
 	/**
@@ -196,16 +194,16 @@ public:
 #if SPECTRUM_SAMPLES == 3
 	/// Convert to linear RGB
 	inline void toLinearRGB(Float &r, Float &g, Float &b) const {
-		r = coeff(0);
-		g = coeff(1);
-		b = coeff(2);
+		r = operator[](0);
+		g = operator[](1);
+		b = operator[](2);
 	}
 
 	/// Convert from linear RGB
 	inline void fromLinearRGB(Float r, Float g, Float b) {
-		s[0] = coeff(0);
-		s[1] = coeff(1);
-		s[2] = coeff(2);
+		operator[](0) = r;
+		operator[](1) = g;
+		operator[](2) = b;
 	}
 #else
 	/// Convert to linear RGB
@@ -246,8 +244,6 @@ public:
 	static void staticInitialization();
 	static void staticShutdown();
 protected:
-	Float s[SPECTRUM_SAMPLES];
-
 	/// Configured wavelengths in nanometers
 	static Float m_wavelengths[SPECTRUM_SAMPLES];
 

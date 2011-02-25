@@ -285,9 +285,9 @@ public:
 			}
 		}
 		vertices[vertexIdx] = m_objectToWorld(Point(0, 0, m_radius));
-		normals[vertexIdx++] = m_objectToWorld(Normal(0, 0, 1));
+		normals[vertexIdx++] = m_objectToWorld(Normal::UnitZ());
 		vertices[vertexIdx] = m_objectToWorld(Point(0, 0, -m_radius));
-		normals[vertexIdx++] = m_objectToWorld(Normal(0, 0, -1));
+		normals[vertexIdx++] = m_objectToWorld(-Normal::UnitZ());
 		Assert(vertexIdx == botIdx+1);
 
 		size_t triangleIdx = 0;

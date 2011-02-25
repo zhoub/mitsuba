@@ -31,7 +31,7 @@ public:
 		Spectrum power = props.getSpectrum("power", Spectrum(1));
 		m_intensity = props.getSpectrum("intensity", power / m_surfaceArea);
 		m_invSurfaceArea = 1 / m_surfaceArea;
-		m_direction = m_luminaireToWorld(Vector(0, 0, 1));
+		m_direction = m_luminaireToWorld(Vector::UnitZ());
 		m_type = EDeltaDirection;
 	}
 
@@ -41,7 +41,7 @@ public:
 		m_radius = stream->readFloat();
 		m_surfaceArea = m_radius * m_radius * M_PI;
 		m_invSurfaceArea = 1 / m_surfaceArea;
-		m_direction = m_luminaireToWorld(Vector(0, 0, 1));
+		m_direction = m_luminaireToWorld(Vector::UnitZ());
 	}
 
 	void serialize(Stream *stream, InstanceManager *manager) const {
@@ -133,7 +133,7 @@ public:
 			<< "  name = \"" << m_name << "\"," << std::endl
 			<< "  intensity = " << m_intensity.toString() << "," << std::endl
 			<< "  power = " << getPower().toString() << "," << std::endl
-			<< "  position = " << m_luminaireToWorld(Point(0, 0, 0)).toString() << "," << std::endl
+			<< "  position = " << m_luminaireToWorld(Point::Zero()).toString() << "," << std::endl
 			<< "  direction = " << m_direction.toString() << "," << std::endl
 			<< "  radius = " << m_radius << std::endl
 			<< "]";

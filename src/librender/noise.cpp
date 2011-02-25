@@ -50,7 +50,7 @@ inline Float noiseWeight(Float t) {
 }
 
 Float Noise::perlinNoise(const Point &p) {
-	Float x = p.x, y = p.y, z = p.z;
+	Float x = p.x(), y = p.y(), z = p.z();
     // Compute noise cell coordinates and offsets
     int ix = (int) x, iy = (int) y, iz = (int) z;
     Float dx = x - ix, dy = y - iy, dz = z - iz;

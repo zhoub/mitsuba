@@ -101,7 +101,7 @@ template <typename _PointType> struct BoundingBox {
 
 	/// Calculate the n-dimensional volume of the bounding box
 	inline Scalar getVolume() const {
-		return (max - min).array().square().sum();
+		return (max - min).prod();
 	}
 
 	/// Calculate the n-1 dimensional volume of the boundary

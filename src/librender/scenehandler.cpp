@@ -95,7 +95,7 @@ void SceneHandler::startElement(const XMLCh* const xmlName,
 	/* Convert attributes to ISO-8859-1 */
 	for (unsigned int i=0; i<xmlAttributes.getLength(); i++) {
 		std::string attrValue = transcode(xmlAttributes.getValue(i));
-		if (attrValue.norm() > 0 && attrValue.find('$') != attrValue.npos) {
+		if (attrValue.length() > 0 && attrValue.find('$') != attrValue.npos) {
 			for (std::map<std::string, std::string>::const_iterator it = m_params.begin();
 				it != m_params.end(); ++it) {
 				std::string::size_type pos = 0;
@@ -249,7 +249,7 @@ void SceneHandler::endElement(const XMLCh* const xmlName) {
 
 		for (int i=0; i<4; ++i)
 			for (int j=0; j<4; ++j)
-				mtx.m[i][j] = parseFloat(name, tokens[index++]);
+				mtx(i, j) = parseFloat(name, tokens[index++]);
 
 		m_transform = Transform(mtx) * m_transform;
 	} else if (name == "point" || name == "vector") {
@@ -262,7 +262,7 @@ void SceneHandler::endElement(const XMLCh* const xmlName) {
 		std::string valueStr = context.attributes["value"];
 		std::vector<std::string> tokens = tokenize(valueStr, ", ");
 		Float value[3];
-		if (tokens.size() == 1 && tokens[0].norm() == 7 && tokens[0][0] == '#') {
+		if (tokens.size() == 1 && tokens[0].length() == 7 && tokens[0][0] == '#') {
 			char *end_ptr = NULL;
 			/* Parse HTML-style hexadecimal colors */
 			int encoded = strtol(tokens[0].c_str()+1, &end_ptr, 16);
@@ -288,7 +288,7 @@ void SceneHandler::endElement(const XMLCh* const xmlName) {
 		std::string valueStr = context.attributes["value"];
 		std::vector<std::string> tokens = tokenize(valueStr, ", ");
 		Float value[3];
-		if (tokens.size() == 1 && tokens[0].norm() == 7 && tokens[0][0] == '#') {
+		if (tokens.size() == 1 && tokens[0].length() == 7 && tokens[0][0] == '#') {
 			char *end_ptr = NULL;
 			/* Parse HTML-style hexadecimal colors */
 			int encoded = strtol(tokens[0].c_str()+1, &end_ptr, 16);
@@ -319,11 +319,9 @@ void SceneHandler::endElement(const XMLCh* const xmlName) {
 	} else if (name == "spectrum") {
 		std::vector<std::string> tokens = tokenize(
 			context.attributes["value"], ", ");
-		Float value[SPECTRUM_SAMPLES];
+		Spectrum value;
 		if (tokens.size() == 1) {
-			value[0] = parseFloat(name, tokens[0]);
-			context.parent->properties.setSpectrum(context.attributes["name"],
-				Spectrum(value[0]));
+			value.setConstant(parseFloat(name, tokens[0]));
 		} else {
 			if (tokens[0].find(':') != std::string::npos) {
 				InterpolatedSpectrum interp(tokens.size());
@@ -336,19 +334,15 @@ void SceneHandler::endElement(const XMLCh* const xmlName) {
 					Float value = parseFloat(name, tokens2[1]);
 					interp.appendSample(wavelength, value);
 				}
-				Spectrum discrete;
-				discrete.fromSmoothSpectrum(&interp);
-				context.parent->properties.setSpectrum(context.attributes["name"],
-					discrete);
+				value.fromSmoothSpectrum(&interp);
 			} else {
 				if (tokens.size() != SPECTRUM_SAMPLES)
 					SLog(EError, "Invalid spectrum value specified (incorrect length)");
 				for (int i=0; i<SPECTRUM_SAMPLES; i++) 
 					value[i] = parseFloat(name, tokens[i]);
-				context.parent->properties.setSpectrum(context.attributes["name"],
-					Spectrum(value));
 			}
 		}
+		context.parent->properties.setSpectrum(context.attributes["name"], value);
 	} else if (name == "transform") {
 		context.parent->properties.setTransform(context.attributes["name"],
 			m_transform);

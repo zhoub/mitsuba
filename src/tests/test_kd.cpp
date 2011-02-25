@@ -34,7 +34,7 @@ public:
 	void test01_sutherlandHodgman() {
 		/* Test the triangle clipping algorithm on the unit triangle */
 		Point vertices[3];
-		vertices[0] = Point(0, 0, 0);
+		vertices[0] = Point::Zero();
 		vertices[1] = Point(1, 0, 0);
 		vertices[2] = Point(1, 1, 0);
 		Triangle t;

@@ -37,7 +37,7 @@ public:
 		else if (props.hasProperty("direction"))
 			m_direction = (props.getVector("direction")).normalized();
 		else 
-			m_direction = (m_luminaireToWorld(Vector(0, 0, 1))).normalized();
+			m_direction = (m_luminaireToWorld(Vector::UnitZ())).normalized();
 	}
 
 	DirectionalLuminaire(Stream *stream, InstanceManager *manager) 

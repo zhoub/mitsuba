@@ -64,7 +64,7 @@ void PreviewWorker::processIncoherent(const WorkUnit *workUnit, WorkResult *work
 	/* Some local variables */
 	int pos = 0;
 	Intersection its;
-	Spectrum value, bsdfVal;
+	Spectrum value(0.0f), bsdfVal(0.0f);
 	Vector toVPL;
 	Ray primary, secondary;
 	int numRays = 0;
@@ -181,7 +181,7 @@ void PreviewWorker::processCoherent(const WorkUnit *workUnit, WorkResult *workRe
 	its.hasUVPartials = false;
 
 	bool diffuseVPL = false, vplOnSurface = false;
-	Spectrum vplWeight;
+	Spectrum vplWeight(0.0f);
 
 	if (m_vpl.type == ESurfaceVPL && (m_diffuseSources || m_vpl.its.shape->getBSDF()->getType() == BSDF::EDiffuseReflection)) {
 		diffuseVPL = true;

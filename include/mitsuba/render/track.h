@@ -19,7 +19,7 @@
 #if !defined(__ANIMATION_TRACK_H)
 #define __ANIMATION_TRACK_H
 
-#include <mitsuba/core/quat.h>
+#include <mitsuba/core/quaternion.h>
 
 MTS_NAMESPACE_BEGIN
 	
@@ -128,7 +128,7 @@ template<typename T> T AnimationTrack<T>::lerp(int idx0, int idx1, Float t) cons
 
 /// Partial specialization for quaternions (uses \ref slerp())
 template<> Quaternion AnimationTrack<Quaternion>::lerp(int idx0, int idx1, Float t) const {
-	return slerp(m_values[idx0], m_values[idx1], t);
+	return m_values[idx0].slerp(m_values[idx1], t);
 }
 
 template<> void AnimationTrack<Point>::unserialize(Stream *stream, Point &value) {

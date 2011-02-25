@@ -40,7 +40,7 @@ public:
 		Assert(m_cutoffAngle >= m_beamWidth);
 		m_cosBeamWidth = std::cos(m_beamWidth);
 		m_cosCutoffAngle = std::cos(m_cutoffAngle);
-		m_position = m_luminaireToWorld(Point(0, 0, 0));
+		m_position = m_luminaireToWorld(Point::Zero());
 		m_type = EDeltaPosition;
 		m_texture = new ConstantTexture(
 			props.getSpectrum("texture", Spectrum(1.0f)));
@@ -56,7 +56,7 @@ public:
 		m_cutoffAngle = stream->readFloat();
 		m_cosBeamWidth = std::cos(m_beamWidth);
 		m_cosCutoffAngle = std::cos(m_cutoffAngle);
-		m_position = m_luminaireToWorld(Point(0, 0, 0));
+		m_position = m_luminaireToWorld(Point::Zero());
 		m_uvFactor = std::tan(m_beamWidth/2);
 		m_invTransitionWidth = 1.0 / (m_cutoffAngle - m_beamWidth);
 	}

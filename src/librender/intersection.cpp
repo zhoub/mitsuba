@@ -36,9 +36,9 @@ void Intersection::computePartials(const RayDifferential &ray) {
 
 	/* Calculate the U and V partials by solving two out
 	   of a set of 3 equations in an overconstrained system */
-	Float absX = std::abs(geoFrame.n.x),
-		  absY = std::abs(geoFrame.n.y),
-		  absZ = std::abs(geoFrame.n.z);
+	Float absX = std::abs(geoFrame.n.x()),
+		  absY = std::abs(geoFrame.n.y()),
+		  absZ = std::abs(geoFrame.n.z());
 
 	if (absX > absY && absX > absZ) {
 		axes[0] = 1; axes[1] = 2;

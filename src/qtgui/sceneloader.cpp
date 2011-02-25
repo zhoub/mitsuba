@@ -112,7 +112,7 @@ void SceneLoader::run() {
 			m_result->framebuffer->clear();
 			m_result->fileName = QString(m_filename.c_str());
 			m_result->shortName = QFileInfo(m_filename.c_str()).fileName();
-			m_result->up = camera->getInverseViewTransform()(Vector(0, 1, 0));
+			m_result->up = camera->getInverseViewTransform()(Vector::UnitY());
 			m_result->scrollOffset = Vector2i(0, 0);
 			m_result->pathLength = m_result->detectPathLength();
 			m_result->showKDTree = false;

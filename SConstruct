@@ -32,7 +32,7 @@ SConscript('src/libhw/SConscript')
 env = env.Clone()
 
 # Build the command-line binaries
-#mainEnv = SConscript('src/mitsuba/SConscript')
+mainEnv = SConscript('src/mitsuba/SConscript')
 
 # Build the COLLADA converter
 #converter_objects = SConscript('src/converter/SConscript', ['mainEnv'])

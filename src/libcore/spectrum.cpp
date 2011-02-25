@@ -66,7 +66,7 @@ void Spectrum::fromSmoothSpectrum(const SmoothSpectrum *smooth) {
 	fromXYZ(x, y, z);
 #else
 	for (int i=0; i<SPECTRUM_SAMPLES; i++)
-		s[i] = smooth->eval(m_wavelengths[i]);
+		operator[](i) = smooth->eval(m_wavelengths[i]);
 #endif
 }
 
@@ -83,24 +83,24 @@ Float Spectrum::eval(Float lambda) const {
 		return 0.0f;
 
 	if (index == SPECTRUM_SAMPLES-1)
-		return s[index];
+		return operator[](index);
 	else 
-		return (1.0f - offset) * s[index] + offset * s[index+1];
+		return (1.0f - offset) * operator[](index) + offset * operator[](index+1);
 #endif
 	return 0.0f;
 }
 
 #if SPECTRUM_SAMPLES == 3
 void Spectrum::fromXYZ(Float x, Float y, Float z) {
-	s[0] =  3.240479f * x + -1.537150f * y + -0.498535f * z;
-	s[1] = -0.969256f * x +  1.875991f * y +  0.041556f * z;
-	s[2] =  0.055648f * x + -0.204043f * y +  1.057311f * z;
+	operator[](0) =  3.240479f * x + -1.537150f * y + -0.498535f * z;
+	operator[](1) = -0.969256f * x +  1.875991f * y +  0.041556f * z;
+	operator[](2) =  0.055648f * x + -0.204043f * y +  1.057311f * z;
 }
 
 void Spectrum::toXYZ(Float &x, Float &y, Float &z) const {
-	x = s[0] * 0.412453f + s[1] * 0.357580f + s[2] * 0.180423f;
-	y = s[0] * 0.212671f + s[1] * 0.715160f + s[2] * 0.072169f;
-	z = s[0] * 0.019334f + s[1] * 0.119193f + s[2] * 0.950227f;
+	x = operator[](0) * 0.412453f + operator[](1) * 0.357580f + operator[](2) * 0.180423f;
+	y = operator[](0) * 0.212671f + operator[](1) * 0.715160f + operator[](2) * 0.072169f;
+	z = operator[](0) * 0.019334f + operator[](1) * 0.119193f + operator[](2) * 0.950227f;
 }
 
 #else
@@ -229,7 +229,7 @@ void Spectrum::fromRGBE(const uint8_t rgbe[4]) {
 		Float exp = std::ldexp((Float) 1, (int) rgbe[3] - (128+8));
 		fromLinearRGB(rgbe[0]*exp, rgbe[1]*exp, rgbe[2]*exp);
 	} else {
-		s[0] = s[1] = s[2] = 0.0f;
+		*this = Spectrum::Zero();
 	}
 }
 
@@ -238,7 +238,7 @@ std::string Spectrum::toString() const {
 	oss << "[";
 	for (int i=0; i<SPECTRUM_SAMPLES; i++) {
 #if SPECTRUM_SAMPLES == 3
-		oss << s[i];
+		oss << operator[](i);
 #else
 		oss << m_wavelengths[i] << ":" << s[i];
 #endif

@@ -28,8 +28,8 @@ MTS_NAMESPACE_BEGIN
 /**
  * When a testcase is being compiled, define the following preprocessor macros for convenience
  */
-#define assertEquals(expected, actual) assertEqualsImpl(expected, actual, 0, __FILE__, __LINE__)
-#define assertEqualsEpsilon(expected, actual, epsilon) assertEqualsImpl(expected, actual, epsilon, __FILE__, __LINE__)
+#define assertEquals(actual, expected) assertEqualsImpl(actual, expected, 0, __FILE__, __LINE__)
+#define assertEqualsEpsilon(actual, expected, epsilon) assertEqualsImpl(actual, expected, epsilon, __FILE__, __LINE__)
 #define assertTrue(expr) assertTrueImpl(expr, #expr, __FILE__, __LINE__)
 #define assertFalse(expr) assertFalseImpl(expr, #expr, __FILE__, __LINE__)
 #endif
@@ -67,15 +67,15 @@ protected:
 	virtual ~TestCase() { }
 
 	/// Asserts that the two integer values are equal
-	void assertEqualsImpl(int expected, int actual, const char *file, int line);
+	void assertEqualsImpl(int actual, int expected, const char *file, int line);
 
 	/// Asserts that the two floating point values are equal
-	void assertEqualsImpl(Float expected, Float actual, Float epsilon, const char *file, int line);
+	void assertEqualsImpl(Float actual, Float expected, Float epsilon, const char *file, int line);
 
 	/// Asserts that the two fixed-size or dynamic matrices are equal
 	template<typename T, int M1, int N1, int M2, int N2> 
-			void assertEqualsImpl(const Eigen::Matrix<T, M1, N1> &expected,
-				const Eigen::Matrix<T, M2, N2> &actual, Float epsilon, const char *file, int line) {
+			void assertEqualsImpl(const Eigen::Matrix<T, M1, N1> &actual,
+				const Eigen::Matrix<T, M2, N2> &expected, Float epsilon, const char *file, int line) {
 		bool match = true;
 		if (expected.rows() != actual.rows() || expected.cols() != actual.cols())
 			Thread::getThread()->getLogger()->log(EError, NULL, file, line, "Assertion failure: "
