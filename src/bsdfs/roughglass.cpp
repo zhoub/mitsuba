@@ -67,7 +67,7 @@ public:
 	}
 
 	Spectrum getDiffuseReflectance(const Intersection &its) const {
-		return Spectrum(0.0f);
+		return Spectrum::Zero();
 	}
 
 	/**
@@ -169,7 +169,7 @@ public:
 		Float intIOR = m_intIOR, extIOR = m_extIOR;
 
 		if (Frame::cosTheta(bRec.wi) * Frame::cosTheta(bRec.wo) <= 0)
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 
 		if (Frame::cosTheta(bRec.wi) < 0)
 			std::swap(intIOR, extIOR);
@@ -197,7 +197,7 @@ public:
 
 	Spectrum fTransmission(const BSDFQueryRecord &bRec) const {
 		if (Frame::cosTheta(bRec.wi) * Frame::cosTheta(bRec.wo) >= 0)
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 
 		Float etaI = m_extIOR, etaO = m_intIOR;
 		if (Frame::cosTheta(bRec.wi) < 0)
@@ -261,7 +261,7 @@ public:
 			* signum(Frame::cosTheta(bRec.wi));
 
 		/* Jacobian of the half-direction transform */
-		Float dwhr_dwo = 1.0f / (4.0f * absDot(bRec.wo, Hr));
+		Float dwhr_dwo = 1.0f / (4.0f * std::abs(bRec.wo.dot(Hr)));
 
 		return beckmannD(Hr, alphaB) * std::abs(Frame::cosTheta(Hr)) * dwhr_dwo;
 	}
@@ -279,7 +279,7 @@ public:
 
 		/* Jacobian of the half-direction transform. */
 		Float sqrtDenom = etaI * bRec.wi.dot(Ht) + etaO * bRec.wo.dot(Ht);
-		Float dwht_dwo = (etaO*etaO * absDot(bRec.wo, Ht)) / (sqrtDenom*sqrtDenom);
+		Float dwht_dwo = (etaO*etaO * std::abs(bRec.wo.dot(Ht))) / (sqrtDenom*sqrtDenom);
 
 		return beckmannD(Ht, alphaB) * std::abs(Frame::cosTheta(Ht)) * dwht_dwo;
 	}
@@ -322,11 +322,11 @@ public:
 
 		/* Sidedness test */
 		if (Frame::cosTheta(bRec.wi)*Frame::cosTheta(bRec.wo) <= 0)
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 
 		Float pdfValue = pdf(bRec);
 		if (pdfValue == 0)
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 		return f(bRec) / pdfValue;
 	}
 
@@ -336,7 +336,7 @@ public:
 
 		/* Perfect specular reflection along the microsurface normal */
 		if (refract(mFrame.toLocal(bRec.wi), bRec.wo, bRec.quantity) == 0)
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 
 		bRec.wo = mFrame.toWorld(bRec.wo);
 
@@ -344,11 +344,11 @@ public:
 		bRec.sampledType = EGlossyTransmission;
 
 		if (Frame::cosTheta(bRec.wi)*Frame::cosTheta(bRec.wo) >= 0)
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 			
 		Float pdfValue = pdf(bRec);
 		if (pdfValue == 0)
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 		return f(bRec) / pdfValue;
 	}
 
@@ -382,7 +382,7 @@ public:
 			return sampleTransmission(bRec, alphaB, sample);
 		}
 
-		return Spectrum(0.0f);
+		return Spectrum::Zero();
 	}
 
 	void serialize(Stream *stream, InstanceManager *manager) const {

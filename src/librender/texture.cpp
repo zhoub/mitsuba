@@ -67,11 +67,11 @@ void Texture2D::serialize(Stream *stream, InstanceManager *manager) const {
 }
 
 Spectrum Texture2D::getValue(const Intersection &its) const {
-	Point2 uv = Point2(its.uv.x * m_uvScale.x, its.uv.y * m_uvScale.y) + m_uvOffset;
+	Point2 uv = Point2(its.uv.x() * m_uvScale.x(), its.uv.y() * m_uvScale.y()) + m_uvOffset;
 	if (its.hasUVPartials) {
 		return getValue(uv, 
-			its.dudx * m_uvScale.x, its.dudy * m_uvScale.x,
-			its.dvdx * m_uvScale.y, its.dvdy * m_uvScale.y);
+			its.dudx * m_uvScale.x(), its.dudy * m_uvScale.x(),
+			its.dvdx * m_uvScale.y(), its.dvdy * m_uvScale.y());
 	} else {
 		return getValue(uv);
 	}

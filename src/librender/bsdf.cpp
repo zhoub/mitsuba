@@ -37,7 +37,7 @@ BSDF::~BSDF() {
 Spectrum BSDF::sample(BSDFQueryRecord &bRec, Float &_pdf, const Point2 &_sample) const {
 	if (sample(bRec, _sample).isZero()) {
 		_pdf = 0.0f;
-		return Spectrum(0.0f);
+		return Spectrum::Zero();
 	}
 	/* Re-evaluation required because we want both the
 		value and a matching probability density.
@@ -65,7 +65,7 @@ Float BSDF::pdfDelta(const BSDFQueryRecord &bRec) const {
 }
 
 Spectrum BSDF::fDelta(const BSDFQueryRecord &bRec) const {
-	return Spectrum(0.0f);
+	return Spectrum::Zero();
 }
 
 std::string BSDFQueryRecord::toString() const {

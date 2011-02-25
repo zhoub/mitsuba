@@ -32,34 +32,34 @@ ReconstructionFilter::~ReconstructionFilter() {
 }
 	
 Float ReconstructionFilter::sample(const Point2 &sample, Float &x, Float &y) const {
-	x = (1 - sample.x * 2) * m_size.x;
-	y = (1 - sample.y * 2) * m_size.y;
-	return evaluate(x, y) / (4 * m_size.x * m_size.y);
+	x = (1 - sample.x() * 2) * m_size.x();
+	y = (1 - sample.y() * 2) * m_size.y();
+	return evaluate(x, y) / (4 * m_size.x() * m_size.y());
 }
 
 TabulatedFilter::TabulatedFilter(const ReconstructionFilter *filter) {
 	m_size = filter->getFilterSize();
 	m_name = filter->getClass()->getName();
 	m_factor = Vector2(
-		FILTER_RESOLUTION / m_size.x,
-		FILTER_RESOLUTION / m_size.y);
+		FILTER_RESOLUTION / m_size.x(),
+		FILTER_RESOLUTION / m_size.y());
 	Float sum = 0;
 	/* Evaluate the filter and add a zero border (for performance
 	   reasons during the evaluation) */
 	for (int y=0; y<FILTER_RESOLUTION+1; ++y) {
-		Float yPos = (y + 0.5f) / FILTER_RESOLUTION * m_size.y;
+		Float yPos = (y + 0.5f) / FILTER_RESOLUTION * m_size.y();
 		for (int x=0; x<FILTER_RESOLUTION+1; ++x) {
 			if (x == FILTER_RESOLUTION || y==FILTER_RESOLUTION)
 				m_values[y][x] = 0;
 			else
 				m_values[y][x] = filter->evaluate(
-					(x + 0.5f) / FILTER_RESOLUTION * m_size.x, yPos);
+					(x + 0.5f) / FILTER_RESOLUTION * m_size.x(), yPos);
 			sum += m_values[y][x];
 		}
 	}
 
 	/* Normalize the filter (required for the particle tracer) */
-	sum *= 4*filter->getFilterSize().x*filter->getFilterSize().y/
+	sum *= 4*filter->getFilterSize().x()*filter->getFilterSize().y()/
 		(FILTER_RESOLUTION*FILTER_RESOLUTION);
 	for (int y=0; y<FILTER_RESOLUTION+1; ++y) {
 		for (int x=0; x<FILTER_RESOLUTION+1; ++x) {

@@ -48,7 +48,7 @@ public:
 	}
 
 	Spectrum Le(const LuminaireSamplingRecord &lRec) const {
-		return Spectrum(0.0f);
+		return Spectrum::Zero();
 	}
 
 	inline Float pdf(const Point &p, const LuminaireSamplingRecord &lRec, bool delta) const {
@@ -103,7 +103,7 @@ public:
 	}
 
 	Spectrum fArea(const EmissionRecord &eRec) const {
-		return Spectrum(0.0f);
+		return Spectrum::Zero();
 	}
 
 	Spectrum f(const EmissionRecord &eRec) const {

@@ -349,7 +349,7 @@ public:
 					/* Sample the BSDF and recurse */
 					BSDFQueryRecord bRec(its);
 					bRec.component = i;
-					Spectrum bsdfVal = bsdf->sampleCos(bRec, Point2(0.0f));
+					Spectrum bsdfVal = bsdf->sampleCos(bRec, Point2::Zero());
 					if (bsdfVal.isZero())
 						continue;
 

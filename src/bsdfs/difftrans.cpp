@@ -52,13 +52,13 @@ public:
 	}
 
 	Spectrum getDiffuseReflectance(const Intersection &its) const {
-		return Spectrum(0.0f);
+		return Spectrum::Zero();
 	}
 
 	Spectrum f(const BSDFQueryRecord &bRec) const {
 		if (!(bRec.typeMask & m_combinedType)
 			|| bRec.wi.z*bRec.wo.z >= 0)
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 
 		return m_transmittance->getValue(bRec.its) * INV_PI;
 	}
@@ -71,20 +71,20 @@ public:
 
 	Spectrum sample(BSDFQueryRecord &bRec, const Point2 &sample) const {
 		if (!(bRec.typeMask & m_combinedType))
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 		bRec.wo = squareToHemispherePSA(sample);
 		if (bRec.wi.z > 0)
 			bRec.wo.z *= -1;
 		bRec.sampledComponent = 0;
 		bRec.sampledType = EDiffuseTransmission;
 		if (Frame::cosTheta(bRec.wo) == 0)
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 		return m_transmittance->getValue(bRec.its) / std::abs(Frame::cosTheta(bRec.wo));
 	}
 
 	Spectrum sample(BSDFQueryRecord &bRec, Float &pdf, const Point2 &sample) const {
 		if (!(bRec.typeMask & m_combinedType)) 
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 		bRec.wo = squareToHemispherePSA(sample);
 		if (bRec.wi.z > 0)
 			bRec.wo.z *= -1;
@@ -92,7 +92,7 @@ public:
 		bRec.sampledType = EDiffuseTransmission;
 		pdf = std::abs(Frame::cosTheta(bRec.wo)) * INV_PI;
 		if (Frame::cosTheta(bRec.wo) == 0)
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 		return m_transmittance->getValue(bRec.its) * INV_PI;
 	}
 		

@@ -65,7 +65,7 @@ public:
 	bool intersectCylPlane(Point planePt, Normal planeNrml,
 			Point cylPt, Vector cylD, Float radius, Point &center,
 			Vector *axes, Float *lengths) const {
-		if (absDot(planeNrml, cylD) < Epsilon)
+		if (std::abs(planeNrml.dot(cylD)) < Epsilon)
 			return false;
 
 		Vector B, A = cylD - cylD.dot(planeNrml)*planeNrml;

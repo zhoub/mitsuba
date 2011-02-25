@@ -157,11 +157,11 @@ public:
 		if (x < 0 || x >= m_res.x ||
 			y < 0 || y >= m_res.y ||
 			z < 0 || z >= m_res.z)
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 
 		VolumeDataSource *block = m_blocks[((z * m_res.y) + y) * m_res.x + x];
 		if (block == NULL)
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 		else
 			return block->lookupSpectrum(_p);
 	}

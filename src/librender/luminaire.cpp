@@ -74,7 +74,7 @@ bool Luminaire::isBackgroundLuminaire() const {
 }
 
 Spectrum Luminaire::Le(const Ray &ray) const {
-	return Spectrum(0.0f);
+	return Spectrum::Zero();
 }
 	
 std::string EmissionRecord::toString() const {

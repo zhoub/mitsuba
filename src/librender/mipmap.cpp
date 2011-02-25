@@ -42,7 +42,7 @@ MIPMap::MIPMap(int width, int height, Spectrum *pixels,
 		ResampleWeight *weights = resampleWeights(width, m_width);
 		for (int y=0; y<height; y++) {
 			for (int x=0; x<m_width; x++) {
-				texture1[x+m_width*y] = Spectrum(0.0f);
+				texture1[x+m_width*y] = Spectrum::Zero();
 				for (int j=0; j<4; j++) {
 					int pos = weights[x].firstTexel + j;
 					if (pos < 0 || pos >= height) {
@@ -211,7 +211,7 @@ Spectrum MIPMap::getTexel(int level, int x, int y) const {
 				y = clamp(y, 0, levelHeight - 1);
 				break;
 			case EBlack:
-				return Spectrum(0.0f);
+				return Spectrum::Zero();
 			case EWhite:
 				return Spectrum(1.0f);
 		}

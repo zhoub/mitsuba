@@ -175,7 +175,7 @@ void ParticleTracer::process(const WorkUnit *workUnit, WorkResult *workResult,
 					/* Assuming that BSDF importance sampling is perfect,
 					   the following should equal the maximum albedo
 					   over all spectral samples */
-					Float approxAlbedo = std::min((Float) 1, bsdfVal.max());
+					Float approxAlbedo = std::min((Float) 1, bsdfVal.maxCoeff());
 					if (m_sampler->next1D() > approxAlbedo)
 						break;
 					else

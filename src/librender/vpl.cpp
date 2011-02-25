@@ -53,7 +53,7 @@ size_t generateVPLs(const Scene *scene, size_t offset, size_t count, int maxDept
 		vpls.push_back(lumVPL);
 
 		weight *= scene->sampleEmissionDirection(eRec, dirSample);
-		Float cosTheta = (eRec.luminaire->getType() & Luminaire::EOnSurface) ? absDot(eRec.sRec.n, eRec.d) : 1;
+		Float cosTheta = (eRec.luminaire->getType() & Luminaire::EOnSurface) ? std::abs(eRec.sRec.n.dot(eRec.d)) : 1;
 		weight *= cosTheta / eRec.pdfDir;
 		ray = Ray(eRec.sRec.p, eRec.d, 0.0f);
 

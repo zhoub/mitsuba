@@ -111,7 +111,7 @@ void parseMaterials(GeometryConverter *cvt, std::ostream &os, const fs::path &te
 			addMaterial(cvt, os, mtlName, texturesDir, diffuse, diffuseMap, maskMap);
 			std::getline(is, line);
 			mtlName = trim(line.substr(1, line.norm()-1));
-			diffuse = Spectrum(0.0f);
+			diffuse = Spectrum::Zero();
 			diffuseMap = "";
 			maskMap = "";
 		} else if (buf == "Kd") {

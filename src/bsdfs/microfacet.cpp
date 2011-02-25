@@ -37,7 +37,7 @@ public:
 	Microfacet(const Properties &props) 
 		: BSDF(props) {
 		m_diffuseReflectance = new ConstantTexture(
-			props.getSpectrum("diffuseReflectance", Spectrum(0.0f)));
+			props.getSpectrum("diffuseReflectance", Spectrum::Zero()));
 		m_specularReflectance = new ConstantTexture(
 			props.getSpectrum("specularReflectance", Spectrum(1.0f)));
 
@@ -175,7 +175,7 @@ public:
 	inline Float pdfSpec(const BSDFQueryRecord &bRec) const {
 		Vector Hr = (bRec.wi + bRec.wo).normalized();
 		return beckmannD(Hr) * Frame::cosTheta(Hr) 
-			/ (4.0f * absDot(bRec.wo, Hr));
+			/ (4.0f * std::abs(bRec.wo.dot(Hr)));
 	}
 
 	Float pdf(const BSDFQueryRecord &bRec) const {
@@ -214,11 +214,11 @@ public:
 		bRec.sampledType = EGlossyReflection;
 
 		if (bRec.wo.z <= 0)
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 
 		Float pdfValue = pdf(bRec);
 		if (pdfValue == 0)
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 		return f(bRec) / pdfValue;
 	}
 
@@ -236,7 +236,7 @@ public:
 	Spectrum sample(BSDFQueryRecord &bRec, const Point2 &_sample) const {
 		Point2 sample(_sample);
 		if (bRec.wi.z <= 0)
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 
 		bool sampleDiffuse = (bRec.typeMask & EDiffuseReflection)
 				&& (bRec.component == -1 || bRec.component == 0);
@@ -265,7 +265,7 @@ public:
 			return sampleSpecular(bRec, sample);
 		}
 
-		return Spectrum(0.0f);
+		return Spectrum::Zero();
 	}
 	
 	void addChild(const std::string &name, ConfigurableObject *child) {

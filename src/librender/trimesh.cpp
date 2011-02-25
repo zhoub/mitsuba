@@ -295,7 +295,7 @@ Float TriMesh::getSurfaceArea() const {
 
 Float TriMesh::sampleArea(ShapeSamplingRecord &sRec, const Point2 &sample) const {
 	Point2 newSeed = sample;
-	int index = m_areaPDF.sampleReuse(newSeed.y);
+	int index = m_areaPDF.sampleReuse(newSeed.y());
 	sRec.p = m_triangles[index].sample(m_positions, m_normals, sRec.n, newSeed);
 	return m_invSurfaceArea;
 }
@@ -304,23 +304,23 @@ struct Vertex {
 	Point p;
 	Point2 uv;
 	Spectrum col;
-	inline Vertex() : p(0.0f), uv(0.0f), col(0.0f) { }
+	inline Vertex() : p(Point::Zero()), uv(Point2::Zero()), col(Spectrum::Zero()) { }
 };
 
 /// For using vertices as keys in an associative structure
 struct vertex_key_order : public 
 	std::binary_function<Vertex, Vertex, bool> {
 	static int compare(const Vertex &v1, const Vertex &v2) {
-		if (v1.p.x < v2.p.x) return -1;
-		else if (v1.p.x > v2.p.x) return 1;
-		if (v1.p.y < v2.p.y) return -1;
-		else if (v1.p.y > v2.p.y) return 1;
-		if (v1.p.z < v2.p.z) return -1;
-		else if (v1.p.z > v2.p.z) return 1;
-		if (v1.uv.x < v2.uv.x) return -1;
-		else if (v1.uv.x > v2.uv.x) return 1;
-		if (v1.uv.y < v2.uv.y) return -1;
-		else if (v1.uv.y > v2.uv.y) return 1;
+		if (v1.p.x() < v2.p.x()) return -1;
+		else if (v1.p.x() > v2.p.x()) return 1;
+		if (v1.p.y() < v2.p.y()) return -1;
+		else if (v1.p.y() > v2.p.y()) return 1;
+		if (v1.p.z() < v2.p.z()) return -1;
+		else if (v1.p.z() > v2.p.z()) return 1;
+		if (v1.uv.x() < v2.uv.x()) return -1;
+		else if (v1.uv.x() > v2.uv.x()) return 1;
+		if (v1.uv.y() < v2.uv.y()) return -1;
+		else if (v1.uv.y() > v2.uv.y()) return 1;
 		for (int i=0; i<SPECTRUM_SAMPLES; ++i) {
 			if (v1.col[i] < v2.col[i]) return -1;
 			else if (v1.col[i] > v2.col[i]) return 1;
@@ -502,7 +502,7 @@ void TriMesh::computeNormals() {
 			   JGT 1998, Vol 3 */
 			for (size_t i=0; i<m_triangleCount; i++) {
 				const Triangle &tri = m_triangles[i];
-				Normal n(0.0f);
+				Normal n = Normal::Zero();
 				for (int i=0; i<3; ++i) {
 					const Point &v0 = m_positions[tri.idx[i]];
 					const Point &v1 = m_positions[tri.idx[(i+1)%3]];
@@ -586,12 +586,12 @@ bool TriMesh::computeTangentSpaceBasis() {
 		Vector dP1 = v1 - v0, dP2 = v2 - v0;
 		Vector2 dUV1 = uv1 - uv0, dUV2 = uv2 - uv0;
 
-		Float invDet = 1.0f, determinant = dUV1.x * dUV2.y - dUV1.y * dUV2.x;
+		Float invDet = 1.0f, determinant = dUV1.x() * dUV2.y() - dUV1.y() * dUV2.x();
 		if (determinant != 0)
 			invDet = 1.0f / determinant;
 
-		Vector dpdu = ( dUV2.y * dP1 - dUV1.y * dP2) * invDet;
-		Vector dpdv = (-dUV2.x * dP1 + dUV1.x * dP2) * invDet;
+		Vector dpdu = ( dUV2.y() * dP1 - dUV1.y() * dP2) * invDet;
+		Vector dpdv = (-dUV2.x() * dP1 + dUV1.x() * dP2) * invDet;
 
 		if (dpdu.norm() == 0.0f) {
 			/* Recovery - required to recover from invalid geometry */
@@ -701,17 +701,17 @@ void TriMesh::writeOBJ(const fs::path &path) const {
 	os << "o " << m_name << endl;
 	for (size_t i=0; i<m_vertexCount; ++i) {
 		os << "v " 
-			<< m_positions[i].x << " "
-			<< m_positions[i].y << " "
-			<< m_positions[i].z << endl;
+			<< m_positions[i].x() << " "
+			<< m_positions[i].y() << " "
+			<< m_positions[i].z() << endl;
 	}
 
 	if (m_normals) {
 		for (size_t i=0; i<m_vertexCount; ++i) {
 			os << "vn " 
-				<< m_normals[i].x << " "
-				<< m_normals[i].y << " "
-				<< m_normals[i].z << endl;
+				<< m_normals[i].x() << " "
+				<< m_normals[i].y() << " "
+				<< m_normals[i].z() << endl;
 		}
 	}
 

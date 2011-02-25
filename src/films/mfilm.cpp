@@ -109,7 +109,7 @@ public:
 		xPixel -= m_cropOffset.x; yPixel -= m_cropOffset.y;
 		if (!(xPixel >= 0 && xPixel < m_cropSize.x && yPixel >= 0 && yPixel < m_cropSize.y )) {
 			Log(EWarn, "Pixel out of range : %i,%i", xPixel, yPixel); 
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 		}
 		Pixel &pixel = m_pixels[xPixel + yPixel * m_cropSize.x];
 		return pixel.spec / pixel.weight;

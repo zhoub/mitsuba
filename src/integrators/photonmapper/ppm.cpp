@@ -249,7 +249,7 @@ public:
 					/* Sample the BSDF and recurse */
 					BSDFQueryRecord bRec(p.its);
 					bRec.component = i;
-					Spectrum bsdfVal = bsdf->sampleCos(bRec, Point2(0.0f));
+					Spectrum bsdfVal = bsdf->sampleCos(bRec, Point2::Zero());
 					if (bsdfVal.isZero())
 						continue;
 					bsdfVal = bsdf->fDelta(bRec);
@@ -310,7 +310,7 @@ public:
 				if (g.radius == 0) {
 					/* Generate a black sample -- necessary for proper sample weight 
 					   computation at edges */
-					block->putSample(g.sample, Spectrum(0.0f), 1, m_filter);
+					block->putSample(g.sample, Spectrum::Zero(), 1, m_filter);
 					continue;
 				}
 
@@ -318,7 +318,7 @@ public:
 					g.its, g.radius, flux, m_maxDepth == -1 ? INT_MAX : (m_maxDepth-g.depth)), N = g.N;
 
 				if (N+M == 0) {
-					g.flux = contrib = Spectrum(0.0f);
+					g.flux = contrib = Spectrum::Zero();
 				} else {
 					Float ratio = (N + m_alpha * M) / (N + M);
 					g.flux = (g.flux + flux) * ratio;

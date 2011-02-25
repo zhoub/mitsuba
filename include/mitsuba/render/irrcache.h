@@ -291,7 +291,7 @@ public:
 		 * to calculate an interpolated value at the given position
 		 */
 		inline Float getWeight(const Point &p2, const Normal &n2, Float kappa) const {
-			Float dp = dot(n, n2);
+			Float dp = n.dot(n2);
 			
 			/* Quickly discard opposite-facing samples */
 			if (dp < 0.0f)
@@ -300,7 +300,7 @@ public:
 				dp = 1.0f;
 
 			/* Reject illuminance values 'in front' of P2 */
-			if (dot(p2 - p, n + n2) < -0.05f)
+			if ((p2 - p).dot(n + n2) < -0.05f)
 				return 0.0f;
 
 			/* Ad-hoc weight function (Tabellion & Lamorlette) */

@@ -188,7 +188,7 @@ public:
 
 	Spectrum Lo(const Scene *scene, const Intersection &its, const Vector &d) const {
 		if (!m_ready || m_ssFactor.isZero())
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 		IsotropicDipoleQuery query(m_zr, m_zv, m_sigmaTr, m_Fdt, its.p);
 	
 		const Normal &n = its.shFrame.n;
@@ -197,7 +197,7 @@ public:
 		if (m_eta == 1.0f) {
 			return query.getResult() * m_ssFactor * INV_PI;
 		} else {
-			Float Ft = 1.0f - fresnel(absDot(n, d));
+			Float Ft = 1.0f - fresnel(std::abs(n.dot(d)));
 			return query.getResult() * m_ssFactor * INV_PI * (Ft / m_Fdr);
 		}
 	}

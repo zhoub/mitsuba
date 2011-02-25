@@ -175,7 +175,7 @@ public:
 	bool intersectCylPlane(Point planePt, Normal planeNrml,
 			Point cylPt, Vector cylD, Float radius, Point &center,
 			Vector *axes, Float *lengths) const {
-		if (absDot(planeNrml, cylD) < Epsilon)
+		if (std::abs(planeNrml.dot(cylD)) < Epsilon)
 			return false;
 
 		Assert(std::abs(planeNrml.norm()-1) <Epsilon);
@@ -224,7 +224,7 @@ public:
 		int axis1 = (axis + 1) % 3;
 		int axis2 = (axis + 2) % 3;
 
-		Normal planeNrml(0.0f);
+		Normal planeNrml(Normal::Zero());
 		planeNrml[axis] = 1;
 
 		Point ellipseCenter;
@@ -515,10 +515,10 @@ public:
 
 		std::string line;
 		bool newFiber = true;
-		Point p, lastP(0.0f);
+		Point p, lastP(Point::Zero());
 		std::vector<Point> vertices;
 		std::vector<bool> vertexStartsFiber;
-		Vector tangent(0.0f);
+		Vector tangent(Vector::Zero());
 		size_t nDegenerate = 0, nSkipped = 0;
 
 		while (is.good()) {

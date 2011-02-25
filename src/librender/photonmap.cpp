@@ -62,14 +62,14 @@ bool PhotonMap::m_precompTableReady = PhotonMap::createPrecompTables();
 PhotonMap::Photon::Photon(const Point &p, const Normal &normal,
 						  const Vector &dir, const Spectrum &P,
 						  uint16_t _depth) {
-	if (P.isNaN()) 
+	if (P.hasNaN()) 
 		Log(EWarn, "Creating an invalid photon with power: %s", P.toString().c_str());
 
 	/* Possibly convert to single precision floating point
 	   (if Mitsuba is configured to use double precision) */
-	pos[0] = (float) p.x;
-	pos[1] = (float) p.y;
-	pos[2] = (float) p.z;
+	pos[0] = (float) p.x();
+	pos[1] = (float) p.y();
+	pos[2] = (float) p.z();
 	depth = _depth;
 	unused = 0;
 	axis = -1;
@@ -77,10 +77,10 @@ PhotonMap::Photon::Photon(const Point &p, const Normal &normal,
 	/* Convert the direction into an approximate spherical 
 	   coordinate format to reduce storage requirements */
 	theta = (unsigned char) std::min(255,
-		(int) (std::acos(dir.z) * (256.0 / M_PI)));
+		(int) (std::acos(dir.z()) * (256.0 / M_PI)));
 
 	int tmp = std::min(255,
-		(int) (std::atan2(dir.y, dir.x) * (256.0 / (2.0 * M_PI))));
+		(int) (std::atan2(dir.y(), dir.x()) * (256.0 / (2.0 * M_PI))));
 	if (tmp < 0)
 		phi = (unsigned char) (tmp + 256);
 	else
@@ -90,9 +90,9 @@ PhotonMap::Photon::Photon(const Point &p, const Normal &normal,
 		thetaN = phiN = 0;
 	} else {
 		thetaN = (unsigned char) std::min(255,
-			(int) (std::acos(normal.z) * (256.0 / M_PI)));
+			(int) (std::acos(normal.z()) * (256.0 / M_PI)));
 		tmp = std::min(255,
-			(int) (std::atan2(normal.y, normal.x) * (256.0 / (2.0 * M_PI))));
+			(int) (std::atan2(normal.y(), normal.x()) * (256.0 / (2.0 * M_PI))));
 		if (tmp < 0)
 			phiN = (unsigned char) (tmp + 256);
 		else
@@ -214,7 +214,7 @@ void PhotonMap::prepareSMP(int numThreads) {
 bool PhotonMap::storePhotonSMP(int thread, const Point &pos, const Normal &normal, 
 		const Vector &dir, const Spectrum &power, uint16_t depth) {
 	Assert(!m_balanced);
-	Assert(!power.isNaN());
+	Assert(!power.hasNaN());
 
 	/* Overflow check */
 	if (m_context[thread].photonCount >= m_context[thread].maxPhotons)
@@ -481,7 +481,7 @@ void PhotonMap::balanceRecursive(photon_iterator basePtr,
 
 size_t PhotonMap::nnSearch(const Point &p, Float &searchRadiusSquared, 
 		size_t maxSize, search_result *results) const {
-	const float pos[3] = { (float) p.x, (float) p.y, (float) p.z };
+	const float pos[3] = { (float) p.x(), (float) p.y(), (float) p.z() };
 	size_t stack[MAX_PHOTONMAP_DEPTH];
 	size_t index = 1, stackPos = 1, fill = 0;
 	bool isPriorityQueue = false;
@@ -641,7 +641,7 @@ Spectrum PhotonMap::estimateIrradianceFiltered(const Point &p, const Normal &n,
 
 	/* Avoid very noisy estimates */
 	if (EXPECT_NOT_TAKEN(resultCount < m_minPhotons))
-		return Spectrum(0.0f);
+		return Spectrum::Zero();
 
 	/* Sum over all contributions */
 	for (size_t i=0; i<resultCount; i++) {
@@ -691,7 +691,7 @@ Spectrum PhotonMap::estimateRadianceFiltered(const Intersection &its,
 
 	/* Avoid very noisy estimates */
 	if (EXPECT_NOT_TAKEN(resultCount < m_minPhotons))
-		return Spectrum(0.0f);
+		return Spectrum::Zero();
 
 	/* Sum over all contributions */
 	for (size_t i=0; i<resultCount; i++) {
@@ -713,13 +713,13 @@ Spectrum PhotonMap::estimateRadianceFiltered(const Intersection &its,
 
 size_t PhotonMap::estimateRadianceRaw(const Intersection &its,
 	Float searchRadius, Spectrum &result, int maxDepth) const {
-	result = Spectrum(0.0f);
+	result = Spectrum::Zero();
 	const BSDF *bsdf = its.shape->getBSDF();
 	
 	/* The photon map needs to be balanced before executing searches */
 	Assert(m_balanced);
 
-	const float pos[3] = { (float) its.p.x, (float) its.p.y, (float) its.p.z };
+	const float pos[3] = { (float) its.p.x(), (float) its.p.y(), (float) its.p.z() };
 	size_t stack[MAX_PHOTONMAP_DEPTH];
 	size_t index = 1, stackPos = 1, resultCount = 0;
 	float distSquared = (float) searchRadius*searchRadius;
@@ -802,7 +802,7 @@ Spectrum PhotonMap::estimateVolumeRadiance(const MediumSamplingRecord &mRec, con
 
 	/* Avoid very noisy estimates */
 	if (EXPECT_NOT_TAKEN(resultCount < m_minPhotons))
-		return Spectrum(0.0f);
+		return Spectrum::Zero();
 
 	const PhaseFunction *phase = medium->getPhaseFunction();
 	Vector wo = -ray.d;
@@ -833,7 +833,7 @@ void PhotonMap::dumpOBJ(const std::string &filename) {
 	os << "o Photons" << endl;
 	for (size_t i=1; i<=getPhotonCount(); i++) {
 		Point p = getPhotonPosition(i);
-		os << "v " << p.x << " " << p.y << " " << p.z << endl;
+		os << "v " << p.x() << " " << p.y() << " " << p.z() << endl;
 	}
 
 	/// Need to generate some fake geometry so that blender will import the points

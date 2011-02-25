@@ -57,7 +57,7 @@ public:
 	Spectrum Le(const LuminaireSamplingRecord &lRec) const {
 		/* Collimated beam is not part of the scene */
 		Log(EWarn, "This function should never be called.");
-		return Spectrum(0.0f);
+		return Spectrum::Zero();
 	}
 
 	inline Float pdf(const Point &p, const LuminaireSamplingRecord &lRec, bool delta) const {
@@ -118,7 +118,7 @@ public:
 	}
 
 	Spectrum f(const EmissionRecord &eRec) const {
-		return Spectrum(0.0f);
+		return Spectrum::Zero();
 	}
 
 	void pdfEmission(EmissionRecord &eRec, bool delta) const {

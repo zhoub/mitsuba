@@ -277,7 +277,7 @@ public:
 	 */
 	inline Spectrum LeBackgroundAttenuated(const Ray &ray) const {
 		if (!m_backgroundLuminaire)
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 		return LeBackground(ray) * getAttenuation(ray);
 	}
 

@@ -236,10 +236,10 @@ void Scene::configure() {
 			Log(EError, "Unable to set up a default camera -- does the scene contain anything at all?");
 		Point center = bbox.getCenter();
 		Vector extents = bbox.getExtents();
-		Float maxExtents = std::max(extents.x, extents.y);
+		Float maxExtents = std::max(extents.x(), extents.y());
 		Float distance = maxExtents/(2.0f * std::tan(45 * .5f * M_PI/180));
 
-		props.setTransform("toWorld", Transform::translate(Vector(center.x, center.y, bbox.min.z - distance)));
+		props.setTransform("toWorld", Transform::translate(Vector(center.x(), center.y(), bbox.min.z() - distance)));
 		props.setFloat("fov", 45.0f);
 
 		m_camera = static_cast<Camera *> (PluginManager::getInstance()->createObject(Camera::m_theClass, props));
@@ -396,7 +396,7 @@ bool Scene::sampleLuminaire(const Point &p,
 		bool testVisibility) const {
 	Point2 sample(s);
 	Float lumPdf;
-	unsigned int index = m_luminairePDF.sampleReuse(sample.x, lumPdf);
+	unsigned int index = m_luminairePDF.sampleReuse(sample.x(), lumPdf);
 	const Luminaire *luminaire = m_luminaires[index];
 	luminaire->sample(p, lRec, sample);
 
@@ -417,7 +417,7 @@ bool Scene::sampleLuminaire(const Intersection &its,
 		bool testVisibility) const {
 	Point2 sample(s);
 	Float lumPdf;
-	unsigned int index = m_luminairePDF.sampleReuse(sample.x, lumPdf);
+	unsigned int index = m_luminairePDF.sampleReuse(sample.x(), lumPdf);
 	const Luminaire *luminaire = m_luminaires[index];
 	luminaire->sample(its, lRec, sample);
 
@@ -435,19 +435,19 @@ bool Scene::sampleLuminaire(const Intersection &its,
 
 void Scene::sampleEmission(EmissionRecord &eRec, Point2 &sample1, Point2 &sample2) const {
 	Float lumPdf;
-	unsigned int index = m_luminairePDF.sampleReuse(sample1.x, lumPdf);
+	unsigned int index = m_luminairePDF.sampleReuse(sample1.x(), lumPdf);
 	const Luminaire *luminaire = m_luminaires[index];
 	luminaire->sampleEmission(eRec, sample1, sample2);
 	eRec.pdfArea *= lumPdf;
 	eRec.luminaire = luminaire;
 	Float cosTheta = (eRec.luminaire->getType() & Luminaire::EOnSurface)
-		? absDot(eRec.sRec.n, eRec.d) : 1;
+		? eRec.sRec.n.dot(eRec.d) : 1;
 	eRec.P *= cosTheta / (eRec.pdfArea * eRec.pdfDir);
 }
 
 void Scene::sampleEmissionArea(EmissionRecord &eRec, Point2 &sample) const {
 	Float lumPdf;
-	unsigned int index = m_luminairePDF.sampleReuse(sample.x, lumPdf);
+	unsigned int index = m_luminairePDF.sampleReuse(sample.x(), lumPdf);
 	const Luminaire *luminaire = m_luminaires[index];
 	luminaire->sampleEmissionArea(eRec, sample);
 	eRec.pdfArea *= lumPdf;

@@ -564,7 +564,7 @@ public:
 
 		while (rayIntersect(ray, t, inside)) {
 			if (inside) {
-				Point currentPoint(0.0f);
+				Point currentPoint(Point::Zero());
 				success = invertDensityIntegral(ray, std::min(t, distSurf), 
 						accumulatedDensity, desiredDensity, currentSigmaT, currentAlbedo,
 						currentPoint);
@@ -667,7 +667,7 @@ Spectrum FlakePhaseFunction::f(const PhaseFunctionQueryRecord &pRec) const {
 	Float length = H.norm();
 
 	if (length == 0)
-		return Spectrum(0.0f);
+		return Spectrum::Zero();
 	else
 		H /= length;
 
@@ -712,7 +712,7 @@ Spectrum FlakePhaseFunction::sample(PhaseFunctionQueryRecord &pRec,
 	if (!result.isZero())
 		return result / pdf;
 	else
-		return Spectrum(0.0f);
+		return Spectrum::Zero();
 }
 
 Float FlakePhaseFunction::pdf(const PhaseFunctionQueryRecord &pRec) const {

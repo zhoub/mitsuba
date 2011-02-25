@@ -48,7 +48,7 @@ Float VolumeDataSource::lookupFloat(const Point &p) const {
 
 Spectrum VolumeDataSource::lookupSpectrum(const Point &p) const {
 	Log(EError, "'%s': does not implement lookupSpectrum()!", getClass()->getName().c_str());
-	return Spectrum(0.0f);
+	return Spectrum::Zero();
 }
 
 Vector VolumeDataSource::lookupVector(const Point &p) const {

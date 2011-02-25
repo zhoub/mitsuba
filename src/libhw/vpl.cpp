@@ -299,7 +299,7 @@ void VPLShaderManager::configure(const VPL &vpl, const BSDF *bsdf,
 	if (bsdfShader == NULL || vplShader == NULL ||
 		(luminaire != NULL && lumShader == NULL)) {
 		/* Unsupported! */
-		m_renderer->setColor(Spectrum(0.0f));
+		m_renderer->setColor(Spectrum::Zero());
 		return;
 	}
 

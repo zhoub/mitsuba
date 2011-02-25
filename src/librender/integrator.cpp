@@ -177,7 +177,7 @@ void SampleIntegrator::renderBlock(const Scene *scene,
 				if (stop) 
 					break;
 				sampler->generate();
-				mean = meanSqr = Spectrum(0.0f);
+				mean = meanSqr = Spectrum::Zero();
 				for (uint64_t j = 0; j<sampler->getSampleCount(); j++) {
 					rRec.newQuery(RadianceQueryRecord::ECameraRay);
 					if (needsLensSample)
@@ -240,7 +240,7 @@ void SampleIntegrator::renderBlock(const Scene *scene,
 					if (stop) 
 						break;
 					sampler->generate();
-					mean = meanSqr = Spectrum(0.0f);
+					mean = meanSqr = Spectrum::Zero();
 					for (uint64_t j = 0; j<sampler->getSampleCount(); j++) {
 						rRec.newQuery(RadianceQueryRecord::ECameraRay);
 						if (needsLensSample)

@@ -61,7 +61,7 @@ public:
 
 	Spectrum Le(const LuminaireSamplingRecord &lRec) const {
 		if (lRec.d.dot(lRec.sRec.n) <= 0)
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 		return m_intensity;
 	}
 
@@ -121,7 +121,7 @@ public:
 		if (dp > 0)
 			return Spectrum(INV_PI);
 		else
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 	}
 
 	void pdfEmission(EmissionRecord &eRec, bool delta) const {

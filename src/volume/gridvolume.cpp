@@ -282,7 +282,7 @@ public:
 	Spectrum lookupSpectrum(const Point &_p) const {
 		const Point p = m_worldToGrid.transformAffine(_p);
 		if (p.x < 0 || p.y < 0 || p.z < 0)
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 
 		const int x1 = (int) p.x, y1 = (int) p.y, z1 = (int) p.z,
 				x2 = x1+1, y2 = y1+1, z2 = z1+1;
@@ -291,7 +291,7 @@ public:
 			y2 >= m_res.y || z2 >= m_res.z) {
 			/* Do an integer bounds test (may seem redundant - this is
 			   to avoid a segfault, should a NaN/Inf ever find its way here..) */
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 		}
 
 		const Float fx = p.x-x1, fy = p.y-y1, fz = p.z-z1,

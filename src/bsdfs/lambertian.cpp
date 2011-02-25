@@ -69,7 +69,7 @@ public:
 	Spectrum f(const BSDFQueryRecord &bRec) const {
 		if (!(bRec.typeMask & m_combinedType)
 			|| bRec.wi.z <= 0 || bRec.wo.z <= 0)
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 
 		return m_reflectance->getValue(bRec.its) * INV_PI;
 	}
@@ -82,7 +82,7 @@ public:
 
 	Spectrum sample(BSDFQueryRecord &bRec, const Point2 &sample) const {
 		if (!(bRec.typeMask & m_combinedType) || bRec.wi.z <= 0)
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 		bRec.wo = squareToHemispherePSA(sample);
 		bRec.sampledComponent = 0;
 		bRec.sampledType = EDiffuseReflection;
@@ -91,7 +91,7 @@ public:
 
 	Spectrum sample(BSDFQueryRecord &bRec, Float &pdf, const Point2 &sample) const {
 		if (!(bRec.typeMask & m_combinedType) || bRec.wi.z <= 0)
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 		bRec.wo = squareToHemispherePSA(sample);
 		bRec.sampledComponent = 0;
 		bRec.sampledType = EDiffuseReflection;

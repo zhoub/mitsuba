@@ -342,7 +342,7 @@ template<class T> std::string listToString(const std::vector<T> &vec) {
  * http://www.plunk.org/~hatch/rightway.php
  */
 template <typename VectorType> inline Float unitAngle(const VectorType &u, const VectorType &v) {
-	if (dot(u, v) < 0)
+	if (u.dot(v) < 0)
 		return M_PI - 2 * std::asin((v+u).norm()/2);
 	else
 		return 2 * std::asin((v-u).norm()/2);

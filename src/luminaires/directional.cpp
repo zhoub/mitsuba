@@ -78,7 +78,7 @@ public:
 	Spectrum Le(const LuminaireSamplingRecord &lRec) const {
 		/* Directional luminaire is not part of the scene */
 		Log(EError, "This function should never be called.");
-		return Spectrum(0.0f);
+		return Spectrum::Zero();
 	}
 
 	inline Float pdf(const Point &p, const LuminaireSamplingRecord &lRec, bool delta) const {
@@ -133,7 +133,7 @@ public:
 
 	Spectrum f(const EmissionRecord &eRec) const {
 		/* Directional luminaire beam is not part of the scene */
-		return Spectrum(0.0f);
+		return Spectrum::Zero();
 	}
 
 	void pdfEmission(EmissionRecord &eRec, bool delta) const {

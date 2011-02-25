@@ -58,8 +58,8 @@ void PreviewWorker::processIncoherent(const WorkUnit *workUnit, WorkResult *work
 	block->setOffset(rect->getOffset());
 	block->setSize(rect->getSize());
 
-	const int sx = rect->getOffset().x, sy = block->getOffset().y;
-	const int ex = sx + rect->getSize().x, ey = sy + rect->getSize().y;
+	const int sx = rect->getOffset().x(), sy = block->getOffset().y();
+	const int ex = sx + rect->getSize().x(), ey = sy + rect->getSize().y();
 
 	/* Some local variables */
 	int pos = 0;
@@ -86,7 +86,7 @@ void PreviewWorker::processIncoherent(const WorkUnit *workUnit, WorkResult *work
 			if (its.shape->isLuminaire())
 				value = its.Le(-primary.d);
 			else
-				value = Spectrum(0.0f);
+				value = Spectrum::Zero();
 
 			toVPL = m_vpl.its.p - its.p;
 			secondary = Ray(its.p, toVPL, ShadowEpsilon, 1-ShadowEpsilon, shutterOpen);
@@ -132,9 +132,9 @@ void PreviewWorker::processCoherent(const WorkUnit *workUnit, WorkResult *workRe
 	block->setSize(rect->getSize());
 
 	/* Some constants */
-	const int sx = rect->getOffset().x, sy = block->getOffset().y;
-	const int ex = sx + rect->getSize().x, ey = sy + rect->getSize().y;
-	const int width = rect->getSize().x;
+	const int sx = rect->getOffset().x(), sy = block->getOffset().y();
+	const int ex = sx + rect->getSize().x(), ey = sy + rect->getSize().y();
+	const int width = rect->getSize().x();
 	const SSEVector MM_ALIGN16 xOffset(0.0f, 1.0f, 0.0f, 1.0f);
 	const SSEVector MM_ALIGN16 yOffset(0.0f, 0.0f, 1.0f, 1.0f);
 	const int pixelOffset[] = {0, 1, width, width+1};
@@ -142,29 +142,29 @@ void PreviewWorker::processCoherent(const WorkUnit *workUnit, WorkResult *workRe
 	uint8_t temp[MTS_KD_INTERSECTION_TEMP*4];
 
 	const __m128 camTL[3] = {
-		 _mm_set1_ps(m_cameraTL.x),
-		 _mm_set1_ps(m_cameraTL.y),
-		 _mm_set1_ps(m_cameraTL.z)
+		 _mm_set1_ps(m_cameraTL.x()),
+		 _mm_set1_ps(m_cameraTL.y()),
+		 _mm_set1_ps(m_cameraTL.z())
 	}; 
 	const __m128 camDx[3] = {
-		 _mm_set1_ps(m_cameraDx.x),
-		 _mm_set1_ps(m_cameraDx.y),
-		 _mm_set1_ps(m_cameraDx.z)
+		 _mm_set1_ps(m_cameraDx.x()),
+		 _mm_set1_ps(m_cameraDx.y()),
+		 _mm_set1_ps(m_cameraDx.z())
 	}; 
 	const __m128 camDy[3] = {
-		 _mm_set1_ps(m_cameraDy.x),
-		 _mm_set1_ps(m_cameraDy.y),
-		 _mm_set1_ps(m_cameraDy.z)
+		 _mm_set1_ps(m_cameraDy.x()),
+		 _mm_set1_ps(m_cameraDy.y()),
+		 _mm_set1_ps(m_cameraDy.z())
 	}; 
 	const __m128 lumPos[3] = {
-		_mm_set1_ps(m_vpl.its.p.x),
-		_mm_set1_ps(m_vpl.its.p.y),
-		_mm_set1_ps(m_vpl.its.p.z)
+		_mm_set1_ps(m_vpl.its.p.x()),
+		_mm_set1_ps(m_vpl.its.p.y()),
+		_mm_set1_ps(m_vpl.its.p.z())
 	};
 	const __m128 lumDir[3] = {
-		_mm_set1_ps(m_vpl.its.shFrame.n.x),
-		_mm_set1_ps(m_vpl.its.shFrame.n.y),
-		_mm_set1_ps(m_vpl.its.shFrame.n.z)
+		_mm_set1_ps(m_vpl.its.shFrame.n.x()),
+		_mm_set1_ps(m_vpl.its.shFrame.n.y()),
+		_mm_set1_ps(m_vpl.its.shFrame.n.z())
 	};
 
 	/* Some local variables */
@@ -195,9 +195,9 @@ void PreviewWorker::processCoherent(const WorkUnit *workUnit, WorkResult *workRe
 		vplWeight = m_vpl.P * m_vpl.luminaire->f(eRec);
 	}
 
-	primRay4.o[0].ps = _mm_set1_ps(m_cameraO.x);
-	primRay4.o[1].ps = _mm_set1_ps(m_cameraO.y);
-	primRay4.o[2].ps = _mm_set1_ps(m_cameraO.z);
+	primRay4.o[0].ps = _mm_set1_ps(m_cameraO.x());
+	primRay4.o[1].ps = _mm_set1_ps(m_cameraO.y());
+	primRay4.o[2].ps = _mm_set1_ps(m_cameraO.z());
 	secItv4.mint.ps = _mm_set1_ps(ShadowEpsilon);
 
 	/* Work on 2x2 sub-blocks */
@@ -304,7 +304,7 @@ void PreviewWorker::processCoherent(const WorkUnit *workUnit, WorkResult *workRe
 								alpha = 1.0f - beta - gamma;
 					const uint32_t idx0 = t.idx[0], idx1 = t.idx[1], idx2 = t.idx[2];
 
-					if (EXPECT_TAKEN(normals)) {
+					if (EXPECT_TAKEN(normals != NULL)) {
 						const Normal &n0 = normals[idx0],
 							  		 &n1 = normals[idx1],
 									 &n2 = normals[idx2];
@@ -319,26 +319,26 @@ void PreviewWorker::processCoherent(const WorkUnit *workUnit, WorkResult *workRe
 						Float nLengthSqr = n.squaredNorm();
 						if (nLengthSqr != 0)
 							n /= std::sqrt(nLengthSqr);
-						its.shFrame.n = Normal(n);
+						its.shFrame.n = n;
 					}
 
-					if (EXPECT_TAKEN(texcoords)) {
+					if (EXPECT_TAKEN(texcoords != NULL)) {
 						const Point2 &t0 = texcoords[idx0],
 							  		 &t1 = texcoords[idx1],
 									 &t2 = texcoords[idx2];
 						its.uv = t0 * alpha + t1 * beta + t2 * gamma;
 					} else {
-						its.uv = Point2(0.0f);
+						its.uv = Point2::Zero();
 					}
 
-					if (EXPECT_NOT_TAKEN(colors)) {
+					if (EXPECT_NOT_TAKEN(colors != NULL)) {
 						const Spectrum &c0 = colors[idx0],
 							  		   &c1 = colors[idx1],
 									   &c2 = colors[idx2];
 						its.color = c0 * alpha + c1 * beta + c2 * gamma;
 					}
 
-					if (EXPECT_NOT_TAKEN(tangents)) {
+					if (EXPECT_NOT_TAKEN(tangents != NULL)) {
 						const TangentSpace &t0 = tangents[idx0],
 							  			   &t1 = tangents[idx1],
 										   &t2 = tangents[idx2];
@@ -356,7 +356,7 @@ void PreviewWorker::processCoherent(const WorkUnit *workUnit, WorkResult *workRe
 					bsdf = its.shape->getBSDF();
 				}
 
-				wo.x = nSecD[0].f[idx]; wo.y = nSecD[1].f[idx]; wo.z = nSecD[2].f[idx];
+				wo.x() = nSecD[0].f[idx]; wo.y() = nSecD[1].f[idx]; wo.z() = nSecD[2].f[idx];
 
 				if (EXPECT_TAKEN(!shape->isLuminaire())) {
 					memset(&emitted[idx], 0, sizeof(Spectrum));
@@ -373,12 +373,12 @@ void PreviewWorker::processCoherent(const WorkUnit *workUnit, WorkResult *workRe
 						* (vplOnSurface ? (std::max(cosThetaLight.f[idx], (Float) 0.0f) * INV_PI) : INV_PI)
 						* invLengthSquared.f[idx]);
 				} else {
-					wi.x = -primRay4.d[0].f[idx];
-					wi.y = -primRay4.d[1].f[idx];
-					wi.z = -primRay4.d[2].f[idx];
-					its.p.x = secRay4.o[0].f[idx];
-					its.p.y = secRay4.o[1].f[idx];
-					its.p.z = secRay4.o[2].f[idx];
+					wi.x() = -primRay4.d[0].f[idx];
+					wi.y() = -primRay4.d[1].f[idx];
+					wi.z() = -primRay4.d[2].f[idx];
+					its.p.x() = secRay4.o[0].f[idx];
+					its.p.y() = secRay4.o[1].f[idx];
+					its.p.z() = secRay4.o[2].f[idx];
 					if (EXPECT_NOT_TAKEN(bsdf->getType() & BSDF::EAnisotropicMaterial)) {
 						its.shFrame.s = (its.dpdu - its.shFrame.n
 							* its.shFrame.n.dot(its.dpdu)).normalized();

@@ -60,7 +60,7 @@ public:
 	void append(const T &value) {
 		ListItem *item = new ListItem(value);
 		ListItem **cur = &m_head;
-		while (!atomicCompareAndExchangePtr<ListItem>(cur, item, NULL))
+		while (!Atomic::compareAndExchangePtr<ListItem>(cur, item, NULL))
 			cur = &((*cur)->next);
 	}
 private:
@@ -130,12 +130,12 @@ private:
 	/// Return the BoundingBox3 for a child of the specified index
 	inline BoundingBox3 childBounds(int child, const BoundingBox3 &nodeBoundingBox, const Point &center) const {
 		BoundingBox3 childBoundingBox3;
-		childBoundingBox3.min.x = (child & 4) ? center.x : nodeBoundingBox.min.x;
-		childBoundingBox3.max.x = (child & 4) ? nodeBoundingBox.max.x : center.x;
-		childBoundingBox3.min.y = (child & 2) ? center.y : nodeBoundingBox.min.y;
-		childBoundingBox3.max.y = (child & 2) ? nodeBoundingBox.max.y : center.y;
-		childBoundingBox3.min.z = (child & 1) ? center.z : nodeBoundingBox.min.z;
-		childBoundingBox3.max.z = (child & 1) ? nodeBoundingBox.max.z : center.z;
+		childBoundingBox3.min.x() = (child & 4) ? center.x() : nodeBoundingBox.min.x();
+		childBoundingBox3.max.x() = (child & 4) ? nodeBoundingBox.max.x() : center.x();
+		childBoundingBox3.min.y() = (child & 2) ? center.y() : nodeBoundingBox.min.y();
+		childBoundingBox3.max.y() = (child & 2) ? nodeBoundingBox.max.y() : center.y();
+		childBoundingBox3.min.z() = (child & 1) ? center.z() : nodeBoundingBox.min.z();
+		childBoundingBox3.max.z() = (child & 1) ? nodeBoundingBox.max.z() : center.z();
 		return childBoundingBox3;
 	}
 
@@ -155,9 +155,9 @@ private:
 		const Point center = nodeBoundingBox.getCenter();
 
 		/* Otherwise: test for overlap */
-		bool x[2] = { coverage.min.x <= center.x, coverage.max.x > center.x };
-		bool y[2] = { coverage.min.y <= center.y, coverage.max.y > center.y };
-		bool z[2] = { coverage.min.z <= center.z, coverage.max.z > center.z };
+		bool x[2] = { coverage.min.x() <= center.x(), coverage.max.x() > center.x() };
+		bool y[2] = { coverage.min.y() <= center.y(), coverage.max.y() > center.y() };
+		bool z[2] = { coverage.min.z() <= center.z(), coverage.max.z() > center.z() };
 		bool over[8] = { x[0] & y[0] & z[0], x[0] & y[0] & z[1],
 						 x[0] & y[1] & z[0], x[0] & y[1] & z[1],
 						 x[1] & y[0] & z[0], x[1] & y[0] & z[1],
@@ -169,11 +169,11 @@ private:
 				continue;
 			if (!node->children[child]) {
 				OctreeNode *newNode = new OctreeNode();
-				if (!atomicCompareAndExchangePtr<OctreeNode>(&node->children[child], newNode, NULL))
+				if (!Atomic::compareAndExchangePtr<OctreeNode>(&node->children[child], newNode, NULL))
 					delete newNode;
 			}
-			const BoundingBox3 childBoundingBox3(childBounds(child, nodeBoundingBox, center));
-			insert(node->children[child], childBoundingBox3,
+			const BoundingBox3 childBoundingBox(childBounds(child, nodeBoundingBox, center));
+			insert(node->children[child], childBoundingBox,
 				value, coverage, diag2, depth+1);
 		}
 	}
@@ -189,15 +189,15 @@ private:
 			item = item->next;
 		}
 
-		int child = (p.x > center.x ? 4 : 0)
-				+ (p.y > center.y ? 2 : 0) 
-				+ (p.z > center.z ? 1 : 0);
+		int child = (p.x() > center.x() ? 4 : 0)
+				+ (p.y() > center.y() ? 2 : 0) 
+				+ (p.z() > center.z() ? 1 : 0);
 
 		OctreeNode *childNode = node->children[child];
 
 		if (childNode) {
-			const BoundingBox3 childBoundingBox3(childBounds(child, nodeBoundingBox, center));
-			lookup(node->children[child], childBoundingBox3, p, functor);
+			const BoundingBox3 childBoundingBox(childBounds(child, nodeBoundingBox, center));
+			lookup(node->children[child], childBoundingBox, p, functor);
 		}
 	}
 
@@ -215,9 +215,9 @@ private:
 		// Potential for much optimization..
 		for (int child=0; child<8; ++child) { 
 			if (node->children[child]) {
-				const BoundingBox3 childBoundingBox3(childBounds(child, nodeBoundingBox, center));
-				if (childBoundingBox3.overlaps(sphere))
-					searchSphere(node->children[child], childBoundingBox3, sphere, functor);
+				const BoundingBox3 childBoundingBox(childBounds(child, nodeBoundingBox, center));
+				if (childBoundingBox.overlaps(sphere))
+					searchSphere(node->children[child], childBoundingBox, sphere, functor);
 			}
 		}
 	}

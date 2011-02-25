@@ -126,7 +126,7 @@ public:
 		Float length = eRec.d.norm();
 
 		if (length == 0) {
-			eRec.P = Spectrum(0.0f);
+			eRec.P = Spectrum::Zero();
 			eRec.pdfArea = eRec.pdfDir = 1.0f;
 			return;
 		}
@@ -160,7 +160,7 @@ public:
 
 		if (length == 0.0f) {
 			eRec.pdfDir = 1.0f;
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 		}
 		
 		eRec.d /= length;

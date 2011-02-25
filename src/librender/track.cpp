@@ -54,7 +54,7 @@ void AnimatedTransform::serialize(Stream *stream) const {
 
 /// Compute the transformation at the specified time value
 void AnimatedTransform::eval(Float t, Transform &trafo) const {
-	Vector translation(0.0f);
+	Vector translation = Vector::Zero();
 	Vector scale(1.0f);
 	Quaternion rotation;
 

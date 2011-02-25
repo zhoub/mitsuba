@@ -87,7 +87,7 @@ public:
 		const Float cosTheta = localDir.z;
 		
 		if (cosTheta < m_cosCutoffAngle)
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 
 		if (m_texture->getClass() != ConstantTexture::m_theClass) {
 			Intersection its;
@@ -103,7 +103,7 @@ public:
 	}
 
 	Spectrum Le(const LuminaireSamplingRecord &lRec) const {
-		return Spectrum(0.0f);
+		return Spectrum::Zero();
 	}
 
 	inline Float pdf(const Point &p, const LuminaireSamplingRecord &lRec, bool delta) const {
@@ -165,7 +165,7 @@ public:
 	}
 
 	Spectrum fArea(const EmissionRecord &eRec) const {
-		return Spectrum(0.0f);
+		return Spectrum::Zero();
 	}
 
 	void addChild(const std::string &name, ConfigurableObject *child) {

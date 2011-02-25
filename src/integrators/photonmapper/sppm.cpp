@@ -234,7 +234,7 @@ public:
 								if (gatherPoint.its.isLuminaire())
 									gatherPoint.emission = gatherPoint.its.Le(-ray.d);
 								else
-									gatherPoint.emission = Spectrum(0.0f);
+									gatherPoint.emission = Spectrum::Zero()
 								break;
 							} else {
 								/* Recurse for dielectric materials and (specific to SPPM):
@@ -301,11 +301,11 @@ public:
 						gp.its, gp.radius, flux, m_maxDepth-gp.depth);
 				} else {
 					M = 0;
-					flux = Spectrum(0.0f);
+					flux = Spectrum::Zero();
 				}
 
 				if (N+M == 0) {
-					gp.flux = contrib = Spectrum(0.0f);
+					gp.flux = contrib = Spectrum::Zero();
 				} else {
 					Float ratio = (N + m_alpha * M) / (N + M);
 					gp.flux = (gp.flux + gp.weight * (flux + 

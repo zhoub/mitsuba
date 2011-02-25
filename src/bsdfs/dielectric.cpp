@@ -89,11 +89,11 @@ public:
 	}
 
 	Spectrum getDiffuseReflectance(const Intersection &its) const {
-		return Spectrum(0.0f);
+		return Spectrum::Zero();
 	}
 
 	Spectrum f(const BSDFQueryRecord &bRec) const {
-		return Spectrum(0.0f);
+		return Spectrum::Zero();
 	}
 
 	Float pdf(const BSDFQueryRecord &bRec) const {
@@ -203,7 +203,7 @@ public:
 
 				Float result = refract(intIOR, extIOR, bRec.wi, bRec.wo, bRec.quantity);
 				if (result == 0)
-					return Spectrum(0.0f);
+					return Spectrum::Zero();
 				pdf *= std::abs(Frame::cosTheta(bRec.wo));
 
 				return m_transmittance * result * (1-fr);
@@ -221,11 +221,11 @@ public:
 
 			Float result = refract(intIOR, extIOR, bRec.wi, bRec.wo, bRec.quantity);
 			if (result == 0)
-				return Spectrum(0.0f);
+				return Spectrum::Zero();
 
 			return m_transmittance * (result * (1-fr) * std::abs(1.0f/Frame::cosTheta(bRec.wo)));
 		}
-		return Spectrum(0.0f);
+		return Spectrum::Zero();
 	}
 
 	Float pdfDelta(const BSDFQueryRecord &bRec) const {
@@ -267,9 +267,9 @@ public:
 #endif
 		Float fr = fresnel(Frame::cosTheta(bRec.wi), extIOR, intIOR);
 		if (sampleReflection && !sampleTransmission && !reflection) 
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 		else if (!sampleReflection && sampleTransmission && reflection)
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 		if (reflection)
 			return m_reflectance * fr;
 		else {

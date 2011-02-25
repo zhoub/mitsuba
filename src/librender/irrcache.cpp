@@ -42,10 +42,10 @@ void HemisphereSampler::generateDirections(const Intersection &its, Sampler *sam
 			Point2 sample = sampler->independent2D();
 
 			/* Sample uniformly wrt. projected solid angles */
-			Float sinTheta2 = (j+sample.x)/m_M;
+			Float sinTheta2 = (j+sample.x())/m_M;
 			Float cosTheta = std::sqrt(std::max((Float) 0, 1-sinTheta2));
 			Float sinTheta = std::sqrt(sinTheta2);
-			Float phi = 2*M_PI*(k+sample.y)/m_N;
+			Float phi = 2*M_PI*(k+sample.y())/m_N;
 
 			entry.d  = its.geoFrame.toWorld(Vector(sinTheta*std::cos(phi), 
 				sinTheta*std::sin(phi), cosTheta));
@@ -75,10 +75,10 @@ void HemisphereSampler::generateDirections(const Intersection &its, Sampler *sam
 
 void HemisphereSampler::process(const Intersection &its) {
 	for (int i=0; i<3; ++i) {
-		m_rGrad[i] = Spectrum(0.0f);
-		m_tGrad[i] = Spectrum(0.0f);
+		m_rGrad[i] = Spectrum::Zero();
+		m_tGrad[i] = Spectrum::Zero();
 	}
-	m_E = Spectrum(0.0f);
+	m_E = Spectrum::Zero();
 	m_hMean = 0;
 	m_hMin = std::numeric_limits<Float>::infinity();
 	m_hMinRestricted = std::numeric_limits<Float>::infinity();
@@ -368,7 +368,7 @@ bool IrradianceCache::get(const Intersection &its, Spectrum &E) const {
 	if (functor.weightSum > 0) {
 		E = functor.E / functor.weightSum;
 		++irradHits;
-		Assert(!E.isNaN());
+		Assert(!E.hasNaN());
 		return true;
 	}
 

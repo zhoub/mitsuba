@@ -339,7 +339,7 @@ public:
 
 		while (rayIntersect(ray, t, inside)) {
 			if (inside) {
-				Point currentPoint(0.0f);
+				Point currentPoint(Point::Zero());
 				success = invertDensityIntegral(ray, std::min(t, distSurf), 
 						accumulatedDensity, desiredDensity, currentSigmaT, currentAlbedo,
 						currentPoint);
@@ -381,7 +381,7 @@ public:
 		mRec.sigmaA = Spectrum(currentSigmaT) - mRec.sigmaS;
 		mRec.albedo = currentAlbedo.max();
 		mRec.orientation = m_orientations != NULL 
-			? m_orientations->lookupVector(mRec.p) : Vector(0.0f);
+			? m_orientations->lookupVector(mRec.p) : Vector::Zero();
 		mRec.medium = this;
 		return true;
 	}

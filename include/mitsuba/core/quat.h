@@ -8,7 +8,7 @@
     as published by the Free Software Foundation.
 
     Mitsuba is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    but WITHOUScalar ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
 
@@ -27,8 +27,9 @@ MTS_NAMESPACE_BEGIN
  * \brief Parameterizable quaternion data structure
  * \ingroup libcore
  */
-template <typename T> struct TQuaternion {
-	typedef T          value_type;
+template <typename Scalar> struct TQuaternion {
+	typedef _Scalar                     Scalar;
+	typedef Eigen::Matrix<Scalar, 3, 1> VectorType;
 
 	/// Used by \ref TQuaternion::fromEulerAngles
 	enum EEulerAngleConvention {
@@ -41,23 +42,23 @@ template <typename T> struct TQuaternion {
 	};
 
 	/// Imaginary component
-	TVector3<T> v;
+	VectorType v;
 
 	/// Real component
-	T w;
+	Scalar w;
 
 	/// Create a unit quaternion
-	TQuaternion() : v(0.0f), w(1) { }
+	TQuaternion() : v(Vector::Zero()), w(1) { }
 
 	/**
 	 * Initialize the quaternion with the specified 
 	 * real and imaginary components
 	 */
-	TQuaternion(const TVector3<T> &v, T w) : v(v), w(w) {  }
+	TQuaternion(const VectorType &v, Scalar w) : v(v), w(w) {  }
 
 	/// Unserialize a quaternion from a binary data stream
 	explicit TQuaternion(Stream *stream) {
-		v = TVector3<T>(stream);
+		v = VectorType(stream);
 		w = stream->readElement<T>();
 	}
 
@@ -84,40 +85,40 @@ template <typename T> struct TQuaternion {
 	}
 
 	/// Multiply the quaternion by the given scalar and return the result
-	TQuaternion operator*(T f) const {
+	TQuaternion operator*(Scalar f) const {
 		return TQuaternion(v*f, w*f);
 	}
 
 	/// Multiply the quaternion by the given scalar
-	TQuaternion &operator*=(T f) {
+	TQuaternion &operator*=(Scalar f) {
 		v *= f; w *= f; 
 		return *this;
 	}
 
 	/// Divide the quaternion by the given scalar and return the result
-	TQuaternion operator/(T f) const {
+	TQuaternion operator/(Scalar f) const {
 #ifdef MTS_DEBUG
 		if (f == 0)
 			SLog(EWarn, "Quaternion: Division by zero!");
 #endif
-		T recip = (T) 1 / f;
+		Scalar recip = (T) 1 / f;
 		return TQuaternion(v * recip, w * recip);
 	}
 
 	/// Divide the quaternion by the given scalar
-	TQuaternion &operator/=(T f) {
+	TQuaternion &operator/=(Scalar f) {
 #ifdef MTS_DEBUG
 		if (f == 0)
 			SLog(EWarn, "Quaternion: Division by zero!");
 #endif
-		T recip = (T) 1 / f;
+		Scalar recip = (T) 1 / f;
 		v *= recip; w *= recip; 
 		return *this;
 	}
 
 	/// Quaternion multiplication
 	TQuaternion &operator*=(const TQuaternion &q) {
-		value_type tmp = w * q.w - dot(v, q.v);
+		Scalar tmp = w * q.w - dot(v, q.v);
 		v = cross(v, q.v) + q.w * v + w * q.v;
 		w = tmp;
 		return *this;
@@ -140,10 +141,10 @@ template <typename T> struct TQuaternion {
 	}
 
 	/// Return the rotation axis of this quaternion
-    inline TVector3<T> axis() const { return normalize(v); }
+    inline VectorType axis() const { return normalize(v); }
 
 	/// Return the rotation angle of this quaternion (in radians)
-    inline value_type angle() const { return 2 * std::acos(w); }
+    inline Scalar angle() const { return 2 * std::acos(w); }
 
 
 	/**
@@ -154,8 +155,8 @@ template <typename T> struct TQuaternion {
 	 * "Quaternion Calculus for Computer Graphics" by Ken Shoemake
 	 */
 	TQuaternion exp() const {
-		T theta = v.norm();
-		T c = std::cos(theta);
+		Scalar theta = v.norm();
+		Scalar c = std::cos(theta);
 
 		if (theta > Epsilon) 
 			return TQuaternion(v * (std::sin(theta) / theta), c);
@@ -170,8 +171,8 @@ template <typename T> struct TQuaternion {
 	 * "Quaternion Calculus for Computer Graphics" by Ken Shoemake
 	 */
 	TQuaternion log() const {
-		T scale = v.norm();
-		T theta = std::atan2(scale, w);
+		Scalar scale = v.norm();
+		Scalar theta = std::atan2(scale, w);
 
 		if (scale > 0)
 			scale = theta/scale;
@@ -184,7 +185,7 @@ template <typename T> struct TQuaternion {
 	 * around \a axis by \a angle radians.
 	 */
 	static TQuaternion fromAxisAngle(const Vector &axis, Float angle) {
-		T sinValue = std::sin(angle/2.0f), cosValue = std::cos(angle/2.0f);
+		Scalar sinValue = std::sin(angle/2.0f), cosValue = std::cos(angle/2.0f);
 		return TQuaternion(normalize(axis) * sinValue, cosValue);
 	}
 
@@ -223,12 +224,12 @@ template <typename T> struct TQuaternion {
 	static TQuaternion fromTransform(const Transform trafo) {
 		/// Implementation from PBRT
 		const Matrix4x4 &m = trafo.getMatrix();
-		T trace = m.m[0][0] + m.m[1][1] + m.m[2][2];
-		TVector3<T> v; T w;
+		Scalar trace = m.m[0][0] + m.m[1][1] + m.m[2][2];
+		VectorType v; Scalar w;
 		if (trace > 0.f) {
 			// Compute w from matrix trace, then xyz
 			// 4w^2 = m[0][0] + m[1][1] + m[2][2] + m[3][3] (but m[3][3] == 1)
-			T s = std::sqrt(trace + 1.0f);
+			Scalar s = std::sqrt(trace + 1.0f);
 			w = s / 2.0f;
 			s = 0.5f / s;
 			v.x = (m.m[2][1] - m.m[1][2]) * s;
@@ -237,13 +238,13 @@ template <typename T> struct TQuaternion {
 		} else {
 			// Compute largest of $x$, $y$, or $z$, then remaining components
 			const int nxt[3] = {1, 2, 0};
-			T q[3];
+			Scalar q[3];
 			int i = 0;
 			if (m.m[1][1] > m.m[0][0]) i = 1;
 			if (m.m[2][2] > m.m[i][i]) i = 2;
 			int j = nxt[i];
 			int k = nxt[j];
-			T s = std::sqrt((m.m[i][i] - (m.m[j][j] + m.m[k][k])) + 1.0);
+			Scalar s = std::sqrt((m.m[i][i] - (m.m[j][j] + m.m[k][k])) + 1.0);
 			q[i] = s * 0.5f;
 			if (s != 0.f) s = 0.5f / s;
 			w = (m.m[k][j] - m.m[j][k]) * s;
@@ -329,11 +330,11 @@ template <typename T> struct TQuaternion {
 	}
 };
 
-template <typename T> inline TQuaternion<T> operator*(T f, const TQuaternion<T> &v) {
+template <typename T> inline TQuaternion<T> operator*(Scalar f, const TQuaternion<T> &v) {
 	return v*f;
 }
 
-template <typename T> inline T dot(const TQuaternion<T> &q1, const TQuaternion<T> &q2) {
+template <typename T> inline Scalar dot(const TQuaternion<T> &q1, const TQuaternion<T> &q2) {
 	return dot(q1.v, q2.v) + q1.w * q2.w;
 }
 
@@ -343,7 +344,7 @@ template <typename T> inline TQuaternion<T> normalize(const TQuaternion<T> &q) {
 
 template <typename T> inline TQuaternion<T> slerp(const TQuaternion<T> &q1,
 	const TQuaternion<T> &q2, Float t) {
-	T cosTheta = dot(q1, q2);
+	Scalar cosTheta = dot(q1, q2);
 	if (cosTheta > .9995f) {
 		// Revert to plain linear interpolation
 		return normalize(q1 * (1.0f - t) +  q2 * t);

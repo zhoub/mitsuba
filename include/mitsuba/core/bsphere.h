@@ -32,7 +32,7 @@ struct BoundingSphere {
 	Float radius;
 
 	/// Construct a bounding sphere at the origin having radius zero
-	inline BoundingSphere() : center(0.0f, 0.0f, 0.0f), radius(0.0f) { }
+	inline BoundingSphere() : center(Point::Zero()), radius(0.0f) { }
 
 	/// Unserialize a bounding sphere from a binary data stream
 	inline BoundingSphere(Stream *stream) {

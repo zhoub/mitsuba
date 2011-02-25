@@ -78,8 +78,8 @@ public:
 		Log(EInfo, "Loading geometry from \"%s\" ..", filePath.leaf().c_str());
 		m_triangleCount = m_vertexCount = 0;
 		m_vertexCtr = m_triangleCtr = m_triangleIdxCtr = 0;
-		m_normal = Normal(0.0f);
-		m_uv = Point2(0.0f);
+		m_normal = Normal::Zero();
+		m_uv = Point2::Zero();
 		m_hasNormals = false;
 		m_hasTexCoords = false;
 		memset(&m_triangle, 0, sizeof(Triangle));

@@ -65,7 +65,7 @@ public:
 	}
 
 	Spectrum getDiffuseReflectance(const Intersection &its) const {
-		return Spectrum(0.0f);
+		return Spectrum::Zero();
 	}
 
 	/**
@@ -119,7 +119,7 @@ public:
 	Spectrum f(const BSDFQueryRecord &bRec) const {
 		if (!(bRec.typeMask & m_combinedType)
 			|| bRec.wi.z <= 0 || bRec.wo.z <= 0)
-			return Spectrum(0.0f);\
+			return Spectrum::Zero();\
 
 		Vector Hr = (bRec.wi+bRec.wo).normalized();
 
@@ -143,13 +143,13 @@ public:
 
 		Vector Hr = (bRec.wi + bRec.wo).normalized();
 		/* Jacobian of the half-direction transform. */
-		Float dwhr_dwo = 1.0f / (4.0f * absDot(bRec.wo, Hr));
+		Float dwhr_dwo = 1.0f / (4.0f * std::abs(bRec.wo.dot(Hr)));
 		return beckmannD(Hr) * Frame::cosTheta(Hr) * dwhr_dwo;
 	}
 
 	Spectrum sample(BSDFQueryRecord &bRec, const Point2 &sample) const {
 		if (bRec.wi.z <= 0)
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 
 		/* Sample M, the microsurface normal */
 		Normal m = sampleBeckmannD(sample);
@@ -160,7 +160,7 @@ public:
 		bRec.sampledType = EGlossyReflection;
 
 		if (bRec.wo.z <= 0)
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 
 		return f(bRec) / pdf(bRec);
 	}

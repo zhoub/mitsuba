@@ -192,7 +192,7 @@ public:
 		bRec.sampledType = EGlossyReflection;
 
 		if (Frame::cosTheta(bRec.wo) <= 0.0f)
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 
 		return f(bRec) / pdf(bRec);
 	}
@@ -211,7 +211,7 @@ public:
 	Spectrum sample(BSDFQueryRecord &bRec, const Point2 &_sample) const {
 		Point2 sample(_sample);
 		if (bRec.wi.z <= 0)
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 
 		bool sampleDiffuse = (bRec.typeMask & EDiffuseReflection)
 				&& (bRec.component == -1 || bRec.component == 0);
@@ -233,7 +233,7 @@ public:
 			return sampleSpecular(bRec, sample);
 		}
 
-		return Spectrum(0.0f);
+		return Spectrum::Zero();
 	}
 	
 	void addChild(const std::string &name, ConfigurableObject *child) {

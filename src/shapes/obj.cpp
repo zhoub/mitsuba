@@ -332,7 +332,7 @@ public:
 		std::map<Vertex, int, vertex_key_order> vertexMap;
 		std::vector<Vertex> vertexBuffer;
 		size_t numMerged = 0;
-		Vector translate(0.0f);
+		Vector translate(Vector::Zero());
 		Float scale = 0.0f;
 
 		if (m_recenter) {
@@ -364,15 +364,15 @@ public:
 				else
 					vertex.p = objectToWorld(vertices.at(vertexId));
 
-				if (hasNormals && normals.at(normalId) != Normal(0.0f))
+				if (hasNormals && normals.at(normalId) != Normal::Zero())
 					vertex.n = objectToWorld(normals.at(normalId)).normalized();
 				else
-					vertex.n = Normal(0.0f);
+					vertex.n = Normal::Zero();
 
 				if (hasTexcoords)
 					vertex.uv = texcoords.at(uvId);
 				else
-					vertex.uv = Point2(0.0f);
+					vertex.uv = Point2::Zero();
 
 				if (vertexMap.find(vertex) != vertexMap.end()) {
 					key = vertexMap[vertex];

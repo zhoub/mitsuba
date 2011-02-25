@@ -180,7 +180,7 @@ public:
 		bRec.sampledType = EGlossyReflection;
 
 		if (bRec.wo.z <= 0) 
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 
 		return f(bRec) / pdf(bRec);
 	}
@@ -200,7 +200,7 @@ public:
 		Point2 sample(_sample);
 
 		if (bRec.wi.z <= 0)
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 
 		bool enableDiffuse = (bRec.typeMask & EDiffuseReflection)
 				&& (bRec.component == -1 || bRec.component == 0);
@@ -222,7 +222,7 @@ public:
 			return sampleSpecular(bRec, sample);
 		}
 
-		return Spectrum(0.0f);
+		return Spectrum::Zero();
 	}
 
 	void addChild(const std::string &name, ConfigurableObject *child) {

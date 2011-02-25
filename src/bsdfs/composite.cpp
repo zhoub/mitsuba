@@ -241,7 +241,7 @@ public:
 			}
 		}
 		Log(EError, "Internal error!");
-		return Spectrum(0.0f);
+		return Spectrum::Zero();
 	}
 
 	Spectrum sample(BSDFQueryRecord &bRec, const Point2 &_sample) const {
@@ -269,7 +269,7 @@ public:
 			}
 		}
 		Log(EError, "Internal error!");
-		return Spectrum(0.0f);
+		return Spectrum::Zero();
 	}
 
 	void addChild(const std::string &name, ConfigurableObject *child) {

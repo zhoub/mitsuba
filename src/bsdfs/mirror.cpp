@@ -56,11 +56,11 @@ public:
 	}
 
 	Spectrum getDiffuseReflectance(const Intersection &its) const {
-		return Spectrum(0.0f);
+		return Spectrum::Zero();
 	}
 	
 	Spectrum f(const BSDFQueryRecord &bRec) const {
-		return Spectrum(0.0f);
+		return Spectrum::Zero();
 	}
 
 	Float pdf(const BSDFQueryRecord &bRec) const {
@@ -78,7 +78,7 @@ public:
 
 	Spectrum sample(BSDFQueryRecord &bRec, Float &pdf, const Point2 &sample) const {
 		if (!(bRec.typeMask & m_combinedType))
-			return Spectrum(0.0f);
+			return Spectrum::Zero();
 		reflect(bRec.wi, bRec.wo);
 		bRec.sampledComponent = 0;
 		bRec.sampledType = EDeltaReflection;

@@ -84,7 +84,7 @@ public:
 			if (rRec.type & RadianceQueryRecord::EEmittedRadiance)
 				return scene->LeBackground(ray);
 			else
-				return Spectrum(0.0f);
+				return Spectrum::Zero();
 		}
 
 		const BSDF *bsdf = its.getBSDF(ray);

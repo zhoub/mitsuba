@@ -355,14 +355,14 @@ void writeGeometry(ColladaContext &ctx, const std::string &prefixName, std::stri
 			domUint normalRef = tess_data[i+vData->typeToOffsetInStream[ENormal]];
 			vertex.n = vData->data[vData->typeToOffset[ENormal]][normalRef].toNormal();
 		} else {
-			vertex.n = Normal(0.0f);
+			vertex.n = Normal::Zero();
 		}
 
 		if (vData->typeToOffset[EVertexColor] != -1) {
 			domUint colorRef = tess_data[i+vData->typeToOffsetInStream[EVertexColor]];
 			vertex.col = vData->data[vData->typeToOffset[EVertexColor]][colorRef].toVector();
 		} else {
-			vertex.col = Normal(0.0f);
+			vertex.col = Normal::Zero();
 		}
 
 		if (vData->typeToOffset[EUV] != -1) {
@@ -370,7 +370,7 @@ void writeGeometry(ColladaContext &ctx, const std::string &prefixName, std::stri
 			vertex.uv = vData->data[vData->typeToOffset[EUV]][uvRef].toPoint2();
 			vertex.uv.y = 1-vertex.uv.y; // Invert the V coordinate
 		} else {
-			vertex.uv = Point2(0.0f);
+			vertex.uv = Point2::Zero();
 		}
 
 		int key = -1;
@@ -1539,7 +1539,7 @@ GLvoid __stdcall tessCombine(GLdouble coords[3], void *vertex_data[4],
 		Vec4 *newVec = new Vec4[size+1];
 		memcpy(newVec, oldVec, size * sizeof(Vec4));
 
-		newVec[size] = Vec4(0.0f);
+		newVec[size] = Vec4::Zero();
 		for (int j=0; j<4; ++j) {
 			void *ptr = vertex_data[j];
 			if (!ptr)
