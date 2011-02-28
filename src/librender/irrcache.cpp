@@ -218,7 +218,7 @@ struct irr_interp_functor {
 IrradianceCache::IrradianceCache(const BoundingBox3 &bbox) 
  : m_octree(bbox) {
 	/* Use the longest bounding box axis as an estimate of the scene dimensions */
-	m_sceneSize = (bbox.max-bbox.min)[bbox.getLongestDimension()];
+	m_sceneSize = (bbox.max-bbox.min)[bbox.getMajorAxis()];
 	m_mutex = new Mutex();
 
 	/* Reasonable default settings */
@@ -326,9 +326,9 @@ IrradianceCache::Record *IrradianceCache::put(const RayDifferential &ray, const 
 		/* Perform neighbor clamping [Krivanek et al.] to distribute 
 		   geometric feature information amongst neighboring hss */
 		clamp_self_functor clampSelf(its.p, R0);
-		m_octree.searchSphere(BoundingSphere(its.p, R0), clampSelf);
+		m_octree.searchSphere(BoundingSphere3(its.p, R0), clampSelf);
 		clamp_neighbors_functor clampNeighbors(its.p, R0);
-		m_octree.searchSphere(BoundingSphere(its.p, R0), clampNeighbors);
+		m_octree.searchSphere(BoundingSphere3(its.p, R0), clampNeighbors);
 	}
 
 	Record *record = new Record();

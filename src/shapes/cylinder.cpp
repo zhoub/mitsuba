@@ -270,13 +270,13 @@ public:
 		BoundingBox3 bbox;
 		if (!intersectCylPlane(min, planeNrml, cylPt, cylD, m_radius, 
 			ellipseCenter, ellipseAxes, ellipseLengths)) {
-			/* Degenerate case -- return an invalid BoundingBox3. This is
+			/* Degenerate case -- return an invalid bounding box. This is
 			   not a problem, since one of the other faces will provide
-			   enough information to arrive at a correct clipped BoundingBox3 */
+			   enough information to arrive at a correct clipped bounding box */
 			return bbox;
 		}
 
-		/* Intersect the ellipse against the sides of the BoundingBox3 face */
+		/* Intersect the ellipse against the sides of the bounding box face */
 		for (int i=0; i<4; ++i) {
 			Point p1, p2;
 			p1[axis] = p2[axis] = min[axis];
@@ -338,40 +338,40 @@ public:
 		Vector cylD(m_objectToWorld(Vector::UnitZ()));
 
 		/* Now forget about the cylinder ends and 
-		   intersect an infinite cylinder with each BoundingBox3 face */
-		BoundingBox3 clippedBoundingBox3;
-		clippedBoundingBox3.expandBy(intersectCylFace(0, 
-				Point(base.min.x, base.min.y, base.min.z),
-				Point(base.min.x, base.max.y, base.max.z),
+		   intersect an infinite cylinder with each bounding box face */
+		BoundingBox3 clippedBoundingBox;
+		clippedBoundingBox.expandBy(intersectCylFace(0, 
+				Point(base.min.x(), base.min.y(), base.min.z()),
+				Point(base.min.x(), base.max.y(), base.max.z()),
 				cylPt, cylD));
 
-		clippedBoundingBox3.expandBy(intersectCylFace(0,
-				Point(base.max.x, base.min.y, base.min.z),
-				Point(base.max.x, base.max.y, base.max.z),
+		clippedBoundingBox.expandBy(intersectCylFace(0,
+				Point(base.max.x(), base.min.y(), base.min.z()),
+				Point(base.max.x(), base.max.y(), base.max.z()),
 				cylPt, cylD));
 
-		clippedBoundingBox3.expandBy(intersectCylFace(1, 
-				Point(base.min.x, base.min.y, base.min.z),
-				Point(base.max.x, base.min.y, base.max.z),
+		clippedBoundingBox.expandBy(intersectCylFace(1, 
+				Point(base.min.x(), base.min.y(), base.min.z()),
+				Point(base.max.x(), base.min.y(), base.max.z()),
 				cylPt, cylD));
 
-		clippedBoundingBox3.expandBy(intersectCylFace(1,
-				Point(base.min.x, base.max.y, base.min.z),
-				Point(base.max.x, base.max.y, base.max.z),
+		clippedBoundingBox.expandBy(intersectCylFace(1,
+				Point(base.min.x(), base.max.y(), base.min.z()),
+				Point(base.max.x(), base.max.y(), base.max.z()),
 				cylPt, cylD));
 
-		clippedBoundingBox3.expandBy(intersectCylFace(2, 
-				Point(base.min.x, base.min.y, base.min.z),
-				Point(base.max.x, base.max.y, base.min.z),
+		clippedBoundingBox.expandBy(intersectCylFace(2, 
+				Point(base.min.x(), base.min.y(), base.min.z()),
+				Point(base.max.x(), base.max.y(), base.min.z()),
 				cylPt, cylD));
 
-		clippedBoundingBox3.expandBy(intersectCylFace(2,
-				Point(base.min.x, base.min.y, base.max.z),
-				Point(base.max.x, base.max.y, base.max.z),
+		clippedBoundingBox.expandBy(intersectCylFace(2,
+				Point(base.min.x(), base.min.y(), base.max.z()),
+				Point(base.max.x(), base.max.y(), base.max.z()),
 				cylPt, cylD));
 
-		clippedBoundingBox3.clip(box);
-		return clippedBoundingBox3;
+		clippedBoundingBox.clip(box);
+		return clippedBoundingBox;
 	}
 
 	ref<TriMesh> createTriMesh() {

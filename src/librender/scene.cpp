@@ -144,7 +144,7 @@ Scene::Scene(Stream *stream, InstanceManager *manager)
 	m_testThresh = stream->readFloat();
 	m_blockSize = stream->readInt();
 	m_bbox = BoundingBox3(stream);
-	m_bsphere = BoundingSphere(stream);
+	m_bsphere = BoundingSphere3(stream);
 	m_backgroundLuminaire = static_cast<Luminaire *>(manager->getInstance(stream));
 	int count = stream->readInt();
 	for (int i=0; i<count; ++i) {

@@ -46,7 +46,7 @@ env['SHLIBPREFIX']=''
 Export('env')
 
 # Utilities 
-#SConscript('src/utils/SConscript')
+SConscript('src/utils/SConscript')
 # Surface scattering models
 #SConscript('src/bsdfs/SConscript')
 # Phase functions
@@ -60,7 +60,7 @@ Export('env')
 # Film implementations
 #SConscript('src/films/SConscript')
 # Cameras
-#SConscript('src/cameras/SConscript')
+SConscript('src/cameras/SConscript')
 # Participating media
 #SConscript('src/medium/SConscript')
 # Volumetric data sources

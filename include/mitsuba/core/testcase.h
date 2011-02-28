@@ -67,10 +67,16 @@ protected:
 	virtual ~TestCase() { }
 
 	/// Asserts that the two integer values are equal
-	void assertEqualsImpl(int actual, int expected, const char *file, int line);
+	void assertEqualsImpl(int actual, int expected, Float, const char *file, int line);
 
-	/// Asserts that the two floating point values are equal
-	void assertEqualsImpl(Float actual, Float expected, Float epsilon, const char *file, int line);
+	/// Asserts that the two string values are equal
+	void assertEqualsImpl(const std::string &actual, const std::string &expected, Float, const char *file, int line);
+	
+	/// Asserts that the two single precision floating point values are equal
+	void assertEqualsImpl(double actual, double expected, Float epsilon, const char *file, int line);
+	
+	/// Asserts that the two double precision floating point values are equal
+	void assertEqualsImpl(float actual, float expected, Float epsilon, const char *file, int line);
 
 	/// Asserts that the two fixed-size or dynamic matrices are equal
 	template<typename T, int M1, int N1, int M2, int N2> 

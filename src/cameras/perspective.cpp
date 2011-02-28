@@ -63,6 +63,7 @@ public:
 
 	void configure() {
 		PinholeCamera::configure();
+		Vector2i size = m_film->getSize();
 
 		bool mapYToNDC01 = (m_aspect >= 1.0f);
 		if (!m_mapSmallerSide)
@@ -78,12 +79,12 @@ public:
 
 		if (mapYToNDC01) {
 			m_screenToRaster = 
-				Transform::scale(Vector((Float) m_film->getSize().x, (Float) m_film->getSize().y, 1.0f))
+				Transform::scale(Vector((Float) size.x(), (Float) size.y(), 1.0f))
 				* Transform::scale(Vector(1/(2*m_aspect), -0.5f, 1.0f))
 				* Transform::translate(Vector(m_aspect, -1.0f, 0));
 		} else {
 			m_screenToRaster = 
-				Transform::scale(Vector((Float) m_film->getSize().x, (Float) m_film->getSize().y, 1.0f))
+				Transform::scale(Vector((Float) size.x(), (Float) size.y(), 1.0f))
 				* Transform::scale(Vector(0.5f, -0.5f * m_aspect, 1.0f))
 				* Transform::translate(Vector(1.0f, - 1 / m_aspect, 0));
 		}
@@ -139,8 +140,8 @@ public:
 				localRay(m_focalDistance / localRay.d.z);
 
 			/* Perturb the ray accordingly */
-			localRay.o.x += lensPos.x;
-			localRay.o.y += lensPos.y;
+			localRay.o.x() += lensPos.x();
+			localRay.o.y() += lensPos.y();
 			localRay.d = itsFocal - localRay.o;
 		}
 
@@ -159,12 +160,12 @@ public:
 		if (localP.z <= 0.0f)
 			return false;
 		m_cameraToRaster(localP, imageP);
-		sample.x = imageP.x;
-		sample.y = imageP.y;
+		sample.x() = imageP.x();
+		sample.y() = imageP.y();
 		const Point2i max(m_film->getCropOffset() + m_film->getCropSize());
 		return imageP.z > 0 && imageP.z < 1
-			&& sample.x >= m_film->getCropOffset().x 
-			&& sample.y >= m_film->getCropOffset().y
+			&& sample.x() >= m_film->getCropOffset().x()
+			&& sample.y() >= m_film->getCropOffset().y()
 			&& sample.x < max.x && sample.y < max.y;
 	}
 

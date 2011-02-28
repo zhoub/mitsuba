@@ -162,7 +162,7 @@ public:
 	/// Clamp negative values
 	inline void clampNegative() {
 		for (int i=0; i<SPECTRUM_SAMPLES; i++)
-			operator[](i) = std::max((Float) 0.0f, operator[](i));
+			coeffRef(i) = std::max((Float) 0.0f, coeffRef(i));
 	}
 
 	/// Check if this spectrum is zero at all wavelengths
@@ -194,16 +194,16 @@ public:
 #if SPECTRUM_SAMPLES == 3
 	/// Convert to linear RGB
 	inline void toLinearRGB(Float &r, Float &g, Float &b) const {
-		r = operator[](0);
-		g = operator[](1);
-		b = operator[](2);
+		r = coeff(0);
+		g = coeff(1);
+		b = coeff(2);
 	}
 
 	/// Convert from linear RGB
 	inline void fromLinearRGB(Float r, Float g, Float b) {
-		operator[](0) = r;
-		operator[](1) = g;
-		operator[](2) = b;
+		coeffRef(0) = r;
+		coeffRef(1) = g;
+		coeffRef(2) = b;
 	}
 #else
 	/// Convert to linear RGB

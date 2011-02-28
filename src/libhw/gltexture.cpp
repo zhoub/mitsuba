@@ -245,8 +245,8 @@ void GLTexture::refresh() {
 			glGenerateMipmapEXT(m_glType);
 	} else if (m_type == ETextureCubeMap) {
 		Assert(bitmap != NULL);
-		Assert(bitmap->getWidth() == bitmap->getHeight());
-		Assert(isPowerOfTwo(bitmap->getWidth()));
+		Assert(bitmap->getWidthX() == bitmap->getHeightX());
+		Assert(isPowerOfTwo(bitmap->getWidthX()));
 		if (isMipMapped())
 			glTexParameteri(m_glType, GL_GENERATE_MIPMAP, GL_TRUE);
 
@@ -264,7 +264,7 @@ void GLTexture::refresh() {
 				default: Log(EError, "Unknown cube map index"); return;
 			};
 
-			glTexImage2D(pos, 0, m_internalFormat, bitmap->getWidth(), bitmap->getHeight(),
+			glTexImage2D(pos, 0, m_internalFormat, bitmap->getWidthX(), bitmap->getHeightX(),
 				0, m_format, m_dataFormat, bitmap->getData());
 		}
 	} else {
@@ -436,16 +436,16 @@ void GLTexture::download(Bitmap *bitmap) {
 		case 128: format = GL_RGBA; dataFormat = GL_FLOAT; break;
 	}
 
-	glReadPixels(0, 0, bitmap->getWidth(), bitmap->getHeight(), format, 
+	glReadPixels(0, 0, bitmap->getWidthX(), bitmap->getHeightX(), format, 
 		dataFormat, pixels);
 	releaseTarget();
 
 	/* OpenGL has associates (0, 0) with the lower left position
 	   and the resulting bitmap is thus vertically flipped. */
-	int rowSize = bitmap->getWidth() * bitmap->getBitsPerPixel() / 8,
-	    halfHeight= bitmap->getHeight()/2;
+	int rowSize = bitmap->getWidthX() * bitmap->getBitsPerPixel() / 8,
+	    halfHeight= bitmap->getHeightX()/2;
 	temp = new unsigned char[rowSize];
-	for (int i=0, j=bitmap->getHeight()-1; i<halfHeight; ++i) {
+	for (int i=0, j=bitmap->getHeightX()-1; i<halfHeight; ++i) {
 		memcpy(temp, pixels + i * rowSize, rowSize);
 		memcpy(pixels + i * rowSize, pixels + j * rowSize, rowSize);
 		memcpy(pixels + j * rowSize, temp, rowSize);

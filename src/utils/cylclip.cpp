@@ -39,19 +39,16 @@ public:
 
 	void mouseDragged(const DeviceEvent &event) {
 		if (event.getMouseButton() == Device::ELeftButton) {
-			m_angle += event.getMouseRelative().x / 100.0f;
+			m_angle += event.getMouseRelative().x() / 100.0f;
 			m_viewTransform = Transform::lookAt(Point(10*std::sin(m_angle), 0, std::cos(m_angle)*10), 
 					Point::Zero(), Vector::UnitY());
 		} else if (event.getMouseButton() == Device::ERightButton) {
-			m_lineParams += Vector2(
-				event.getMouseRelative().x / 500.0f,
-				event.getMouseRelative().y / 500.0f
-			);
+			m_lineParams += event.getMouseRelative().cast<Float>()/500.0f;
 		} else if (event.getMouseButton() == Device::EMiddleButton) {
 			m_cylPos += Vector3(
-				event.getMouseRelative().x / 300.0f,
+				event.getMouseRelative().x() / 300.0f,
 				0,
-				event.getMouseRelative().y / 300.0f
+				event.getMouseRelative().y() / 300.0f
 			);
 		}
 	}
@@ -73,7 +70,7 @@ public:
 		Float length = A.norm();
 		if (length != 0) {
 			A /= length;
-			B = cross(planeNrml, A);
+			B = planeNrml.cross(A);
 		} else {
 			coordinateSystem(planeNrml, A, B);
 		}
@@ -109,7 +106,7 @@ public:
 		int axis1 = (axis + 1) % 3;
 		int axis2 = (axis + 2) % 3;
 
-		Normal planeNrml(0.0f);
+		Normal planeNrml(Normal::Zero());
 		planeNrml[axis] = 1;
 
 		Point ellipseCenter;
@@ -119,9 +116,9 @@ public:
 		BoundingBox3 bbox;
 		if (!intersectCylPlane(min, planeNrml, cylPt, cylD, m_radius, 
 			ellipseCenter, ellipseAxes, ellipseLengths)) {
-			/* Degenerate case -- return an invalid BoundingBox3. This is
+			/* Degenerate case -- return an invalid bounding box. This is
 			   not a problem, since one of the other faces will provide
-			   enough information to arrive at a correct clipped BoundingBox3 */
+			   enough information to arrive at a correct clipped bounding box */
 			return bbox;
 		}
 
@@ -132,7 +129,7 @@ public:
 					ellipseAxes[1]*ellipseLengths[1]);
 		}
 
-		/* Intersect the ellipse against the sides of the BoundingBox3 face */
+		/* Intersect the ellipse against the sides of the bounding box face */
 		for (int i=0; i<4; ++i) {
 			Point p1, p2;
 			p1[axis] = p2[axis] = min[axis];
@@ -233,53 +230,53 @@ public:
 		m_renderer->drawBoundingBox(bbox);
 
 		m_renderer->setColor(m_gray);
-		Vector cylD(sphericalDirection(m_lineParams.x, m_lineParams.y));
+		Vector cylD(sphericalDirection(m_lineParams.x(), m_lineParams.y()));
 
 		m_renderer->drawLine(m_cylPos-cylD*1e4, m_cylPos+cylD*1e4);
-		BoundingBox3 clippedBoundingBox3;
+		BoundingBox3 clippedBoundingBox;
 
-		clippedBoundingBox3.expandBy(intersectCylFace(0, 
-				Point(bbox.min.x, bbox.min.y, bbox.min.z),
-				Point(bbox.min.x, bbox.max.y, bbox.max.z),
+		clippedBoundingBox.expandBy(intersectCylFace(0, 
+				Point(bbox.min.x(), bbox.min.y(), bbox.min.z()),
+				Point(bbox.min.x(), bbox.max.y(), bbox.max.z()),
 				m_cylPos, cylD));
 
-		clippedBoundingBox3.expandBy(intersectCylFace(0,
-				Point(bbox.max.x, bbox.min.y, bbox.min.z),
-				Point(bbox.max.x, bbox.max.y, bbox.max.z),
+		clippedBoundingBox.expandBy(intersectCylFace(0,
+				Point(bbox.max.x(), bbox.min.y(), bbox.min.z()),
+				Point(bbox.max.x(), bbox.max.y(), bbox.max.z()),
 				m_cylPos, cylD));
 
-		clippedBoundingBox3.expandBy(intersectCylFace(1, 
-				Point(bbox.min.x, bbox.min.y, bbox.min.z),
-				Point(bbox.max.x, bbox.min.y, bbox.max.z),
+		clippedBoundingBox.expandBy(intersectCylFace(1, 
+				Point(bbox.min.x(), bbox.min.y(), bbox.min.z()),
+				Point(bbox.max.x(), bbox.min.y(), bbox.max.z()),
 				m_cylPos, cylD));
 
-		clippedBoundingBox3.expandBy(intersectCylFace(1,
-				Point(bbox.min.x, bbox.max.y, bbox.min.z),
-				Point(bbox.max.x, bbox.max.y, bbox.max.z),
+		clippedBoundingBox.expandBy(intersectCylFace(1,
+				Point(bbox.min.x(), bbox.max.y(), bbox.min.z()),
+				Point(bbox.max.x(), bbox.max.y(), bbox.max.z()),
 				m_cylPos, cylD));
 
-		clippedBoundingBox3.expandBy(intersectCylFace(2, 
-				Point(bbox.min.x, bbox.min.y, bbox.min.z),
-				Point(bbox.max.x, bbox.max.y, bbox.min.z),
+		clippedBoundingBox.expandBy(intersectCylFace(2, 
+				Point(bbox.min.x(), bbox.min.y(), bbox.min.z()),
+				Point(bbox.max.x(), bbox.max.y(), bbox.min.z()),
 				m_cylPos, cylD));
 
-		clippedBoundingBox3.expandBy(intersectCylFace(2,
-				Point(bbox.min.x, bbox.min.y, bbox.max.z),
-				Point(bbox.max.x, bbox.max.y, bbox.max.z),
+		clippedBoundingBox.expandBy(intersectCylFace(2,
+				Point(bbox.min.x(), bbox.min.y(), bbox.max.z()),
+				Point(bbox.max.x(), bbox.max.y(), bbox.max.z()),
 				m_cylPos, cylD));
 
 		m_renderer->setColor(m_gray);
 
 		if (m_showClippedBoundingBox) {
-			if (clippedBoundingBox3.isValid())
-				m_renderer->drawBoundingBox(clippedBoundingBox3);
+			if (clippedBoundingBox.isValid())
+				m_renderer->drawBoundingBox(clippedBoundingBox);
 		}
 
 		m_renderer->setDepthTest(false);
 		drawHUD(formatString("Cylinder clipping test. LMB-dragging moves the camera, RMB-dragging rotates the cylinder\n"
 				"[e] Ellipses: %s\n"
 				"[r] Bounding rectangles : %s\n"
-				"[a] Clipped BoundingBox3 : %s",
+				"[a] Clipped bounding box : %s",
 			m_showEllipses ? "On": "Off",
 			m_showRectangles ? "On": "Off",
 			m_showClippedBoundingBox ? "On": "Off"

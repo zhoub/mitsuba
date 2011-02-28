@@ -55,10 +55,10 @@ void GPUTexture::setBitmap(unsigned int slot, Bitmap *bitmap) {
 
 	if (slot == 0 && bitmap != NULL) {
 		m_size = Point3i(
-			bitmap->getWidth(),
-			bitmap->getHeight(), 1);
+			bitmap->getSize().x(),
+			bitmap->getSize().y(), 1);
 
-		if (bitmap->getWidth() == 1 || bitmap->getHeight() == 1)
+		if ((bitmap->getSize().array() == 1).any())
 			m_type = ETexture1D;
 		else
 			m_type = ETexture2D;

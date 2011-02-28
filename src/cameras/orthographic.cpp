@@ -40,7 +40,7 @@ public:
 		/* Calculate the perspective transform */
 		m_cameraToScreen = Transform::orthographic(m_nearClip, m_farClip);
 		m_cameraToScreenGL = Transform::glOrthographic(m_nearClip, m_farClip);
-		if (std::abs(1-m_cameraToWorld(Vector::UnitZ()).norm()) > Epsilon) 
+		if (std::abs(1-m_cameraToWorld(Vector(0, 0, 1)).norm()) > Epsilon) 
 			Log(EError, "The orthographic camera does not allow non-unity scale factors in the 'Z' direction!");
 	}
 
@@ -72,12 +72,12 @@ public:
 		*/
 		if (mapYToNDC01) {
 			m_screenToRaster = 
-				Transform::scale(Vector((Float) size.x, (Float) size.y, 1.0f))
+				Transform::scale(Vector((Float) size.x(), (Float) size.y(), 1.0f))
 				* Transform::scale(Vector(1/(2*m_aspect), -0.5f, 1.0f))
 				* Transform::translate(Vector(m_aspect, -1.0f, 0));
 		} else {
 			m_screenToRaster = 
-				Transform::scale(Vector((Float) size.x, (Float) size.y, 1.0f))
+				Transform::scale(Vector((Float) size.x(), (Float) size.y(), 1.0f))
 				* Transform::scale(Vector(0.5f, -0.5f * m_aspect, 1.0f))
 				* Transform::translate(Vector(1.0f, - 1 / m_aspect, 0));
 		}
@@ -111,7 +111,7 @@ public:
 	void generateRay(const Point2 &dirSample, const Point2 &lensSample, 
 		Float timeSample, Ray &ray) const {
 		++cameraRays;
-		Point rasterCoords(dirSample.x, dirSample.y, 0);
+		Point rasterCoords(dirSample.x(), dirSample.y(), 0);
 		Point imageCoords;
 		m_rasterToCamera(rasterCoords, imageCoords);
 
@@ -126,7 +126,7 @@ public:
 	}
 	
 	virtual Point getPosition(const Point2 &sample) const {
-		Point rasterCoords(sample.x, sample.y, 0);
+		Point rasterCoords(sample.x(), sample.y(), 0);
 		Point imageCoords, result;
 		m_rasterToCamera(rasterCoords, imageCoords);
 		m_cameraToWorld(imageCoords, result);
@@ -136,17 +136,16 @@ public:
 	bool positionToSample(const Point &p, Point2 &sample) const {
 		Point localP, imageP;
 		m_worldToCamera(p, localP);
-		if (localP.z <= 0.0f) {
+		if (localP.z() <= 0.0f)
 			return false;
-		}
 		m_cameraToRaster(localP, imageP);
-		sample.x = imageP.x;
-		sample.y = imageP.y;
+		sample.x() = imageP.x();
+		sample.y() = imageP.y();
 		const Point2i max(m_film->getCropOffset() + m_film->getCropSize());
 		return 
-			 sample.x >= m_film->getCropOffset().x 
-			&& sample.y >= m_film->getCropOffset().y
-			&& sample.x < max.x && sample.y < max.y;
+			 sample.x() >= m_film->getCropOffset().x() 
+			&& sample.y() >= m_film->getCropOffset().y()
+			&& sample.x() < max.x() && sample.y() < max.y();
 	}
 	
 	Float areaDensity(const Point2 &p) const {

@@ -60,7 +60,7 @@ public:
 
 	/// Ignoring the crop window, return the resolution of the underlying sensor
 	inline const Vector2i &getSize() const { return m_size; }
-	
+
 	/// Return the size of the crop window
 	inline const Vector2i &getCropSize() const { return m_cropSize; }
 

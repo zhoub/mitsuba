@@ -167,7 +167,7 @@ void ShapeKDTree::rayIntersectPacket(const RayPacket4 &packet,
 
 	++coherentPackets;
 
-	/* First, intersect with the kd-tree BoundingBox3 to determine
+	/* First, intersect with the kd-tree bounding box to determine
 	   the intersection search intervals */
 	if (!m_bbox.rayIntersectPacket(packet, interval))
 		return;

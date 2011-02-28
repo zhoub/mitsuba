@@ -158,11 +158,11 @@ extern "C" {
  *        Bitmap class        *
  * ========================== */
 
-Bitmap::Bitmap(int width, int height, int bpp)
- : m_width(width), m_height(height), m_bpp(bpp), m_data(NULL) {
+Bitmap::Bitmap(const Vector2i &size, int bpp)
+ : m_size(size), m_bpp(bpp), m_data(NULL) {
 	AssertEx(m_bpp == 1 || m_bpp == 8 || m_bpp == 16 || m_bpp == 24 || m_bpp == 32
 		|| m_bpp == 96 || m_bpp == 128, "Invalid number of bits per pixel");
-	AssertEx(width > 0 && height > 0, "Invalid bitmap size");
+	AssertEx(size.x() > 0 && size.y() > 0, "Invalid bitmap size");
 
 	if (bpp == 96 || bpp == 128)
 		m_gamma = 1.0f;
@@ -170,8 +170,8 @@ Bitmap::Bitmap(int width, int height, int bpp)
 		m_gamma = -1.0f; // sRGB
 
 	// 1-bit masks are stored in a packed format. 
-	m_size = (size_t) std::ceil(((double) m_width * m_height * m_bpp) / 8.0);
-	m_data = static_cast<unsigned char *>(allocAligned(m_size));
+	m_bufferSize = (size_t) std::ceil(((double) m_size[0] * m_size[1] * m_bpp) / 8.0);
+	m_data = static_cast<unsigned char *>(allocAligned(m_bufferSize));
 }
 
 Bitmap::Bitmap(EFileFormat format, Stream *stream) : m_data(NULL) {
@@ -195,20 +195,20 @@ void Bitmap::loadEXR(Stream *stream) {
 
 	/* Determine dimensions and allocate space */
 	Imath::Box2i dw = file.dataWindow();
-	m_width = dw.max.x - dw.min.x + 1;
-	m_height = dw.max.y - dw.min.y + 1;
-	m_size = m_width * m_height * 16;
+	m_size[0] = dw.max.x - dw.min.x + 1;
+	m_size[1] = dw.max.y - dw.min.y + 1;
+	m_bufferSize = m_size[0] * m_size[1] * 16;
 	m_bpp = 4*4*8;
 	m_gamma = 1.0f;
-	m_data = static_cast<unsigned char *>(allocAligned(m_size));
-	Imf::Rgba *rgba = new Imf::Rgba[m_width*m_height];
-	Log(ETrace, "Reading %ix%i EXR file", m_width, m_height);
+	m_data = static_cast<unsigned char *>(allocAligned(m_bufferSize));
+	Imf::Rgba *rgba = new Imf::Rgba[m_size[0]*m_size[1]];
+	Log(ETrace, "Reading %ix%i EXR file", m_size[0], m_size[1]);
 
 	/* Convert to 32-bit floating point per channel */
-	file.setFrameBuffer(rgba, 1, m_width);
+	file.setFrameBuffer(rgba, 1, m_size[0]);
 	file.readPixels(dw.min.y, dw.max.y);
 	float *m_buffer = getFloatData();
-	for (int i=0; i<m_width*m_height; i++) {
+	for (int i=0; i<m_size[0]*m_size[1]; i++) {
 		*m_buffer = (float) rgba[i].r; m_buffer++;
 		*m_buffer = (float) rgba[i].g; m_buffer++;
 		*m_buffer = (float) rgba[i].b; m_buffer++;
@@ -228,9 +228,9 @@ void Bitmap::loadTGA(Stream *stream) {
 	int y1 = stream->readShort();
 	int x2 = stream->readShort();
 	int y2 = stream->readShort();
-	m_width = x2-x1;
-	m_height = y2-y1;
-	Log(EInfo, "Reading %ix%i TGA file", m_width, m_height);
+	m_size[0] = x2-x1;
+	m_size[1] = y2-y1;
+	Log(EInfo, "Reading %ix%i TGA file", m_size[0], m_size[1]);
 
 	stream->setPos(16);
 	m_bpp = stream->readUChar();
@@ -239,13 +239,13 @@ void Bitmap::loadTGA(Stream *stream) {
 
 	m_gamma = -1;
 	int channels = m_bpp / 8;
-	m_size = m_width * m_height * channels;
-	m_data = static_cast<unsigned char *>(allocAligned(m_size));
+	m_bufferSize = m_size[0] * m_size[1] * channels;
+	m_data = static_cast<unsigned char *>(allocAligned(m_bufferSize));
 	stream->setPos(18 + headerSize);
-	stream->read(m_data, m_size);
+	stream->read(m_data, m_bufferSize);
 
 	/* Convert BGR to RGB */
-	for (size_t i=0; i<m_size; i += channels) {
+	for (size_t i=0; i<m_bufferSize; i += channels) {
 		uint8_t tmp = m_data[i];
 		m_data[i] = m_data[i+2];
 		m_data[i+2] = tmp;
@@ -310,34 +310,34 @@ void Bitmap::loadBMP(Stream *stream) {
 	if (DIBHeader.compress_type != 0)
 		Log(EError, "Only uncompressed BMP images are supported for now");
 
-	m_width = DIBHeader.width;
-	m_height = std::abs(DIBHeader.height);
+	m_size[0] = DIBHeader.width;
+	m_size[1] = std::abs(DIBHeader.height);
 	m_bpp = DIBHeader.bitspp;
 
-	m_size = m_width * m_height * (m_bpp / 8);
-	m_data = static_cast<unsigned char *>(allocAligned(m_size));
-	Log(ETrace, "Reading %ix%ix%i BMP file", m_width, m_height, m_bpp);
+	m_bufferSize = m_size[0] * m_size[1] * (m_bpp / 8);
+	m_data = static_cast<unsigned char *>(allocAligned(m_bufferSize));
+	Log(ETrace, "Reading %ix%ix%i BMP file", m_size[0], m_size[1], m_bpp);
 
 	int nChannels = m_bpp / 8;
-	int lineWidth = m_width * nChannels; 
+	int lineWidth = m_size[0] * nChannels; 
 	int paddedLineWidth = lineWidth + lineWidth % 4;
 
 	uint8_t *line = new uint8_t[paddedLineWidth];
 
-	for (int y=0; y<m_height; ++y) {
+	for (int y=0; y<m_size[1]; ++y) {
 		stream->read(line, paddedLineWidth);
 
 		int targetY = y;
 
 		if (DIBHeader.height > 0)
-			targetY = m_height - 1 - y; // inverted rows
+			targetY = m_size[1] - 1 - y; // inverted rows
 
-		memcpy(&m_data[targetY * m_width * nChannels], line, lineWidth);
+		memcpy(&m_data[targetY * m_size[0] * nChannels], line, lineWidth);
 	
 		if (nChannels == 3) {
-			for (int x=0; x<m_width; ++x)
-				std::swap(m_data[(targetY * m_width + x) * nChannels], 
-						  m_data[(targetY * m_width + x) * nChannels + 2]);
+			for (int x=0; x<m_size[0]; ++x)
+				std::swap(m_data[(targetY * m_size[0] + x) * nChannels], 
+						  m_data[(targetY * m_size[0] + x) * nChannels + 2]);
 		}
 	}
 
@@ -426,19 +426,19 @@ void Bitmap::loadPNG(Stream *stream) {
 	/* re-read */
 	png_get_IHDR(png_ptr, info_ptr, &width, &height, &bitdepth,
 			&colortype, &interlacetype, &compressiontype, &filtertype);
-	m_width = width; m_height = height;
+	m_size[0] = width; m_size[1] = height;
 
-	m_size = (size_t) std::ceil((m_width * m_height * m_bpp) / 8.0);
-	m_data = static_cast<unsigned char *>(allocAligned(m_size));
+	m_bufferSize = (size_t) std::ceil((m_size[0] * m_size[1] * m_bpp) / 8.0);
+	m_data = static_cast<unsigned char *>(allocAligned(m_bufferSize));
 
-	rows = new png_bytep[m_height];
+	rows = new png_bytep[m_size[1]];
 
 	if (m_bpp == 1) {
-		for (int i=0; i<m_height; i++)
-			rows[i] = new unsigned char[m_width];
+		for (int i=0; i<m_size[1]; i++)
+			rows[i] = new unsigned char[m_size[0]];
 	} else {
-		int rowBytes = m_width * (m_bpp / 8);
-		for (int i=0; i<m_height; i++)
+		int rowBytes = m_size[0] * (m_bpp / 8);
+		for (int i=0; i<m_size[1]; i++)
 			rows[i] = m_data + i * rowBytes;
 	}
 
@@ -447,10 +447,10 @@ void Bitmap::loadPNG(Stream *stream) {
 
 	if (m_bpp == 1) {
 		// The bitmask has been unpacked by the decoding, now re-pack it
-		memset(m_data, 0, m_size);
-		for (int i=0; i<m_height; i++) {
-			for (int o=0; o<m_width; o++) {
-				int pos = i * m_width + o;
+		memset(m_data, 0, m_bufferSize);
+		for (int i=0; i<m_size[1]; i++) {
+			for (int o=0; o<m_size[0]; o++) {
+				int pos = i * m_size[0] + o;
 				m_data[pos / 8] |= rows[i][o] * (1 << (pos % 8));
 			}
 			delete[] rows[i];
@@ -487,23 +487,23 @@ void Bitmap::loadJPEG(Stream *stream) {
 	jpeg_read_header(&cinfo, TRUE);
 	jpeg_start_decompress(&cinfo);
 
-	m_width = cinfo.output_width;
-	m_height = cinfo.output_height;
+	m_size[0] = cinfo.output_width;
+	m_size[1] = cinfo.output_height;
 	m_bpp = cinfo.output_components*8;
 	m_gamma = 1.0f/2.2f;
-	m_size = m_width * m_height * cinfo.output_components;
-	Log(ETrace, "Reading %ix%ix%i JPG file", m_width, m_height, m_bpp);
+	m_bufferSize = m_size[0] * m_size[1] * cinfo.output_components;
+	Log(ETrace, "Reading %ix%ix%i JPG file", m_size[0], m_size[1], m_bpp);
 
 	int row_stride = cinfo.output_width * cinfo.output_components;
-	unsigned char **buffer = new unsigned char *[m_height];
-	m_data = static_cast<unsigned char *>(allocAligned(m_size));
-	for (int i=0; i<m_height; ++i) 
+	unsigned char **buffer = new unsigned char *[m_size[1]];
+	m_data = static_cast<unsigned char *>(allocAligned(m_bufferSize));
+	for (int i=0; i<m_size[1]; ++i) 
 		buffer[i] = m_data + row_stride*i;
 
 	/* Process scanline by scanline */	
 	int counter = 0;
-	while (cinfo.output_scanline < (unsigned int) m_height) 
-		counter += jpeg_read_scanlines(&cinfo, &buffer[counter], m_height);
+	while (cinfo.output_scanline < (unsigned int) m_size[1]) 
+		counter += jpeg_read_scanlines(&cinfo, &buffer[counter], m_size[1]);
 
 	/* Release the libjpeg data structures */
 	jpeg_finish_decompress(&cinfo);
@@ -519,20 +519,20 @@ Bitmap::~Bitmap() {
 }
 
 void Bitmap::clear() {
-	memset(m_data, 0, m_size);
+	memset(m_data, 0, m_bufferSize);
 }
 
 Bitmap *Bitmap::clone() const {
-	Bitmap *bitmap = new Bitmap(m_width, m_height, m_bpp);
-	memcpy(bitmap->m_data, m_data, m_size);
+	Bitmap *bitmap = new Bitmap(m_size, m_bpp);
+	memcpy(bitmap->m_data, m_data, m_bufferSize);
 	return bitmap;
 }
 
 bool Bitmap::operator==(const Bitmap &bitmap) const {
-	if (bitmap.m_width == m_width &&
-		bitmap.m_height == m_height &&
+	if (bitmap.m_size[0] == m_size[0] &&
+		bitmap.m_size[1] == m_size[1] &&
 		bitmap.m_bpp == m_bpp) {
-		return memcmp(bitmap.m_data, m_data, m_size) == 0;
+		return memcmp(bitmap.m_data, m_data, m_bufferSize) == 0;
 	}
 	return false;
 }
@@ -547,14 +547,14 @@ void Bitmap::save(EFileFormat format, Stream *stream, int compression) const {
 }
 
 void Bitmap::saveEXR(Stream *stream) const {
-	Log(EDebug, "Writing %ix%i EXR file", m_width, m_height);
+	Log(EDebug, "Writing %ix%i EXR file", m_size[0], m_size[1]);
 	EXROStream ostr(stream);
-	Imf::RgbaOutputFile file(ostr, Imf::Header(m_width, m_height), 
+	Imf::RgbaOutputFile file(ostr, Imf::Header(m_size[0], m_size[1]), 
 		Imf::WRITE_RGBA);
 
-	Imf::Rgba *rgba = new Imf::Rgba[m_width*m_height];
+	Imf::Rgba *rgba = new Imf::Rgba[m_size[0]*m_size[1]];
 	const float *m_buffer = getFloatData();
-	for (int i=0; i<m_width*m_height; i++) {
+	for (int i=0; i<m_size[0]*m_size[1]; i++) {
 		if (m_bpp == 32) {
 			rgba[i].r = *m_buffer;
 			rgba[i].g = *m_buffer; 
@@ -572,8 +572,8 @@ void Bitmap::saveEXR(Stream *stream) const {
 			rgba[i].a = *m_buffer; m_buffer++;
 		}
 	}
-	file.setFrameBuffer(rgba, 1, m_width);
-	file.writePixels(m_height);
+	file.setFrameBuffer(rgba, 1, m_size[0]);
+	file.writePixels(m_size[1]);
 	delete[] rgba;
 }
 
@@ -584,9 +584,9 @@ void Bitmap::savePNG(Stream *stream, int compression) const {
 	volatile png_bytepp rows = NULL;
 
 	if (m_gamma == -1)
-		Log(EDebug, "Writing %ix%ix%i sRGB PNG file", m_width, m_height, m_bpp);
+		Log(EDebug, "Writing %ix%ix%i sRGB PNG file", m_size[0], m_size[1], m_bpp);
 	else
-		Log(EDebug, "Writing %ix%ix%i PNG file (gamma=%.1f)", m_width, m_height, m_bpp, m_gamma);
+		Log(EDebug, "Writing %ix%ix%i PNG file (gamma=%.1f)", m_size[0], m_size[1], m_bpp, m_gamma);
 
 	png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, &png_error_func, NULL);
 	if (png_ptr == NULL) {
@@ -610,7 +610,7 @@ void Bitmap::savePNG(Stream *stream, int compression) const {
 
 	memset(text, 0, sizeof(png_text)*4);
 	text[0].key = (char *) "Generated by";
-	text[0].text =  (char *) "Vitsuba version " MTS_VERSION;
+	text[0].text =  (char *) "Mitsuba version " MTS_VERSION;
 	text[0].compression = PNG_TEXT_COMPRESSION_NONE;
 	text[1].key = (char *) "Title";
 	text[1].text = (char *) m_title.c_str();
@@ -638,7 +638,7 @@ void Bitmap::savePNG(Stream *stream, int compression) const {
 	}
 
 	/* Simple 8 bit/color RGB/RGBA format or 1-bit mask */
-	png_set_IHDR(png_ptr, info_ptr, m_width, m_height, m_bpp == 1 ? 1 : 8,
+	png_set_IHDR(png_ptr, info_ptr, m_size[0], m_size[1], m_bpp == 1 ? 1 : 8,
 			colortype, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE,
 			PNG_FILTER_TYPE_BASE);
 
@@ -652,20 +652,20 @@ void Bitmap::savePNG(Stream *stream, int compression) const {
 	png_write_info(png_ptr, info_ptr);
 	png_set_packing(png_ptr);
 
-	rows = new png_bytep[m_height];
+	rows = new png_bytep[m_size[1]];
 
 	if (m_bpp == 1) {
 		/* Convert to 8 bit */
-		for (int i=0; i<m_height; i++) {
-			rows[i] = new unsigned char[m_width];
-			for (int o=0; o<m_width; o++) {
-				int pos = i * m_width + o;
+		for (int i=0; i<m_size[1]; i++) {
+			rows[i] = new unsigned char[m_size[0]];
+			for (int o=0; o<m_size[0]; o++) {
+				int pos = i * m_size[0] + o;
 				rows[i][o] = (m_data[pos / 8] & (1 << (pos % 8))) == false ? 0 : 1;
 			}
 		}
 	} else {
-		int rowBytes = m_width * (m_bpp / 8);
-		for (int i=0; i<m_height; i++) 
+		int rowBytes = m_size[0] * (m_bpp / 8);
+		for (int i=0; i<m_size[1]; i++) 
 			rows[i] = &m_data[rowBytes * i];
 	}
 
@@ -674,7 +674,7 @@ void Bitmap::savePNG(Stream *stream, int compression) const {
 	png_destroy_write_struct(&png_ptr, &info_ptr);
 
 	if (m_bpp == 1) {
-		for (int i=0; i<m_height; i++)
+		for (int i=0; i<m_size[1]; i++)
 			delete[] rows[i];
 	}
 
@@ -683,7 +683,7 @@ void Bitmap::savePNG(Stream *stream, int compression) const {
 
 std::string Bitmap::toString() const {
 	std::ostringstream oss;
-	oss << "Bitmap[width=" << m_width << ", height=" << m_height << ", bpp=" << m_bpp << "]";
+	oss << "Bitmap[width=" << m_size[0] << ", height=" << m_size[1] << ", bpp=" << m_bpp << "]";
 	return oss.str();
 }
 

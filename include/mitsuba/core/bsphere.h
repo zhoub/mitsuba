@@ -23,25 +23,44 @@
 
 MTS_NAMESPACE_BEGIN
 
-/** \brief Bounding sphere data structure in three dimensions
+/**
+ * \brief Generic n-dimensional bounding sphere data structure
  *
+ * This class is parameterized by the underlying point data structure,
+ * which permits the use of different scalar types and dimensionalities, e.g.
+ * \code
+ * BoundingSphere<Point2> doubleBBox(Vector2(0.0f, 1.0f), 2.0f);
+ * \endcode
+ *
+ * \tparam T The underlying point data type (e.g. \c Point2)
+ * \sa BoundingSphere
  * \ingroup libcore
  */
-struct BoundingSphere {
-	Point center;
-	Float radius;
+
+template <typename _PointType> struct BoundingSphere {
+	typedef _PointType                                   PointType;
+
+	enum {
+		Dimension = PointType::RowsAtCompileTime
+	};
+
+	typedef typename PointType::Scalar                   Scalar;
+	typedef typename Eigen::Matrix<Scalar, Dimension, 1> VectorType;
+
+	PointType center;
+	Scalar radius;
 
 	/// Construct a bounding sphere at the origin having radius zero
-	inline BoundingSphere() : center(Point::Zero()), radius(0.0f) { }
+	inline BoundingSphere() : center(PointType::Zero()), radius(0.0f) { }
 
 	/// Unserialize a bounding sphere from a binary data stream
 	inline BoundingSphere(Stream *stream) {
-		center = Point(stream);
-		radius = stream->readFloat();
+		center = PointType(stream);
+		radius = stream->readElement<Scalar>();
 	}
 
 	/// Create a bounding sphere from a given center point and radius
-	inline BoundingSphere(const Point &center, Float radius)
+	inline BoundingSphere(const PointType &center, Scalar radius)
 		: center(center), radius(radius) { }
 
 	/// Return whether this bounding sphere has a radius of zero or less.
@@ -49,69 +68,46 @@ struct BoundingSphere {
 		return radius <= 0.0f;
 	}
 
+	/// Return the bounding sphere's center 
+	inline const PointType &getCenter() const { return center; }
+
+	/// Return the bounding sphere's radius
+	inline Scalar getRadius() const { return radius; }
+
 	/// Expand the bounding sphere radius to contain another point.
-	inline void expandBy(const Point p) {
+	inline void expandBy(const PointType p) {
 		radius = std::max(radius, (p-center).norm());
 	}
 
-	/// Check whether the specified point is inside or on the sphere
-	inline bool contains(const Point p) const {
-		return (p - center).norm() <= radius;
+	/**
+	 * \brief Check whether the specified point lies \a inside or \a on the sphere
+	 *
+	 * \param p The point to be tested
+	 *
+	 * \param strict Set this parameter to \c true if the bounding
+	 *               sphere boundary should be excluded in the test
+	 */
+	inline bool contains(const PointType p, bool strict = false) const {
+		if (strict)
+			return (p - center).norm() < radius;
+		else
+			return (p - center).norm() <= radius;
 	}
 
-	/// Equality test
+	/// Test for equality against another bounding sphere
 	inline bool operator==(const BoundingSphere &boundingSphere) const {
 		return center == boundingSphere.center && radius == boundingSphere.radius;
 	}
 
-	/// Inequality test
+	/// Test for inequality against another bounding sphere
 	inline bool operator!=(const BoundingSphere &boundingSphere) const {
 		return center != boundingSphere.center || radius != boundingSphere.radius;
-	}
-
-	/**
-	 * \brief Calculate the intersection points with the given ray
-	 * \return \a true if the ray intersects the bounding sphere
-	 */
-	inline bool rayIntersect(const Ray &ray, Float &nearHit, Float &farHit) const {
-		Vector originToCenter = center - ray.o;
-		Float distToRayClosest = originToCenter.dot(ray.d);
-		Float tmp1 = originToCenter.squaredNorm() - radius*radius;
-
-		if (tmp1 <= 0.0f) {
-			/* Inside the sphere */
-			nearHit = farHit = 
-				std::sqrt(distToRayClosest * distToRayClosest - tmp1)
-					+ distToRayClosest;
-			return true;
-		}
-
-		/* Points in different direction */
-		if (distToRayClosest < 0.0f)
-			return false;
-
-		Float sqrOriginToCenterLength = originToCenter.squaredNorm();
-		Float sqrHalfChordDist = radius * radius - sqrOriginToCenterLength
-			+ distToRayClosest * distToRayClosest;
-
-		if (sqrHalfChordDist < 0) // Miss
-			return false;
-
-		// Hit
-		Float hitDistance = std::sqrt(sqrHalfChordDist);
-		nearHit = distToRayClosest - hitDistance;
-		farHit = distToRayClosest + hitDistance;
-
-		if (nearHit == 0)
-			nearHit = farHit;
-
-		return true;
 	}
 
 	/// Serialize this bounding sphere to a binary data stream
 	inline void serialize(Stream *stream) const {
 		center.serialize(stream);
-		stream->writeFloat(radius);
+		stream->writeElement(radius);
 	}
 
 	/// Return a string representation of the bounding sphere
@@ -122,6 +118,47 @@ struct BoundingSphere {
 		return oss.str();
 	}
 };
+
+/**
+ * \brief Bounding sphere data structure in three dimensions
+ * 
+ * \ingroup libcore
+ */
+struct MTS_EXPORT_CORE BoundingSphere3 : public BoundingSphere<Point> {
+	/// Construct a bounding sphere at the origin having radius zero
+	inline BoundingSphere3() : BoundingSphere<Point>() { }
+
+	/// Unserialize a bounding sphere from a binary data stream
+	inline BoundingSphere3(Stream *stream) : BoundingSphere<Point>(stream) { }
+
+	/// Create a bounding sphere from a given center point and radius
+	inline BoundingSphere3(const Point &center, Float radius)
+		: BoundingSphere<Point>(center, radius) { }
+
+	/// Construct from a BoundingSphere<Point>
+	inline BoundingSphere3(const BoundingSphere<Point> &bsphere) 
+		: BoundingSphere<Point>(bsphere) { }
+
+	/**
+	 * \brief Calculate the intersection points with the given ray
+	 *
+	 * Also returns intersection points along the negative ray direction.
+	 *
+	 * \return \c true if the ray intersects the bounding sphere
+	 */
+	inline bool rayIntersect(const Ray &ray, Scalar &nearHit, Scalar &farHit) const {
+		const Vector o = ray.o - center;
+		const Float A = ray.d.squaredNorm();
+		const Float B = 2 * ray.d.dot(o);
+		const Float C = o.squaredNorm() - radius*radius;
+
+		if (!solveQuadratic(A, B, C, nearHit, farHit))
+			return false;
+
+		return true;
+	}
+};
+
 
 MTS_NAMESPACE_END
 

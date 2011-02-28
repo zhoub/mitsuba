@@ -57,7 +57,7 @@ public:
 		assertFalse(clippedBoundingBox.isValid());
 
 		/* Verify that a no clipping whatsoever happens when 
-		   the BoundingBox3 fully contains a triangle */
+		   the bounding box fully contains a triangle */
 		clippedBoundingBox = t.getClippedBoundingBox(vertices, BoundingBox3(
 			Point(-1, -1, -1),
 			Point(1, 1, 1)
@@ -93,9 +93,9 @@ public:
 		ref<ShapeKDTree> tree = new ShapeKDTree();
 		tree->addShape(mesh);
 		tree->build();
-		BoundingSphere bsphere(tree->getBoundingSphere());
+		BoundingSphere3 bsphere(tree->getBoundingSphere());
 
-		bsphere = BoundingSphere(Point(-0.016840, 0.110154, -0.001537), .2f);
+		bsphere = BoundingSphere3(Point(-0.016840, 0.110154, -0.001537), .2f);
 
 		Log(EInfo, "Bunny benchmark (http://homepages.paradise.net.nz/nickamy/benchmark.html):");
 		ref<Timer> timer = new Timer();

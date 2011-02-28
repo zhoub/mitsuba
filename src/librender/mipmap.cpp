@@ -25,34 +25,34 @@ static StatsCounter mipmapLookups("Texture", "Mip-map texture lookups");
 static StatsCounter ewaLookups("Texture", "EWA texture lookups");
 
 /* Isotropic/anisotropic EWA mip-map texture map class based on PBRT */
-MIPMap::MIPMap(int width, int height, Spectrum *pixels, 
+MIPMap::MIPMap(const Vector2i &size, Spectrum *pixels, 
 	bool isotropic, EWrapMode wrapMode, Float maxAnisotropy) 
-		: m_width(width), m_height(height), m_isotropic(isotropic), 
+		: m_size(size), m_isotropic(isotropic), 
 		  m_wrapMode(wrapMode), m_maxAnisotropy(maxAnisotropy) {
 	Spectrum *texture = pixels;
 
-	if (!isPowerOfTwo(width) || !isPowerOfTwo(height)) {
-		m_width = roundToPowerOfTwo(width);
-		m_height = roundToPowerOfTwo(height);
+	if (!isPowerOfTwo(size.x()) || !isPowerOfTwo(size.y())) {
+		m_size.x() = roundToPowerOfTwo(size.x());
+		m_size.y() = roundToPowerOfTwo(size.y());
 
 		/* The texture needs to be up-sampled */
-		Spectrum *texture1 = new Spectrum[m_width*height];
+		Spectrum *texture1 = new Spectrum[m_size.x()*size.y()];
 
 		/* Re-sample into the X direction */
-		ResampleWeight *weights = resampleWeights(width, m_width);
-		for (int y=0; y<height; y++) {
-			for (int x=0; x<m_width; x++) {
-				texture1[x+m_width*y] = Spectrum::Zero();
+		ResampleWeight *weights = resampleWeights(size.x(), m_size.x());
+		for (int y=0; y<size.y(); y++) {
+			for (int x=0; x<m_size.x(); x++) {
+				texture1[x+m_size.x()*y] = Spectrum::Zero();
 				for (int j=0; j<4; j++) {
 					int pos = weights[x].firstTexel + j;
-					if (pos < 0 || pos >= height) {
+					if (pos < 0 || pos >= size.y()) {
 						if (wrapMode == ERepeat) 
-							pos = modulo(pos, width);
+							pos = modulo(pos, size.x());
 						else if (wrapMode == EClamp)
-							pos = clamp(pos, 0, width-1);
+							pos = clamp(pos, 0, size.x()-1);
 					}
-					if (pos >= 0 && pos < width)
-						texture1[x+m_width*y] += pixels[pos+y*width] 
+					if (pos >= 0 && pos < size.x())
+						texture1[x+m_size.x()*y] += pixels[pos+y*size.x()] 
 							* weights[x].weight[j];
 				}
 			}
@@ -61,39 +61,39 @@ MIPMap::MIPMap(int width, int height, Spectrum *pixels,
 		delete[] pixels;
 
 		/* Re-sample into the Y direction */
-		texture = new Spectrum[m_width*m_height];
-		weights = resampleWeights(height, m_height);
-		memset(texture, 0, sizeof(Spectrum)*m_width*m_height);
-		for (int x=0; x<m_width; x++) {
-			for (int y=0; y<m_height; y++) {
+		texture = new Spectrum[m_size.prod()];
+		weights = resampleWeights(size.y(), m_size.y());
+		memset(texture, 0, sizeof(Spectrum)*m_size.prod());
+		for (int x=0; x<m_size.x(); x++) {
+			for (int y=0; y<m_size.y(); y++) {
 				for (int j=0; j<4; j++) {
 					int pos = weights[y].firstTexel + j;
-					if (pos < 0 || pos >= height) {
+					if (pos < 0 || pos >= size.y()) {
 						if (wrapMode == ERepeat) 
-							pos = modulo(pos, height);
+							pos = modulo(pos, size.y());
 						else if (wrapMode == EClamp)
-							pos = clamp(pos, 0, height-1);
+							pos = clamp(pos, 0, size.y()-1);
 					}
-					if (pos >= 0 && pos < height)
-						texture[x+m_width*y] += texture1[x+pos*m_width]
+					if (pos >= 0 && pos < size.y())
+						texture[x+m_size.x()*y] += texture1[x+pos*m_size.x()]
 							* weights[y].weight[j];
 				}
 			}
 		}
-		for (int y=0; y<m_height; y++)
-			for (int x=0; x<m_width; x++)
-			texture[x+m_width*y].clampNegative();
+		for (int y=0; y<m_size.y(); y++)
+			for (int x=0; x<m_size.x(); x++)
+			texture[x+m_size.x()*y].clampNegative();
 		delete[] weights;
 		delete[] texture1;
 	}
 
-	m_levels = 1 + log2i(std::max(width, height));
+	m_levels = 1 + log2i(m_size.maxCoeff());
 	m_pyramid = new Spectrum*[m_levels];
 	m_pyramid[0] = texture;
 	m_levelWidth = new int[m_levels];
 	m_levelHeight= new int[m_levels];
-	m_levelWidth[0] = m_width;
-	m_levelHeight[0] = m_height;
+	m_levelWidth[0] = m_size.x();
+	m_levelHeight[0] = m_size.y();
 
 	/* Generate the mip-map hierarchy */
 	for (int i=1; i<m_levels; i++) {
@@ -131,12 +131,11 @@ MIPMap::~MIPMap() {
 }
 
 Spectrum MIPMap::getMaximum() const {
+	Vector2i size(m_levelHeight[0], m_levelWidth[0]);
 	Spectrum max(0.0f);
-	int height = m_levelHeight[0];
-	int width = m_levelWidth[0];
 	Spectrum *pixels = m_pyramid[0];
-	for (int y=0; y<height; ++y) {
-		for (int x=0; x<width; ++x) {
+	for (int y=0; y<size.y(); ++y) {
+		for (int x=0; x<size.x(); ++x) {
 			Spectrum value = *pixels++;
 			for (int j=0; j<SPECTRUM_SAMPLES; ++j)
 				max[j] = std::max(max[j], value[j]);
@@ -151,24 +150,23 @@ Spectrum MIPMap::getMaximum() const {
 	
 ref<MIPMap> MIPMap::fromBitmap(Bitmap *bitmap, bool isotropic, 
 		EWrapMode wrapMode, Float maxAnisotropy) {
-	int width = bitmap->getWidth();
-	int height = bitmap->getHeight();
+	const Vector2i &size = bitmap->getSize();
 	float *data = bitmap->getFloatData();
-	Spectrum s, *pixels = new Spectrum[width*height];
+	Spectrum s, *pixels = new Spectrum[size.x() * size.y()];
 
-	for (int y=0; y<height; y++) {
-		for (int x=0; x<width; x++) {
-			float r = data[(y*width+x)*4+0];
-			float g = data[(y*width+x)*4+1];
-			float b = data[(y*width+x)*4+2];
+	for (int y=0; y<size.y(); y++) {
+		for (int x=0; x<size.x(); x++) {
+			float r = data[(y*size.x()+x)*4+0];
+			float g = data[(y*size.x()+x)*4+1];
+			float b = data[(y*size.x()+x)*4+2];
 			s.fromLinearRGB(r, g, b);
 			s.clampNegative();
 			/* Convert to a spectral representation */
-			pixels[y*width+x] = s;
+			pixels[y*size.x()+x] = s;
 		}
 	}
 
-	return new MIPMap(width, height, pixels,
+	return new MIPMap(size, pixels,
 		isotropic, wrapMode, maxAnisotropy);
 }
 
@@ -327,12 +325,12 @@ Spectrum MIPMap::EWA(Float u, Float v, Float dudx, Float dudy, Float dvdx,
 }
 
 Bitmap *MIPMap::getBitmap() const {
-	Bitmap *bitmap = new Bitmap(m_width, m_height, 128);
+	Bitmap *bitmap = new Bitmap(m_size, 128);
 	float *floatData = bitmap->getFloatData();
 	Spectrum *specData = m_pyramid[0];
 
-	for (int y=0; y<m_height; ++y) {
-		for (int x=0; x<m_width; ++x) {
+	for (int y=0; y<m_size.y(); ++y) {
+		for (int x=0; x<m_size.x(); ++x) {
 			Float r, g, b;
 			(specData++)->toLinearRGB(r, g, b);
 			*floatData++ = r;
@@ -345,12 +343,12 @@ Bitmap *MIPMap::getBitmap() const {
 }
 
 Bitmap *MIPMap::getLDRBitmap() const {
-	Bitmap *bitmap = new Bitmap(m_width, m_height, 24);
+	Bitmap *bitmap = new Bitmap(m_size, 24);
 	uint8_t *data = bitmap->getData();
 	Spectrum *specData = m_pyramid[0];
 
-	for (int y=0; y<m_height; ++y) {
-		for (int x=0; x<m_width; ++x) {
+	for (int y=0; y<m_size.y(); ++y) {
+		for (int x=0; x<m_size.x(); ++x) {
 			Float r, g, b;
 			(specData++)->toLinearRGB(r, g, b);
 			*data++ = (uint8_t) std::min(255, std::max(0, (int) (r*255)));

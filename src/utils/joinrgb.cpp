@@ -16,7 +16,7 @@
     along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <mitsuba/render/util.h>
+#include <mitsuba/core/plugin.h>
 #include <mitsuba/core/bitmap.h>
 #include <mitsuba/core/fstream.h>
 
@@ -33,16 +33,16 @@ public:
 		ref<Bitmap> rBitmap = new Bitmap(Bitmap::EEXR, rFile);
 		ref<Bitmap> gBitmap = new Bitmap(Bitmap::EEXR, gFile);
 		ref<Bitmap> bBitmap = new Bitmap(Bitmap::EEXR, bFile);
-		ref<Bitmap> outBitmap = new Bitmap(rBitmap->getWidth(), rBitmap->getHeight(), 128);
+		ref<Bitmap> outBitmap = new Bitmap(rBitmap->getSize(), 128);
 
 		float *rData = rBitmap->getFloatData();
 		float *gData = gBitmap->getFloatData();
 		float *bData = bBitmap->getFloatData();
 		float *outData = outBitmap->getFloatData();
-		int width = rBitmap->getWidth();
+		int width = rBitmap->getWidthX();
 
-		for (int y=0; y<rBitmap->getHeight(); ++y) {
-			for (int x=0; x<rBitmap->getWidth(); ++x) {
+		for (int y=0; y<rBitmap->getHeightX(); ++y) {
+			for (int x=0; x<width; ++x) {
 				float r = rData[(x + y * width) * 4];
 				float g = gData[(x + y * width) * 4 + 1];
 				float b = bData[(x + y * width) * 4 + 2];

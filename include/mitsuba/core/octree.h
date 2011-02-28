@@ -101,7 +101,7 @@ public:
 	}
 
 	/// Execute operator() of <tt>functor</tt> on all records, which potentially overlap <tt>bsphere</tt>
-	template <typename Functor> inline void searchSphere(const BoundingSphere &sphere, Functor &functor) {
+	template <typename Functor> inline void searchSphere(const BoundingSphere3 &sphere, Functor &functor) {
 		if (!m_bbox.overlaps(sphere))
 			return;
 		searchSphere(&m_root, m_bbox, sphere, functor);
@@ -202,7 +202,7 @@ private:
 	}
 
 	template <typename Functor> inline void searchSphere(OctreeNode *node, 
-			const BoundingBox3 &nodeBoundingBox, const BoundingSphere &sphere, 
+			const BoundingBox3 &nodeBoundingBox, const BoundingSphere3 &sphere, 
 			Functor &functor) {
 		const Point center = nodeBoundingBox.getCenter();
 

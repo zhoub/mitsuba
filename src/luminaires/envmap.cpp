@@ -53,7 +53,7 @@ public:
 		: Luminaire(stream, manager) {
 		m_intensityScale = stream->readFloat();
 		m_path = stream->readString();
-		m_bsphere = BoundingSphere(stream);
+		m_bsphere = BoundingSphere3(stream);
 		Log(EInfo, "Unserializing environment map \"%s\"", m_path.leaf().c_str());
 		uint32_t size = stream->readUInt();
 		ref<MemoryStream> mStream = new MemoryStream(size);
@@ -118,7 +118,7 @@ public:
 			m_bsphere.radius *= 1.01f;
 		}
 		if (scene->getCamera()) {
-			BoundingSphere old = m_bsphere;
+			BoundingSphere3 old = m_bsphere;
 			m_bsphere.expandBy(scene->getCamera()->getPosition());
 			if (old != m_bsphere)
 				m_bsphere.radius *= 1.01f;
@@ -175,8 +175,8 @@ public:
 		Vector d = sampleDirection(sample, lRec.pdf, lRec.Le);
 
 		Float nearHit, farHit;
-		if (m_bsphere.contains(p) && m_bsphere.rayIntersect(Ray(p, -d, 0.0f), nearHit, farHit)) {
-			lRec.sRec.p = p - d * nearHit;
+		if (m_bsphere.rayIntersect(Ray(p, -d, 0.0f), nearHit, farHit)) {
+			lRec.sRec.p = p + d * (nearHit > 0 ? nearHit : farHit);
 			lRec.sRec.n = normalize(m_bsphere.center - lRec.sRec.p);
 			lRec.d = d;
 		} else {
@@ -309,15 +309,14 @@ public:
 
 	bool createEmissionRecord(EmissionRecord &eRec, const Ray &ray) const {
 		Float nearHit, farHit;
-		if (!m_bsphere.contains(ray.o) || !m_bsphere.rayIntersect(ray, nearHit, farHit)) {
-			Log(EWarn, "Could not create an emission record -- the ray "
-				"in question appears to be outside of the scene bounds!");
+		if (!m_bsphere.rayIntersect(ray, nearHit, farHit)) {
+			Log(EWarn, "Could not create an emission record!");
 			return false;
 		}
 
 		eRec.type = EmissionRecord::ENormal;
-		eRec.sRec.p = ray(nearHit);
-		eRec.sRec.n = normalize(m_bsphere.center - eRec.sRec.p);
+		eRec.sRec.p = ray(nearHit > 0 ? nearHit : farHit);
+		eRec.sRec.n = (m_bsphere.center - eRec.sRec.p).normalized();
 		eRec.pdfArea = m_invSurfaceArea;
 		eRec.pdfDir = INV_PI * eRec.sRec.n.dot(eRec.d);
 		eRec.d = -ray.d;
@@ -347,7 +346,7 @@ public:
 	MTS_DECLARE_CLASS()
 private:
 	Spectrum m_average;
-	BoundingSphere m_bsphere;
+	BoundingSphere3 m_bsphere;
 	Float m_intensityScale;
 	Float m_surfaceArea;
 	Float m_invSurfaceArea;

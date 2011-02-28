@@ -343,7 +343,7 @@ public:
 					bbox.expandBy(vertices.at(vertexId));
 				}
 			}
-			scale = 2/bbox.getExtents()[bbox.getLongestDimension()];
+			scale = 2/bbox.getExtents()[bbox.getMajorAxis()];
 			translate = -Vector(bbox.getCenter());
 		}
 

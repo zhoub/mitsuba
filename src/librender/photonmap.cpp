@@ -439,7 +439,7 @@ void PhotonMap::balanceRecursive(photon_iterator basePtr,
 
 	/* Splitting along the axis with the widest spread
        works well in practice and is cheap to compute (p.71) */
-	int splitAxis = bbox.getLongestDimension();
+	int splitAxis = bbox.getMajorAxis();
 
 	/* QUICKSORT-like partitioning iterations until the entry referenced by 
 	   'pivot' imposes an ordering wrt. all other photons in the range */

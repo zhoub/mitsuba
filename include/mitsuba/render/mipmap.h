@@ -40,7 +40,7 @@ public:
 	 * Construct a new mip-map from the given texture. Does not
 	 * need to have a power-of-two size.
 	 */
-	MIPMap(int width, int height, Spectrum *pixels, 
+	MIPMap(const Vector2i &size, Spectrum *pixels, 
 		bool isotropic = false, EWrapMode wrapMode = ERepeat,
 		Float maxAnisotropy = 8.0f);
 
@@ -59,11 +59,14 @@ public:
 	/// Bilinear interpolation using a triangle filter
 	Spectrum triangle(int level, Float x, Float y) const;
 
-	/// Return the width of the represented texture
-	inline int getWidth() const { return m_width; }
+	/// Return the size of the represented texture in pixels
+	inline const Vector2i &getSize() const { return m_size; }
 
-	/// Return the height of the represented texture
-	inline int getHeight() const { return m_height; }
+	/// Return the width of the represented texture in pixels
+	inline int getWidthX() const { return m_size.x(); }
+
+	/// Return the height of the represented texture in pixels
+	inline int getHeightX() const { return m_size.y(); }
 
 	/// Return a pointer to internal image representation at full resolution
 	inline const Spectrum *getImageData() const { return m_pyramid[0]; }
@@ -110,7 +113,7 @@ protected:
 	/* Virtual destructor */
 	virtual ~MIPMap();
 private:
-	int m_width, m_height;
+	Vector2i m_size;
 	int m_levels;
 	int *m_levelWidth;
 	int *m_levelHeight;

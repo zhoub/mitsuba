@@ -26,10 +26,10 @@ MTS_NAMESPACE_BEGIN
 /* ==================================================================== */
 
 Wavelet2D::Wavelet2D(const Bitmap *bitmap, int selectedChannel) {
-	Assert(bitmap->getWidth() == bitmap->getHeight());
-	Assert(isPowerOfTwo(bitmap->getWidth()));
+	Assert(bitmap->getSize().x() == bitmap->getSize().y());
+	Assert(isPowerOfTwo(bitmap->getSize().x()));
 
-	m_size = bitmap->getWidth();
+	m_size = bitmap->getSize().x();
 	m_data = new float[m_size * m_size];
 	m_temp = new float[m_size];
 
@@ -143,10 +143,10 @@ void Wavelet2D::nonstandardDecomposition() {
 }
 
 void Wavelet2D::decode(Bitmap *bitmap, float offset, float scale) {
-	Assert(bitmap->getWidth() == bitmap->getHeight());
+	Assert(bitmap->getSize().x() == bitmap->getSize().y());
 	Assert(bitmap->getBitsPerPixel() == 8
 		|| bitmap->getBitsPerPixel() == 128);
-	Assert((size_t) bitmap->getWidth() == m_size);
+	Assert((size_t) bitmap->getSize().x() == m_size);
 
 	/* Back up the current coefficients */
 	float *backup = m_data;

@@ -91,9 +91,9 @@ public:
 
 	bool rayIntersect(const Ray &ray, Float mint, Float maxt, Float &t, void *tmp) const {
 		Vector o = ray.o - m_center;
-		Float A = ray.d.x*ray.d.x + ray.d.y*ray.d.y + ray.d.z*ray.d.z;
-		Float B = 2 * (ray.d.x*o.x + ray.d.y*o.y + ray.d.z*o.z);
-		Float C = o.x*o.x + o.y*o.y + o.z*o.z - m_radius*m_radius;
+		const Float A = ray.d.squaredNorm();
+		const Float B = 2 * ray.d.dot(o);
+		const Float C = o.squaredNorm() - m_radius*m_radius;
 
 		Float nearT, farT;
 		if (!solveQuadratic(A, B, C, nearT, farT))
@@ -113,10 +113,10 @@ public:
 	}
 
 	bool rayIntersect(const Ray &ray, Float mint, Float maxt) const {
-		Vector o = ray.o - m_center;
-		Float A = ray.d.x*ray.d.x + ray.d.y*ray.d.y + ray.d.z*ray.d.z;
-		Float B = 2 * (ray.d.x*o.x + ray.d.y*o.y + ray.d.z*o.z);
-		Float C = o.x*o.x + o.y*o.y + o.z*o.z - m_radius*m_radius;
+		const Vector o = ray.o - m_center;
+		const Float A = ray.d.squaredNorm();
+		const Float B = 2 * ray.d.dot(o);
+		const Float C = o.squaredNorm() - m_radius*m_radius;
 
 		Float nearT, farT;
 		if (!solveQuadratic(A, B, C, nearT, farT))

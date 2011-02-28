@@ -561,7 +561,7 @@ public:
 	void findCosts(Float &traversalCost, Float &intersectionCost) {
 		ref<Random> random = new Random();
 		uint8_t temp[128];
-		BoundingSphere bsphere = this->m_bbox.getBoundingSphere();
+		BoundingSphere3 bsphere = this->m_bbox.getBoundingSphere();
 		int nRays = 10000000, warmup = nRays/4;
 		DynamicMatrix A(nRays-warmup, 3);
 		DynamicVector b(nRays-warmup);

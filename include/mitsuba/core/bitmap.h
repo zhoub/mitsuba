@@ -46,7 +46,7 @@ public:
 	};
 
 	/// Create a new bitmap
-	Bitmap(int width = 512, int height = 512, int bpp = 24);
+	Bitmap(const Vector2i &size, int bpp = 24);
 
 	/// Load a bitmap of the given file format
 	Bitmap(EFileFormat format, Stream *stream);
@@ -69,7 +69,7 @@ public:
 	void save(EFileFormat format, Stream *stream, int compression = 5) const;
 
 	/// Return the image's title identifier
-	inline const std::string &getTile() const { return m_title; }
+	inline const std::string &getTitle() const { return m_title; }
 	
 	/// Return the image's author identifier
 	inline const std::string &getAuthor() const { return m_author; }
@@ -104,27 +104,26 @@ public:
 	/// Access the underlying raster (only meant for 128bpp images)
 	inline const float *getFloatData() const { return (const float *) m_data; }
 
-	/// Return the bitmap width
-	inline const int getWidth() const { return m_width; }
+	/// Return the bitmap width in pixels
+	inline const int getWidthX() const { return m_size.x(); }
 
-	/// Return the bitmap height 
-	inline const int getHeight() const { return m_height; }
+	/// Return the bitmap height in pixels
+	inline const int getHeightX() const { return m_size.y(); }
+
+	/// Return the bitmap's resolution in pixels
+	inline const Vector2i &getSize() const { return m_size; }
 
 	/// Return the bitmap's bits per pixel
 	inline const int getBitsPerPixel() const { return m_bpp; }
 
 	/// Return the bitmap size in bytes
-	inline const size_t getSize() const { return m_size; }
+	inline const size_t getBufferSize() const { return m_bufferSize; }
 
 	/// Return some human-readable information about this bitmap
 	std::string toString() const;
 
 	MTS_DECLARE_CLASS()
 protected:
-	/// Constructor for subclasses
-	inline Bitmap(bool unused) {
-	}
-
 	/// Virtual destructor
 	virtual ~Bitmap();
 
@@ -149,10 +148,9 @@ protected:
 	/// Save a file using the EXR file format
 	void saveEXR(Stream *stream) const;
 protected:
-	int m_width;
-	int m_height;
+	Vector2i m_size;
 	int m_bpp;
-	size_t m_size;
+	size_t m_bufferSize;
 	unsigned char *m_data;
 	std::string m_title;
 	std::string m_author;

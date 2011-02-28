@@ -64,7 +64,7 @@ public:
 
 	void preprocess(const Scene *scene) {
 		/* Get the scene's bounding sphere and slightly enlarge it */
-		BoundingSphere bsphere = scene->getBoundingSphere();
+		BoundingSphere3 bsphere = scene->getBoundingSphere();
 		m_diskRadius = bsphere.radius;
 		m_diskOrigin = bsphere.center - m_direction * bsphere.radius;
 

@@ -146,7 +146,7 @@ public:
 	}
 	
 	/// Return a bounding sphere containing the whole scene
-	inline const BoundingSphere &getBoundingSphere() const {
+	inline const BoundingSphere3 &getBoundingSphere() const {
 		return m_bsphere;
 	}
 
@@ -464,7 +464,7 @@ private:
 	fs::path m_destinationFile;
 	DiscretePDF m_luminairePDF;
 	BoundingBox3 m_bbox;
-	BoundingSphere m_bsphere;
+	BoundingSphere3 m_bsphere;
 	bool m_importanceSampleLuminaires;
 	ETestType m_testType;
 	Float m_testThresh;

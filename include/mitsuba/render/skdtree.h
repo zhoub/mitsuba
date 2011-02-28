@@ -83,7 +83,7 @@ public:
 	inline const BoundingBox3 &getBoundingBox() const { return m_bbox; }
 	
 	/// Return an bounding sphere containing all primitives
-	inline const BoundingSphere &getBoundingSphere() const { return m_bsphere; }
+	inline const BoundingSphere3 &getBoundingSphere() const { return m_bsphere; }
 
 	/// Build the kd-tree (needs to be called before tracing any rays)
 	void build();
@@ -395,7 +395,7 @@ private:
 #if !defined(MTS_KD_CONSERVE_MEMORY)
 	TriAccel *m_triAccel;
 #endif
-	BoundingSphere m_bsphere;
+	BoundingSphere3 m_bsphere;
 };
 
 MTS_NAMESPACE_END

@@ -518,7 +518,7 @@ protected:
 			case EBalanced: {
 					/* Split along the median */
 					split = rangeStart + (rangeEnd-rangeStart)/2;
-					axis = m_bbox.getLongestDimension();
+					axis = m_bbox.getMajorAxis();
 					std::nth_element(rangeStart, split, rangeEnd, CoordinateOrdering(axis));
 				};
 				break;
@@ -543,7 +543,7 @@ protected:
 						p = (p >> 1) + remaining;
 					}
 
-					axis = m_bbox.getLongestDimension();
+					axis = m_bbox.getMajorAxis();
 					
 					split = rangeStart + (p - 1);
 					std::nth_element(rangeStart, split, rangeEnd,
@@ -553,7 +553,7 @@ protected:
 
 			case ESlidingMidpoint: {
 					/* Sliding midpoint rule: find a split that is close to the spatial median */
-					axis = m_bbox.getLongestDimension();
+					axis = m_bbox.getMajorAxis();
 
 					Scalar midpoint = (Scalar) 0.5f 
 						* (m_bbox.max[axis]+m_bbox.min[axis]);

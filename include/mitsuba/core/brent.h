@@ -32,19 +32,19 @@ MTS_NAMESPACE_BEGIN
  *
  * \ingroup libcore
  */
-template <typename T, typename Func> class BrentSolver {
+template <typename _Scalar, typename Func> class BrentSolver {
 public:
-	typedef T value_type;
+	typedef _Scalar Scalar;
 
 	/// Return value of \ref BrentSolver::solve()
 	struct Result {
 		bool success;
 		int iterations;
-		value_type x;
-		value_type y;
+		Scalar x;
+		Scalar y;
 
 		/// Create a new result instance
-		inline Result(bool success, int iterations, value_type x, value_type y)
+		inline Result(bool success, int iterations, Scalar x, Scalar y)
 			: success(success), iterations(iterations), x(x), y(y) { }
 
 		/// Return a string representation of the result
@@ -76,9 +76,9 @@ public:
 	 *      iterations will stop when |minX-maxX|/minX < relAccuracyPos.
 	 */
 	inline BrentSolver(int maxIterations = 100, 
-			value_type absAccuracy = 1e-6f,
-			value_type absAccuracyPos = 1e-6f,
-			value_type relAccuracyPos = 1e-6f) 
+			Scalar absAccuracy = 1e-6f,
+			Scalar absAccuracyPos = 1e-6f,
+			Scalar relAccuracyPos = 1e-6f) 
 		: m_maxIterations(maxIterations),
 		  m_absAccuracy(absAccuracy),
 		  m_absAccuracyPos(absAccuracyPos),
@@ -94,18 +94,18 @@ public:
 	 * \param max the upper bound for the interval.
 	 * \return the value where the function is zero
 	 */
-	Result solve(Func &f, value_type min, value_type max) const {
+	Result solve(Func &f, Scalar min, Scalar max) const {
 		// return the first endpoint if it is good enough
-		value_type yMin = f(min);
+		Scalar yMin = f(min);
 		if (std::abs(yMin) <= m_absAccuracy)
 			return Result(true, 0, min, yMin);
 
 		// return the second endpoint if it is good enough
-		value_type yMax = f(max);
+		Scalar yMax = f(max);
 		if (std::abs(yMax) <= m_absAccuracy)
 			return Result(true, 0, max, yMax);
 
-		value_type sign = yMin * yMax;
+		Scalar sign = yMin * yMax;
 		if (sign > 0) {
 			SLog(EWarn, "BrentSolver: Function values at the endpoints do not have different signs -- "
 				"endpoints: [%f, %f], values: [%f, %f]", min, max, yMin, yMax);
@@ -130,7 +130,7 @@ public:
 	 *    if no initial point is known)
 	 * \return the value where the function is zero
 	 */
-	Result solve(Func &f, value_type min, value_type max, value_type initial) const {
+	Result solve(Func &f, Scalar min, Scalar max, Scalar initial) const {
 		if (initial < min || initial > max) {
 			SLog(EWarn, "BrentSolver: Invalid interval: lower=%f, initial=%f, upper=%f",
 				min, max, initial);
@@ -138,12 +138,12 @@ public:
 		}
 
 		// return the initial guess if it is good enough
-		value_type yInitial = f(initial);
+		Scalar yInitial = f(initial);
 		if (std::abs(yInitial) <= m_absAccuracy) 
 			return Result(true, 0, initial, yInitial);
 
 		// return the first endpoint if it is good enough
-		value_type yMin = f(min);
+		Scalar yMin = f(min);
 		if (std::abs(yMin) <= m_absAccuracy)
 			return Result(true, 0, min, yMin);
 
@@ -152,7 +152,7 @@ public:
             return solve(f, min, yMin, initial, yInitial, min, yMin);
 
 		// return the second endpoint if it is good enough
-		value_type yMax = f(max);
+		Scalar yMax = f(max);
 		if (std::abs(yMax) <= m_absAccuracy)
 			return Result(true, 0, max, yMax);
 
@@ -180,11 +180,11 @@ public:
 	 * \return the value where the function is zero
 	 */
 	Result solve(Func &f,
-				 value_type x0, value_type y0,
-				 value_type x1, value_type y1,
-				 value_type x2, value_type y2) const {
-		value_type delta = x1 - x0;
-		value_type oldDelta = delta;
+				 Scalar x0, Scalar y0,
+				 Scalar x1, Scalar y1,
+				 Scalar x2, Scalar y2) const {
+		Scalar delta = x1 - x0;
+		Scalar oldDelta = delta;
 
 		int i = 0;
 		while (i < m_maxIterations) {
@@ -203,8 +203,8 @@ public:
 				// still be ill conditioned)
 				return Result(true, i, x1, y1);
 			}
-			value_type dx = x2 - x1;
-			value_type tolerance =
+			Scalar dx = x2 - x1;
+			Scalar tolerance =
 				std::max(m_relAccuracyPos * std::abs(x1), m_absAccuracyPos);
 
 			if (std::abs(dx) <= tolerance) 
@@ -212,12 +212,12 @@ public:
 			if ((std::abs(oldDelta) < tolerance) ||
 					(std::abs(y0) <= std::abs(y1))) {
 				// Force bisection.
-				delta = (value_type) 0.5f * dx;
+				delta = (Scalar) 0.5f * dx;
 				oldDelta = delta;
 			} else {
-				value_type r3 = y1 / y0;
-				value_type p;
-				value_type p1;
+				Scalar r3 = y1 / y0;
+				Scalar p;
+				Scalar p1;
 				// the equality test (x0 == x2) is intentional,
 				// it is part of the original Brent's method,
 				// it should NOT be replaced by proximity test
@@ -227,8 +227,8 @@ public:
 					p1 = 1 - r3;
 				} else {
 					// Inverse quadratic interpolation.
-					value_type r1 = y0 / y2;
-					value_type r2 = y1 / y2;
+					Scalar r1 = y0 / y2;
+					Scalar r2 = y1 / y2;
 					p = r3 * (dx * r1 * (r1 - r2) - (x1 - x0) * (r2 - 1));
 					p1 = (r1 - 1) * (r2 - 1) * (r3 - 1);
 				}
@@ -237,12 +237,12 @@ public:
 				} else {
 					p = -p;
 				}
-				if (2 * p >= (value_type) 1.5f * dx * p1 - std::abs(tolerance * p1) ||
-						p >= std::abs((value_type) 0.5f * oldDelta * p1)) {
+				if (2 * p >= (Scalar) 1.5f * dx * p1 - std::abs(tolerance * p1) ||
+						p >= std::abs((Scalar) 0.5f * oldDelta * p1)) {
 					// Inverse quadratic interpolation gives a value
 					// in the wrong direction, or progress is slow.
 					// Fall back to bisection.
-					delta = (value_type) 0.5f * dx;
+					delta = (Scalar) 0.5f * dx;
 					oldDelta = delta;
 				} else {
 					oldDelta = delta;
@@ -256,9 +256,9 @@ public:
 			if (std::abs(delta) > tolerance) {
 				x1 = x1 + delta;
 			} else if (dx > 0) {
-				x1 = x1 + (value_type) 0.5f * tolerance;
+				x1 = x1 + (Scalar) 0.5f * tolerance;
 			} else if (dx <= 0) {
-				x1 = x1 - (value_type) 0.5f * tolerance;
+				x1 = x1 - (Scalar) 0.5f * tolerance;
 			}
 			y1 = f(x1);
 			if ((y1 > 0) == (y2 > 0)) {
@@ -275,9 +275,9 @@ public:
 	}
 private:
 	int m_maxIterations;
-	value_type m_absAccuracy;
-	value_type m_absAccuracyPos;
-	value_type m_relAccuracyPos;
+	Scalar m_absAccuracy;
+	Scalar m_absAccuracyPos;
+	Scalar m_relAccuracyPos;
 }; 
 
 MTS_NAMESPACE_END

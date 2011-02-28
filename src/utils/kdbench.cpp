@@ -16,10 +16,11 @@
     along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <mitsuba/render/util.h>
 #include <mitsuba/core/timer.h>
 #include <mitsuba/core/fresolver.h>
 #include <mitsuba/core/plugin.h>
+#include <mitsuba/render/scene.h>
+#include <mitsuba/render/scenehandler.h>
 #include <boost/algorithm/string.hpp>
 #if defined(WIN32)
 #include <mitsuba/core/getopt.h>
@@ -162,7 +163,7 @@ public:
 			ref<FileResolver> frClone = fileResolver->clone();
 			frClone->addPath(filePath);
 			Thread::getThread()->setFileResolver(frClone);
-			scene = loadScene(argv[optind]);
+			scene = SceneHandler::loadScene(argv[optind]);
 			kdtree = scene->getKDTree();
 		} else if (boost::ends_with(lowercase, ".ply")) {
 			Properties props("ply");
@@ -205,7 +206,7 @@ public:
 		else
 			kdtree->build();
 
-		BoundingSphere bsphere(kdtree->getBoundingSphere());
+		BoundingSphere3 bsphere(kdtree->getBoundingSphere());
 		const size_t nRays = 5000000;
 
 		if (!fitParameters) {
