@@ -48,13 +48,59 @@ public:
 	// =============================================================
 	
 	/// Return the list of vertices underlying the hair shape
-	const std::vector<Point> &getVertices() const;
+	//const std::vector<Point> &getVertices() const;
 
 	/**
 	 * Return a boolean list specifying whether a vertex 
 	 * marks the beginning of a new fiber
 	 */
-	const std::vector<bool> &getStartFiber() const;
+	//const std::vector<bool> &getStartFiber() const;
+
+	// Get the radius of the fibers
+	Float getRadius() const { return (this->*ptr_getRadius)(); }
+
+	//! @}
+	// =============================================================
+
+	// =============================================================
+	//! @{ \name Geometric information about hair segments
+	// =============================================================
+
+	// Extract information about hit location that is stored in the
+	// intersection record at intersection time.  Output is
+	// the index of the segment that was hit and the (u,v,s)
+	// segment coordinates of the hit point.
+	void convertLocationData(const Intersection &its, int &iSeg,
+			Point &segPosn) const {
+		(this->*ptr_convertLocationData)(its, iSeg, segPosn);
+	}
+
+	// Convert a point in (u,v,s) segment coordinates to world space.
+	Point segmentToGlobal(const Intersection &its, int iSeg,
+			const Point &segPosn) const {
+		return (this->*ptr_segmentToGlobal)(its, iSeg, segPosn);
+	}
+
+	// The first and second vertices of a given segment
+	Point getFirstVertex(int iSeg) const {
+		return (this->*ptr_getFirstVertex)(iSeg);
+	}
+	Point getSecondVertex(int iSeg) const {
+		return (this->*ptr_getSecondVertex)(iSeg);
+	}
+
+	// The tangent vector of a given segment
+	Vector getSegmentTangent(int iSeg) const {
+		return (this->*ptr_getSegmentTangent)(iSeg);
+	}
+
+	// The miter normals of a given segment
+	Vector getFirstMiterNormal(int iSeg) const {
+		return (this->*ptr_getFirstMiterNormal)(iSeg);
+	}
+	Vector getSecondMiterNormal(int iSeg) const {
+		return (this->*ptr_getSecondMiterNormal)(iSeg);
+	}
 
 	//! @}
 	// =============================================================
@@ -88,6 +134,31 @@ public:
 	MTS_DECLARE_CLASS()
 private:
 	ref<HairKDTree> m_kdtree;
+
+	Float (HairShape::*ptr_getRadius)() const;
+	void (HairShape::*ptr_convertLocationData)(const Intersection &, int &,
+			Point &) const;
+	Point (HairShape::*ptr_segmentToGlobal)(const Intersection &, int,
+			const Point &) const;
+	Point (HairShape::*ptr_getFirstVertex)(int) const;
+	Point (HairShape::*ptr_getSecondVertex)(int) const;
+	Vector (HairShape::*ptr_getSegmentTangent)(int) const;
+	Vector (HairShape::*ptr_getFirstMiterNormal)(int) const;
+	Vector (HairShape::*ptr_getSecondMiterNormal)(int) const;
+
+	Float impl_getRadius() const;
+	void impl_convertLocationData(const Intersection &its, int &iSeg,
+			Point &segPosn) const;
+	Point impl_segmentToGlobal(const Intersection &its, int iSeg,
+			const Point &segPosn) const;
+	Point impl_getFirstVertex(int iSeg) const;
+	Point impl_getSecondVertex(int iSeg) const;
+	Vector impl_getSegmentTangent(int iSeg) const;
+	Vector impl_getFirstMiterNormal(int iSeg) const;
+	Vector impl_getSecondMiterNormal(int iSeg) const;
+
+	void initImplementations();
+
 };
 
 MTS_NAMESPACE_END

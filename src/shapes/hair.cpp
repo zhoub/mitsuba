@@ -497,6 +497,8 @@ protected:
 };
 
 HairShape::HairShape(const Properties &props) : Shape(props) {
+	initImplementations();
+
 	fs::path path = Thread::getThread()->getFileResolver()->resolve(
 		props.getString("filename"));
 	Float radius = props.getFloat("radius", 0.05f);
@@ -581,6 +583,8 @@ HairShape::HairShape(const Properties &props) : Shape(props) {
 
 HairShape::HairShape(Stream *stream, InstanceManager *manager) 
 	: Shape(stream, manager) {
+	initImplementations();
+
 	Float radius = stream->readFloat();
 	size_t vertexCount = stream->readSize();
 
@@ -593,6 +597,17 @@ HairShape::HairShape(Stream *stream, InstanceManager *manager)
 	vertexStartsFiber[vertexCount] = true;
 
 	m_kdtree = new HairKDTree(vertices, vertexStartsFiber, radius);
+}
+
+void HairShape::initImplementations() {
+	ptr_getRadius = &HairShape::impl_getRadius;
+	ptr_convertLocationData = &HairShape::impl_convertLocationData;
+	ptr_segmentToGlobal = &HairShape::impl_segmentToGlobal;
+	ptr_getFirstVertex = &HairShape::impl_getFirstVertex;
+	ptr_getSecondVertex = &HairShape::impl_getSecondVertex;
+	ptr_getSegmentTangent = &HairShape::impl_getSegmentTangent;
+	ptr_getFirstMiterNormal = &HairShape::impl_getFirstMiterNormal;
+	ptr_getSecondMiterNormal = &HairShape::impl_getSecondMiterNormal;
 }
 
 void HairShape::serialize(Stream *stream, InstanceManager *manager) const {
@@ -633,12 +648,28 @@ void HairShape::fillIntersectionRecord(const Ray &ray,
 	const Vector axis = m_kdtree->tangent(iv);
 	its.geoFrame.s = axis;
 	const Vector relHitPoint = its.p - m_kdtree->firstVertex(iv);
-	its.geoFrame.n = Normal(normalize(relHitPoint - dot(axis, relHitPoint) * axis));
+	Normal perpComponent = Normal(relHitPoint - dot(axis, relHitPoint) * axis);
+	its.geoFrame.n = normalize(perpComponent);
 	its.geoFrame.t = cross(its.geoFrame.n, its.geoFrame.s);
 	its.shFrame = its.geoFrame;
 	its.wi = its.toLocal(-ray.d);
 	its.hasUVPartials = false;
 	its.shape = this;
+
+	// Compute the s segment coordinate of the hit point.
+	Normal n0 = m_kdtree->firstMiterNormal(iv);
+	Normal n1 = m_kdtree->secondMiterNormal(iv);
+	Vector v0 = perpComponent - axis * dot(perpComponent, n0) / dot(axis, n0);
+	Vector v1 = perpComponent - axis * dot(perpComponent, n1) / dot(axis, n1);
+	Point p0 = m_kdtree->firstVertex(iv) + v0;
+	Point p1 = m_kdtree->secondVertex(iv) + v1;
+
+	// Then s is the interpolation parameter of the hit point between those two points.
+	Float s = (its.p - p0).length() / (p1 - p0).length();
+
+	// This data gets stashed in the color for later extraction by convertLocationData.
+	its.color[0] = iv;
+	its.color[1] = s;
 }
 
 ref<TriMesh> HairShape::createTriMesh() {
@@ -713,13 +744,68 @@ ref<TriMesh> HairShape::createTriMesh() {
 const KDTreeBase<AABB> *HairShape::getKDTree() const {
 	return m_kdtree.get();
 }
-
+/*
 const std::vector<Point> &HairShape::getVertices() const {
 	return m_kdtree->getVertices();
 }
 
 const std::vector<bool> &HairShape::getStartFiber() const {
 	return m_kdtree->getStartFiber();
+}
+*/
+Float HairShape::impl_getRadius() const {
+	return m_kdtree->getRadius();
+}
+
+void HairShape::impl_convertLocationData(const Intersection &its,
+		int &segId, Point &segPosn) const {
+
+	segId = its.color[0];
+	segPosn.x = getRadius();
+	segPosn.y = 0;
+	segPosn.z = its.color[1];
+}
+
+Point HairShape::impl_segmentToGlobal(const Intersection &its,
+		int iSeg, const Point &segPosn) const {
+
+	// construct vector in u-v plane normal to segment axis
+	Normal azimuthComponent = its.geoFrame.toWorld(Vector(segPosn.x, segPosn.y, 0));
+
+	// project that vector parallel to the axis onto the miter planes at each end
+	Vector axis = its.geoFrame.s;
+	Normal n0 = m_kdtree->firstMiterNormal(iSeg);
+	Normal n1 = m_kdtree->secondMiterNormal(iSeg);
+	Vector v0 = azimuthComponent - axis * dot(azimuthComponent, n0) / dot(axis, n0);
+	Vector v1 = azimuthComponent - axis * dot(azimuthComponent, n1) / dot(axis, n1);
+
+	// offset from segment endpoints to get endpoints of that isoline in world space
+	Point p0 = m_kdtree->firstVertex(iSeg) + v0;
+	Point p1 = m_kdtree->secondVertex(iSeg) + v1;
+
+	// interpolate between those points according to s
+	return (1 - segPosn.z) * p0 + segPosn.z * p1;
+}
+
+// The first and second vertices of a given segment
+Point HairShape::impl_getFirstVertex(int iSeg) const {
+	return m_kdtree->firstVertex(iSeg);
+}
+
+Point HairShape::impl_getSecondVertex(int iSeg) const {
+	return m_kdtree->secondVertex(iSeg);
+}
+
+Vector HairShape::impl_getSegmentTangent(int iSeg) const {
+	return m_kdtree->tangent(iSeg);
+}
+
+Vector HairShape::impl_getFirstMiterNormal(int iSeg) const {
+	return m_kdtree->firstMiterNormal(iSeg);
+}
+
+Vector HairShape::impl_getSecondMiterNormal(int iSeg) const {
+	return m_kdtree->secondMiterNormal(iSeg);
 }
 
 AABB HairShape::getAABB() const {
@@ -741,6 +827,10 @@ std::string HairShape::toString() const {
 		<< "]";
 	return oss.str();
 }
+
+#if SPECTRUM_SAMPLES < 3
+#error The hair intersection shape needs at least 3 spectral channels
+#endif
 
 MTS_IMPLEMENT_CLASS(HairKDTree, false, KDTreeBase)
 MTS_IMPLEMENT_CLASS_S(HairShape, false, Shape)

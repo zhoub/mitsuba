@@ -59,31 +59,91 @@ public:
 			Log(EError, "Can only be attached to a HairShape!");
 	}
 
+	void evalScattering(const Vector &w1, const Vector &w2, Spectrum &value) const {
+		value = Spectrum(1/(2*M_PI));
+	}
+
+	bool sampleScattering(const Vector &w1, Vector &w2, Spectrum &value, float &pdf) const {
+		return false;
+	}
+
+	float evalPDF(const Vector &w1, const Vector &w2) const {
+		return 1/(2*M_PI);
+	}
+
+	// Return a point on the surface of the fiber that has the same s (along-fiber)
+	// coordinate as the intersection point and is visible in the direction d.
+	static Point visiblePointOnSegment(const HairShape *shape, const Intersection &its, Vector d) {
+
+		// the segment-frame offset from the segment axis to the required point
+		Vector shadowPointLocal = its.geoFrame.toLocal(d);
+		shadowPointLocal.z = 0;
+		shadowPointLocal = normalize(shadowPointLocal) * shape->getRadius();
+
+		// the segment-coordinates position of the required point
+		Point segPosn;
+		int segId;
+		shape->convertLocationData(its, segId, segPosn);
+		segPosn.x = shadowPointLocal.x;
+		segPosn.y = shadowPointLocal.y;
+
+		// the corresponding global point
+		return shape->segmentToGlobal(its, segId, segPosn);
+	}
+
 	Spectrum Lo(const Scene *scene, Sampler *sampler, 
 			const Intersection &its, const Vector &d, int depth) const {
-		Spectrum result(0.0f);
 
 		const HairShape *shape = static_cast<const HairShape *>(its.shape);
 
-		Vector wiLocal = its.wi, wiWorld = d;
+		// Result is direct lighting plus result of a recursive ray.
+		Spectrum scatteredRadiance(0.0f);
+
+		// Direct lighting: sample a luminaire point in solid angle measure, and weight by
+		// the scattering function for the resulting incident direction.
 
 		LuminaireSamplingRecord lRec;
-		if (scene->sampleLuminaire(its.p, its.time, lRec, sampler->next2D())) {
-			/* Do something with lRec */
+		if (scene->sampleLuminaire(its.p, its.time, lRec, sampler->next2D(), false)) {
+
+			Point shadowPoint = visiblePointOnSegment(shape, its, lRec.d);
+
+			Vector tempVec = shadowPoint - shape->getFirstVertex(its.color[0]);
+			Vector axis = shape->getSegmentTangent(its.color[0]);
+			tempVec -= axis * dot(tempVec, axis);
+			cerr << "shadowPoint distance to axis = " << tempVec.length() << endl;
+
+			if (!scene->isOccluded(shadowPoint, lRec.sRec.p, its.time)) {
+				Vector wo(its.shFrame.toLocal(lRec.d));
+				Spectrum scatFnValue;
+				evalScattering(its.wi, wo, scatFnValue);
+				scatteredRadiance += wo.z * scatFnValue * lRec.value / lRec.pdf;
+			}
 		}
 
-		/* Recursively gather radiance, but don't include emission */
-		RadianceQueryRecord rRec(scene, sampler);
-		rRec.newQuery(RadianceQueryRecord::ERadianceNoEmission, NULL);
-		rRec.depth = depth + 1;
-		
-		/// Compute scattered direction
-		Vector wo = -d;
+		// Recursive ray for all other lighting: generate random ray in solid angle measure,
+		// weight by scattering function for that direction.
+		Vector wo;
+		Spectrum scatFnValue;
+		Float pdf = 0;
+		if (sampleScattering(its.wi, wo, scatFnValue, pdf)) {
 
-		Spectrum recursiveRadiance = static_cast<const SampleIntegrator *>(
-			scene->getIntegrator())->Li(RayDifferential(its.p, wo, its.time), rRec);
+			/* Recursively gather radiance, but don't include emission */
+			RadianceQueryRecord rRec(scene, sampler);
+			rRec.newQuery(RadianceQueryRecord::ERadianceNoEmission, NULL);
+			rRec.depth = depth + 1;
 
-		return result;
+			if (sampleScattering(its.wi, wo, scatFnValue, pdf)) {
+
+				Point basePoint = visiblePointOnSegment(shape, its, wo);
+
+				Spectrum recursiveRadiance = static_cast<const SampleIntegrator *>(
+						scene->getIntegrator())->Li(RayDifferential(basePoint, wo, its.time), rRec);
+
+				scatteredRadiance += wo.z * recursiveRadiance * scatFnValue / pdf;
+			}
+		}
+
+		return scatteredRadiance;
 	}
 
 	MTS_DECLARE_CLASS()
