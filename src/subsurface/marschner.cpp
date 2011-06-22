@@ -75,17 +75,20 @@ public:
 	// coordinate as the intersection point and is visible in the direction d.
 	static Point visiblePointOnSegment(const HairShape *shape, const Intersection &its, Vector d) {
 
+		//cerr << "geoFrame = " << its.geoFrame.toString() << endl;
 		// the segment-frame offset from the segment axis to the required point
-		Vector shadowPointLocal = its.geoFrame.toLocal(d);
-		shadowPointLocal.z = 0;
+		Vector shadowPointLocal = its.geoFrame.toLocal(-d);
+		//cerr << "d = " << d.toString() << endl;//"; shadowPointLocal = " << shadowPointLocal.toString() << endl;
+		shadowPointLocal.x = 0;
 		shadowPointLocal = normalize(shadowPointLocal) * shape->getRadius();
 
 		// the segment-coordinates position of the required point
 		Point segPosn;
 		int segId;
 		shape->convertLocationData(its, segId, segPosn);
-		segPosn.x = shadowPointLocal.x;
 		segPosn.y = shadowPointLocal.y;
+		segPosn.z = shadowPointLocal.z;
+		//cerr << "segPosn = " << segPosn.toString() << endl;
 
 		// the corresponding global point
 		return shape->segmentToGlobal(its, segId, segPosn);
@@ -110,13 +113,14 @@ public:
 			Vector tempVec = shadowPoint - shape->getFirstVertex(its.color[0]);
 			Vector axis = shape->getSegmentTangent(its.color[0]);
 			tempVec -= axis * dot(tempVec, axis);
-			cerr << "shadowPoint distance to axis = " << tempVec.length() << endl;
+			//cerr << "shadowPoint " << shadowPoint.toString() << "; distance to axis = " << tempVec.toString() << endl;
 
 			if (!scene->isOccluded(shadowPoint, lRec.sRec.p, its.time)) {
 				Vector wo(its.shFrame.toLocal(lRec.d));
 				Spectrum scatFnValue;
 				evalScattering(its.wi, wo, scatFnValue);
-				scatteredRadiance += wo.z * scatFnValue * lRec.value / lRec.pdf;
+				Float cosTheta = std::sqrt(wo.y*wo.y + wo.z*wo.z);
+				scatteredRadiance += cosTheta * scatFnValue * lRec.value / lRec.pdf;
 			}
 		}
 
@@ -139,7 +143,8 @@ public:
 				Spectrum recursiveRadiance = static_cast<const SampleIntegrator *>(
 						scene->getIntegrator())->Li(RayDifferential(basePoint, wo, its.time), rRec);
 
-				scatteredRadiance += wo.z * recursiveRadiance * scatFnValue / pdf;
+				Float cosTheta = std::sqrt(wo.y*wo.y + wo.z*wo.z);
+				scatteredRadiance += cosTheta * recursiveRadiance * scatFnValue / pdf;
 			}
 		}
 

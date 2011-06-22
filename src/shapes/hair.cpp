@@ -761,16 +761,16 @@ void HairShape::impl_convertLocationData(const Intersection &its,
 		int &segId, Point &segPosn) const {
 
 	segId = its.color[0];
-	segPosn.x = getRadius();
+	segPosn.x = its.color[1];
 	segPosn.y = 0;
-	segPosn.z = its.color[1];
+	segPosn.z = getRadius();
 }
 
 Point HairShape::impl_segmentToGlobal(const Intersection &its,
 		int iSeg, const Point &segPosn) const {
 
 	// construct vector in u-v plane normal to segment axis
-	Normal azimuthComponent = its.geoFrame.toWorld(Vector(segPosn.x, segPosn.y, 0));
+	Normal azimuthComponent = its.geoFrame.toWorld(Vector(0, segPosn.y, segPosn.z));
 
 	// project that vector parallel to the axis onto the miter planes at each end
 	Vector axis = its.geoFrame.s;
@@ -784,7 +784,7 @@ Point HairShape::impl_segmentToGlobal(const Intersection &its,
 	Point p1 = m_kdtree->secondVertex(iSeg) + v1;
 
 	// interpolate between those points according to s
-	return (1 - segPosn.z) * p0 + segPosn.z * p1;
+	return (1 - segPosn.x) * p0 + segPosn.x * p1;
 }
 
 // The first and second vertices of a given segment
