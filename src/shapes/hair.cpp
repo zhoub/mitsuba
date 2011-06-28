@@ -427,16 +427,7 @@ public:
 		if (!solveQuadratic(A, B, C, nearT, farT))
 			return false;
 
-<<<<<<< local
-=======
-		cerr.precision(10);
-		cerr << "nearT " << nearT << ", mint " << mint << ", maxt " << maxt << ", farT " << farT << endl;
->>>>>>> other
 		if (nearT > maxt || farT < mint) {
-<<<<<<< local
-=======
-			cerr << "miss1!" << endl;
->>>>>>> other
 			return false;
 		}
 
@@ -450,14 +441,9 @@ public:
 		} else if (dot(pointFar - firstVertex(iv), firstMiterNormal(iv)) >= 0 &&
 				dot(pointFar - secondVertex(iv), secondMiterNormal(iv)) <= 0) {
 			if (farT >= maxt)
-<<<<<<< local
-=======
-				cerr << "miss2! farT " << farT << " maxt " << maxt << endl;
->>>>>>> other
 				return false;
 			t = farT;
 		} else {
-			cerr << "miss3!" << endl;
 			return false;
 		}
 
@@ -465,7 +451,6 @@ public:
 		if (storage)
 			*storage = iv;
 
-		//cerr << "hit!" << endl;
 		return true;
 	}
 	
