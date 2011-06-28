@@ -20,12 +20,12 @@
 #define __CHI_SQUARE_TEST_H
 
 #include <mitsuba/core/fresolver.h>
-#include <mitsuba/core/quad.h>
-#include <mitsuba/core/timer.h>
-#include <boost/bind.hpp>
-#include <boost/math/distributions/chi_squared.hpp>
+#include <boost/function.hpp>
 
 MTS_NAMESPACE_BEGIN
+
+/// Minimum expected cell frequency. Cells below this value will be pooled
+#define CHISQR_MIN_EXP_FREQUENCY 5
 
 /**
  * \brief Chi-square goodness-of-fit test on the sphere
@@ -59,7 +59,7 @@ MTS_NAMESPACE_BEGIN
  * 
  * <code>
  * MyDistribution myDistrInstance;
- * ChiSquareTest chiSqr;
+ * ChiSquare chiSqr;
  *
  * // Initialize the tables used by the chi-square test
  * chiSqr.fill(
@@ -70,13 +70,23 @@ MTS_NAMESPACE_BEGIN
  * // Optional: dump the tables to a MATLAB file for external analysis
  * chiSqr.dumpTables("debug.m");
  *
- * // (the folowing assumes that the distribution has 1 parameter, e.g. exponent value)
+ * // (the following assumes that the distribution has 1 parameter, e.g. exponent value)
  * if (!chiSqr.runTest(1))
  *    Log(EError, "Uh oh -- test failed, the implementation is probably incorrect!");
  * </code>
  */
-class ChiSquareTest {
+class MTS_EXPORT_CORE ChiSquare : public Object {
 public:
+	/// Possible outcomes in \ref runTest()
+	enum ETestResult {
+		/// The null hypothesis was rejected
+		EReject = 0,
+		/// The null hypothesis was accepted
+		EAccept = 1,
+		/// The degrees of freedom were too low
+		ELowDoF = 2
+	};
+
 	/**
 	 * \brief Create a new Chi-square test instance with the given
 	 * resolution and sample count
@@ -88,25 +98,39 @@ public:
 	 *    Number of bins wrt. azimuth. The default is to use
 	 *    twice the number of \c thetaBins
 	 *
+	 * \param numTests
+	 *    Number of independent tests that will be performed. This
+	 *    is used to compute the Sidak-correction factor.
+	 *
 	 * \param sampleCount
 	 *    Number of samples to be used when computing the bin
 	 *    values. The default is \c thetaBins*phiBins*5000
 	 */
-	ChiSquareTest(int thetaBins = 10, int phiBins = 0, size_t sampleCount = 0)
-	    	: m_thetaBins(thetaBins), m_phiBins(phiBins), m_sampleCount(sampleCount) {
-		if (m_phiBins == 0)
-			m_phiBins = 2*m_thetaBins;
-		if (m_sampleCount == 0)
-			m_sampleCount = m_thetaBins * m_phiBins * 1000;
-		m_table = new Float[m_thetaBins*m_phiBins];
-		m_refTable = new Float[m_thetaBins*m_phiBins];
-	}
+	ChiSquare(int thetaBins = 10, int phiBins = 0, 
+			int numTests = 1, size_t sampleCount = 0);
+	
+	/// Get the log level
+	inline ELogLevel getLogLevel() const { return m_logLevel; }
 
-	/// Release all memory
-	~ChiSquareTest() {
-		delete[] m_table;
-		delete[] m_refTable;
-	}
+	/// Set the log level
+	inline void setLogLevel(ELogLevel logLevel) { m_logLevel = logLevel; }
+
+	/**
+	 * \brief Set the tolerance threshold for bins with very low 
+	 * aggregate probabilities
+	 *
+	 * When the Chi-square test integrates the supplied probability 
+	 * density function over the support of a bin and determines that
+	 * the aggregate bin probability is zero, the test would ordinarily 
+	 * fail if as much as one sample is placed in that bin in the 
+	 * subsequent sampling step. However, due to various numerical 
+	 * errors in a system based on finite-precision arithmetic, it 
+	 * may be a good idea to tolerate at least a few samples without 
+	 * immediately rejecting the null hypothesis. This parameter 
+	 * sets this threshold. The default value is <number of
+	 * sample> * 1e-4f
+	 */
+	inline void setTolerance(Float tolerance) { m_tolerance = tolerance; }
 
 	/**
 	 * \brief Fill the actual and reference bin counts
@@ -116,87 +140,12 @@ public:
 	 */
 	void fill(
 		const boost::function<std::pair<Vector, Float>()> &sampleFn,
-		const boost::function<Float (const Vector &)> &pdfFn) {
-		memset(m_table, 0, m_thetaBins*m_phiBins*sizeof(Float));
-
-		SLog(EInfo, "Accumulating " SIZE_T_FMT " samples into a %ix%i"
-				" contingency table", m_sampleCount, m_thetaBins, m_phiBins);
-		Point2 factor(m_thetaBins / M_PI, m_phiBins / (2*M_PI));
-
-		ref<Timer> timer = new Timer();
-		for (size_t i=0; i<m_sampleCount; ++i) {
-			std::pair<Vector, Float> sample = sampleFn();
-			Point2 sphCoords = toSphericalCoordinates(sample.first);
-
-			int thetaBin = std::min(std::max(0,
-				floorToInt(sphCoords.x * factor.x)), m_thetaBins-1);
-			int phiBin = std::min(std::max(0,
-				floorToInt(sphCoords.y * factor.y)), m_phiBins-1);
-
-			m_table[thetaBin * m_phiBins + phiBin] += sample.second;
-		}
-		SLog(EInfo, "Done, took %i ms.", timer->getMilliseconds());
-		factor = Point2(M_PI / m_thetaBins, (2*M_PI) / m_phiBins);
-
-		SLog(EInfo, "Integrating reference contingency table");
-		timer->reset();
-		Float min[2], max[2];
-		size_t idx = 0;
-
-		NDIntegrator integrator(1, 2, 100000, 0, 1e-6f);
-		Float maxError = 0, integral = 0;
-		for (int i=0; i<m_thetaBins; ++i) {
-			min[0] = i * factor.x;
-			max[0] = (i+1) * factor.x;
-			for (int j=0; j<m_phiBins; ++j) {
-				min[1] = j * factor.y;
-				max[1] = (j+1) * factor.y;
-				Float result, error;
-				size_t evals;
-
-				integrator.integrateVectorized(
-					boost::bind(&ChiSquareTest::integrand, pdfFn, _1, _2, _3),
-					min, max, &result, &error, evals
-				);
-
-				integral += result;
-				m_refTable[idx++] = result * m_sampleCount;
-				maxError = std::max(maxError, error);
-			}
-		}
-		SLog(EInfo, "Done, took %i ms (max error = %f, integral=%f).", 
-				timer->getMilliseconds(), maxError, integral);
-	}
+		const boost::function<Float (const Vector &)> &pdfFn);
 
 	/**
 	 * \brief Dump the bin counts to a file using MATLAB format
 	 */
-	void dumpTables(const fs::path &filename) {
-		fs::ofstream out(filename);
-		out << "tbl_counts = [ ";
-		for (int i=0; i<m_thetaBins; ++i) {
-			for (int j=0; j<m_phiBins; ++j) {
-				out << m_table[i*m_phiBins+j];
-				if (j+1 < m_phiBins)
-					out << ", ";
-			}
-			if (i+1 < m_thetaBins)
-				out << "; ";
-		}
-		out << " ];" << endl
-			<< "tbl_ref = [ ";
-		for (int i=0; i<m_thetaBins; ++i) {
-			for (int j=0; j<m_phiBins; ++j) {
-				out << m_refTable[i*m_phiBins+j];
-				if (j+1 < m_phiBins)
-					out << ", ";
-			}
-			if (i+1 < m_thetaBins)
-				out << "; ";
-		}
-		out << " ];" << endl;
-		out.close();
-	}
+	void dumpTables(const fs::path &filename);
 
 	/**
 	 * \brief Perform the actual chi-square test
@@ -211,58 +160,16 @@ public:
 	 *     when the computed p-value lies below this parameter
 	 *     (default: 0.01f)
 	 *
-	 * \return \c false if the null hypothesis was rejected
-	 *     and \c true otherwise.
+	 * \return A status value of type \ref ETestResult
 	 */
-	bool runTest(int distParams, Float pvalThresh = 0.01f) {
-		/* Compute the chi-square statistic */
-		Float chsq = 0.0f;
-		Float pooledCounts = 0, pooledRef = 0;
-		int pooledCells = 0;
-		int df = 0;
+	ETestResult runTest(int distParams, Float pvalThresh = 0.01f);
 
-		for (int i=0; i<m_thetaBins*m_phiBins; ++i) {
-			if (m_refTable[i] < 5) {
-				pooledCounts += m_table[i];
-				pooledRef += m_refTable[i];
-				++pooledCells;
-			} else {
-				Float diff = m_table[i]-m_refTable[i];
-				chsq += (diff*diff) / m_refTable[i];
-				++df;
-			}
-		}
-
-		if (pooledCells > 0) {
-			SLog(EInfo, "Pooled %i cells with an expected "
-				"number of < 5 entries!", pooledCells);
-			if (pooledRef < 5) {
-				SLog(EWarn, "Even after pooling, the expected "
-					"number of entries is < 5 (%f), expect badness!",
-					pooledRef);
-			}
-			Float diff = pooledCounts - pooledRef;
-			chsq += (diff*diff) / pooledRef;
-			++df;
-		}
-
-		df -= distParams + 1;
-		SLog(EInfo, "Chi-square statistic = %e (df=%i)", chsq, df);
-		boost::math::chi_squared chSqDist(df);
-		/* Probability of obtaining a test statistic at least
-		   as extreme as the one observed under the assumption
-		   that the distributions match */
-		Float pval = 1 - boost::math::cdf(chSqDist, chsq);
-		SLog(EInfo, "P-value = %e", pval);
-
-		if (pval < pvalThresh) {
-			SLog(EWarn, "Rejecting the null hypothesis");
-			return false;
-		}
-		return true;
-
-	}
+	MTS_DECLARE_CLASS()
 protected:
+	/// Release all memory
+	virtual ~ChiSquare();
+
+	/// Functor to evaluate the pdf values in parallel using OpenMP
 	static void integrand(
 		const boost::function<Float (const Vector &)> &pdfFn,
 			size_t nPts, const Float *in, Float *out) {
@@ -271,7 +178,10 @@ protected:
 			out[i] = pdfFn(sphericalDirection(in[2*i], in[2*i+1])) * std::sin(in[2*i]);
 	}
 private:
+	ELogLevel m_logLevel;
+	Float m_tolerance;
 	int m_thetaBins, m_phiBins;
+	int m_numTests;
 	size_t m_sampleCount;
 	Float *m_table;
 	Float *m_refTable;

@@ -45,8 +45,8 @@ public:
 
 		m_componentCount = 2;
 		m_type = new unsigned int[m_componentCount];
-		m_type[0] = EDeltaReflection;
-		m_type[1] = EDeltaTransmission;
+		m_type[0] = EDeltaReflection | EFrontSide | EBackSide;
+		m_type[1] = EDeltaTransmission | EFrontSide | EBackSide;
 		m_combinedType = m_type[0] | m_type[1];
 		m_usesRayDifferentials = false;
 	}
@@ -60,8 +60,8 @@ public:
 
 		m_componentCount = 2;
 		m_type = new unsigned int[m_componentCount];
-		m_type[0] = EDeltaReflection;
-		m_type[1] = EDeltaTransmission;
+		m_type[0] = EDeltaReflection | EFrontSide | EBackSide;
+		m_type[1] = EDeltaTransmission | EFrontSide | EBackSide;
 		m_combinedType = m_type[0] | m_type[1];
 		m_usesRayDifferentials = false;
 	}
@@ -97,43 +97,41 @@ public:
 
 	Float refract(Float intIOR, Float extIOR, 
 			const Vector &wi, Vector &wo, ETransportQuantity quantity) const {
-		Float cosTheta1 = Frame::cosTheta(wi);
-		bool entering = cosTheta1 > 0.0f;
+		Float cosThetaI = Frame::cosTheta(wi),
+			  etaI = extIOR, etaT = intIOR;
+		bool entering = cosThetaI > 0.0f;
 
-		/* Swap the indices of refraction if the interaction starts
-		   at the inside of the object */
 		if (!entering)
-			std::swap(intIOR, extIOR);
+			std::swap(etaT, etaI);
 
-		Float eta = extIOR/intIOR;
+		Float eta = etaI / etaT;
 
 		/* Using Snell's law, calculate the squared sine of the
 		   angle between the normal and the transmitted ray */
-		Float sinTheta2Sqr = eta*eta * Frame::sinTheta2(wi);
+		Float sinThetaTSqr = eta*eta * Frame::sinTheta2(wi);
 
-		if (sinTheta2Sqr > 1.0f) /* Total internal reflection! */
+		if (sinThetaTSqr > 1.0f) /* Total internal reflection! */
 			return 0.0f;
 
-		/* Compute the cosine, but guard against numerical imprecision */
-		Float cosTheta2 = std::sqrt(std::max((Float) 0.0f, 1.0f - sinTheta2Sqr));
+		Float cosThetaT = std::sqrt(1.0f - sinThetaTSqr);
 		if (entering)
-			cosTheta2 = -cosTheta2;
+			cosThetaT = -cosThetaT;
 
-		/* With cos(N, transmittedRay) on tap, calculating the 
+		/* With cos(N, transmittedRay) avilable, calculating the 
 		   transmission direction is straightforward */
-		wo = Vector(-eta*wi.x, -eta*wi.y, cosTheta2);
+		wo = Vector(-eta*wi.x, -eta*wi.y, cosThetaT);
 
 		/* Finally compute transmission coefficient. When transporting
-		   radiance, account for the change at boundaries with different 
-		   indices of refraction. */
+		   radiance, account for the solid angle change at boundaries 
+		   with different indices of refraction. */
 		if (quantity == ERadiance)
-			return (extIOR*extIOR)/(intIOR*intIOR);
+			return (etaI*etaI) / (etaT*etaT);
 		else
 			return 1.0f;
 	}
 
 	inline Spectrum sample(BSDFQueryRecord &bRec, const Point2 &sample) const {
-		Float pdf=1;
+		Float pdf = 0;
 		Spectrum spec = Dielectric::sample(bRec, pdf, sample);
 		if (pdf == 0 || spec.isZero())
 			return Spectrum(0.0f);
@@ -203,10 +201,7 @@ public:
 				result = 0.5f;
 			} else {
 				Float fr = fresnel(Frame::cosTheta(bRec.wi), m_extIOR, m_intIOR);
-				if (reflection)
-					result = fr;
-				else
-					result = 1-fr;
+				result = reflection ? fr : (1-fr);
 			}
 		} else if (sampleReflection) {
 			result = reflection ? 1.0f : 0.0f;
@@ -222,23 +217,25 @@ public:
 		bool sampleTransmission = (bRec.typeMask & EDeltaTransmission)
 				&& (bRec.component == -1 || bRec.component == 1);
 		bool reflection = bRec.wo.z * bRec.wi.z > 0;
-		Float intIOR = m_intIOR, extIOR = m_extIOR;
-		Float fr = fresnel(Frame::cosTheta(bRec.wi), extIOR, intIOR);
+		Float fr = fresnel(Frame::cosTheta(bRec.wi), m_extIOR, m_intIOR);
+		
 		if (sampleReflection && !sampleTransmission && !reflection) 
 			return Spectrum(0.0f);
 		else if (!sampleReflection && sampleTransmission && reflection)
 			return Spectrum(0.0f);
-		if (reflection)
+
+		if (reflection) {
 			return m_reflectance * fr;
-		else {
+		} else {
+			Float etaI = m_extIOR, etaT = m_intIOR;
 			bool entering = Frame::cosTheta(bRec.wi) > 0.0f;
 			if (!entering)
-				std::swap(intIOR, extIOR);
+				std::swap(etaI, etaT);
 
 			Float factor = (bRec.quantity == ERadiance) 
-				? (extIOR*extIOR)/(intIOR*intIOR) : 1.0f;
+				? (etaI*etaI) / (etaT*etaT) : 1.0f;
 
-			return m_transmittance  * factor * (1-fr);
+			return m_transmittance  * factor * (1 - fr);
 		}
 
 	}
@@ -246,8 +243,10 @@ public:
 	std::string toString() const {
 		std::ostringstream oss;
 		oss << "Dielectric[" << endl
-			<< "  intIOR=" << m_intIOR << "," << endl 
-			<< "  extIOR=" << m_extIOR << endl
+			<< "  intIOR = " << m_intIOR << "," << endl 
+			<< "  extIOR = " << m_extIOR << "," << endl
+			<< "  reflectance = " << m_reflectance.toString() << "," << endl
+			<< "  transmittance = " << m_transmittance.toString() << endl
 			<< "]";
 		return oss.str();
 	}

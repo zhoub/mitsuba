@@ -22,6 +22,17 @@
 
 MTS_NAMESPACE_BEGIN
 
+/*! \plugin{twosided}{Two-sided BRDF adapter}
+ * 
+ * Turns a nested one-sided BRDF onto a two-sided version that
+ * can be used to render meshes where the back-side is visible.
+ *
+ * \begin{xml}
+ * <bsdf type="twosided">
+ *   <bsdf type="lambertian"/>
+ * </bsdf>
+ * \end{xml}
+ */
 class TwoSidedBRDF : public BSDF {
 public:
 	TwoSidedBRDF(const Properties &props) 
@@ -47,15 +58,19 @@ public:
 	void configure() {
 		if (!m_nestedBRDF)
 			Log(EError, "TwoSidedBRDF: A child BRDF instance is required");
-		m_combinedType = m_nestedBRDF->getType();
+		m_usesRayDifferentials = m_nestedBRDF->usesRayDifferentials();
+		m_componentCount = m_nestedBRDF->getComponentCount();
+		if (m_type)
+			delete[] m_type;
+		m_type = new unsigned int[m_componentCount];
+		m_combinedType = 0;
+		for (int i=0; i<m_nestedBRDF->getComponentCount(); ++i) {
+			m_type[i] = m_nestedBRDF->getType(i) | EFrontSide | EBackSide;
+			m_combinedType |= m_type[i];
+		}
 		if (m_combinedType & BSDF::ETransmission)
 			Log(EError, "TwoSidedBRDF: only BRDF child instances (without "
 				"transmission) are supported");
-		m_usesRayDifferentials = m_nestedBRDF->usesRayDifferentials();
-		m_componentCount = m_nestedBRDF->getComponentCount();
-		m_type = new unsigned int[m_componentCount];
-		for (int i=0; i<m_nestedBRDF->getComponentCount(); ++i)
-			m_type[i] = m_nestedBRDF->getType(i);
 	}
 
 	Spectrum getDiffuseReflectance(const Intersection &its) const {
@@ -83,31 +98,31 @@ public:
 
 
 	Spectrum sample(BSDFQueryRecord &bRec, const Point2 &sample) const {
-		bool flip = false;
+		bool flipped = false;
 		if (bRec.wi.z < 0) {
 			bRec.wi.z *= -1;
-			flip = true;
+			flipped = true;
 		}
 		Spectrum result = m_nestedBRDF->sample(bRec, sample);
-		if (bRec.wi.z < 0 && !result.isZero()) {
+		if (flipped) {
 			bRec.wi.z *= -1;
-			bRec.wo.z *= -1;
-			flip = true;
+			if (!result.isZero()) 
+				bRec.wo.z *= -1;
 		}
 		return result;
 	}
 
 	Spectrum sample(BSDFQueryRecord &bRec, Float &pdf, const Point2 &sample) const {
-		bool flip = false;
+		bool flipped = false;
 		if (bRec.wi.z < 0) {
 			bRec.wi.z *= -1;
-			flip = true;
+			flipped = true;
 		}
 		Spectrum result = m_nestedBRDF->sample(bRec, pdf, sample);
-		if (bRec.wi.z < 0 && !result.isZero()) {
+		if (flipped) {
 			bRec.wi.z *= -1;
-			bRec.wo.z *= -1;
-			flip = true;
+			if (!result.isZero() && pdf != 0)
+				bRec.wo.z *= -1;
 		}
 		return result;
 	}

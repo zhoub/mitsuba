@@ -23,20 +23,46 @@
 
 MTS_NAMESPACE_BEGIN
 
-/*!
-The Lambertian material represents a one-sided ideal diffuse material
-with the specified amount of reflectance. Optionally, a texture map may
-be applied. If no extra information is provided, the material will revert to 
-the default of uniform 50% reflectance.
-
-Seen from the back side, this material will appear completely black.
-
-\verbatim
-<bsdf type="lambertian">
-    <srgb name="reflectance" value="#a4da85"/>
-</bsdf>
-\endverbatim
-*/
+/*! \plugin{lambertian}{Ideally diffuse / Lambertian material}
+ *
+ * \parameters{
+ *     \lastparameter{reflectance}{\Spectrum\Or\Texture}{
+ *       Specifies the diffuse reflectance / albedo of the material \linebreak(Default: 0.5)
+ *     }
+ * }
+ *
+ * \renderings{
+ *     \rendering{Homogeneous reflectance, see \lstref{lambertian-uniform}}{bsdf_lambertian_plain}
+ *     \rendering{Textured reflectance, see \lstref{lambertian-textured}}{bsdf_lambertian_textured}
+ * }
+ *
+ * The Lambertian material represents an ideally diffuse material
+ * with a user-specified amount of reflectance. Apart from a 
+ * homogeneous reflectance value, the plugin can also accept a nested 
+ * or referenced texture map to be used as the source of reflectance 
+ * information, which is then mapped onto the shape based on its UV
+ * parameterization.
+ * When no parameters are specified, the model uses the default 
+ * of 50% reflectance.
+ *
+ * Note that this material is one-sided---that is, observed from the 
+ * back side, it will be completely black. If this is undesirable, 
+ * consider using the \pluginref{twosided} BRDF adapter plugin.
+ *
+ * \begin{xml}[caption=Reflectance specified as an sRGB color, label=lst:lambertian-uniform]
+ * <bsdf type="lambertian">
+ *     <srgb name="reflectance" value="#6d7185"/>
+ * </bsdf>
+ * \end{xml}
+ *
+ * \begin{xml}[caption=Lambertian material with a texture map, label=lst:lambertian-textured]
+ * <bsdf type="lambertian">
+ *     <texture type="ldrtexture" name="reflectance">
+ *       <string name="filename" value="wood.jpg"/>
+ *     </texture>
+ * </bsdf>
+ * \end{xml}
+ */
 class Lambertian : public BSDF {
 public:
 	Lambertian(const Properties &props) 
@@ -45,7 +71,7 @@ public:
 			props.getSpectrum("reflectance", Spectrum(.5f)));
 		m_componentCount = 1;
 		m_type = new unsigned int[m_componentCount];
-		m_combinedType = m_type[0] = EDiffuseReflection;
+		m_combinedType = m_type[0] = EDiffuseReflection | EFrontSide;
 		m_usesRayDifferentials = false;
 	}
 
@@ -54,7 +80,7 @@ public:
 		m_reflectance = static_cast<Texture *>(manager->getInstance(stream));
 		m_componentCount = 1;
 		m_type = new unsigned int[m_componentCount];
-		m_combinedType = m_type[0] = EDiffuseReflection;
+		m_combinedType = m_type[0] = EDiffuseReflection | EFrontSide;
 		m_usesRayDifferentials = m_reflectance->usesRayDifferentials();
 	}
 

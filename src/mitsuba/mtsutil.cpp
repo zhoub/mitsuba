@@ -66,6 +66,8 @@ void help() {
 	FileResolver *fileResolver = Thread::getThread()->getFileResolver();
 	std::ostringstream utilities, testcases;
 
+	cout << "[ Loading plugin list .. ]" << endl << endl;
+	
 	testcases << "The following testcases are available:" << endl << endl;
 	utilities << endl << "The following utilities are available:" << endl << endl;
 
@@ -194,7 +196,7 @@ int mtsutil(int argc, char **argv) {
 	
 		/* Initialize OpenMP */
 		Thread::initializeOpenMP(nprocs);
-		
+
 		/* Disable the default appenders */
 		for (size_t i=0; i<log->getAppenderCount(); ++i) {
 			Appender *appender = log->getAppender(i);
