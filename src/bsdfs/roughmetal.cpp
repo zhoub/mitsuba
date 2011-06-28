@@ -42,7 +42,7 @@ public:
 
 		m_componentCount = 1;
 		m_type = new unsigned int[m_componentCount];
-		m_combinedType = m_type[0] = EGlossyReflection;
+		m_combinedType = m_type[0] = EGlossyReflection | EFrontSide;
 		m_usesRayDifferentials = false;
 	}
 
@@ -55,7 +55,7 @@ public:
 
 		m_componentCount = 1;
 		m_type = new unsigned int[m_componentCount];
-		m_combinedType = m_type[0] = EGlossyReflection;
+		m_combinedType = m_type[0] = EGlossyReflection | EFrontSide;
 		m_usesRayDifferentials = 
 			m_specularReflectance->usesRayDifferentials();
 	}
@@ -70,7 +70,7 @@ public:
 
 	/**
 	 * Beckmann distribution function for gaussian random surfaces
-	 * @param thetaM Tangent of the angle between M and N.
+	 * \param thetaM Tangent of the angle between M and N.
 	 */
 	Float beckmannD(const Vector &m) const {
 		Float ex = Frame::tanTheta(m) / m_alphaB;
@@ -91,11 +91,11 @@ public:
 
 	/**
 	 * Smith's shadow-masking function G1 for the Beckmann distribution
-	 * @param m The microsurface normal
-	 * @param v An arbitrary direction
+	 * \param m The microsurface normal
+	 * \param v An arbitrary direction
 	 */
 	Float smithBeckmannG1(const Vector &v, const Vector &m) const {
-		if (dot(v, m)*Frame::cosTheta(v) <= 0)
+		if (dot(v, m) * Frame::cosTheta(v) <= 0)
 			return 0.0;
 
 		const Float tanTheta = Frame::tanTheta(v);
@@ -109,7 +109,8 @@ public:
 		if (a >= 1.6f)
 			return 1.0f;
 
-		return (3.535f * a + 2.181f * aSqr)/(1.0f + 2.276f * a + 2.577f * aSqr);
+		return (3.535f * a + 2.181f * aSqr) / 
+			(1.0f + 2.276f * a + 2.577f * aSqr);
 	}
 
 	inline Vector reflect(const Vector &wi, const Normal &n) const {
@@ -187,10 +188,10 @@ public:
 	std::string toString() const {
 		std::ostringstream oss;
 		oss << "RoughMetal[" << endl
-			<< "  specularReflectance=" << m_specularReflectance.toString() << "," << std::endl
-			<< ", ior=" << m_ior.toString() << "," << std::endl
-			<< ", k=" << m_k.toString() << "," << std::endl
-			<< ", alphaB=" << m_alphaB << std::endl
+			<< "  specularReflectance = " << indent(m_specularReflectance->toString()) << "," << std::endl
+			<< "  ior = " << m_ior.toString() << "," << std::endl
+			<< "  k = " << m_k.toString() << "," << std::endl
+			<< "  alphaB = " << m_alphaB << std::endl
 			<< "]";
 		return oss.str();
 	}

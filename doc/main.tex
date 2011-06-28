@@ -5,39 +5,50 @@
 
 \usepackage[english]{babel}
 \usepackage[T1]{fontenc}
-\usepackage{textcomp}
-\usepackage{lmodern}
-\usepackage{charter}
+\usepackage[utf8]{inputenc}
 \usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{mathtools}
 \usepackage{array}
 \usepackage{booktabs}
+\usepackage{tabularx}
 \usepackage{color}
+\usepackage{colortbl}
 \usepackage{listings}
-\usepackage{amsmath}
+\usepackage{subfigure}
 \usepackage{enumerate}
-\usepackage[utf8]{inputenc}
+\usepackage{ragged2e} % Ragged-right columns with hyphenation
+\usepackage{macros}
 
-\setcounter{tocdepth}{2}
+% Make sure that ligatures remain searchable in the PDF
+\input glyphtounicode
+\pdfgentounicode=1
+
+\IfFileExists{MinionPro.sty}
+   {\usepackage[opticals,fullfamily,lf]{MinionPro}}
+      {\message{Package MinionPro.sty was not found.}}
+
+\setcounter{secnumdepth}{3}
+\setcounter{tocdepth}{3}
+
+\newcommand{\MitsubaVersion}{0.2.1}
 
 \usepackage[
-	bookmarks
-	,bookmarksnumbered
-	,colorlinks
-	,linkcolor=myblue
-	,urlcolor=myblue
-	,citecolor=myblue
-	,pdfpagelabels
-	,pdftitle={Mitsuba documentation}
-	,pdfauthor={Wenzel Jakob}
-	,pdfstartview=FitH
+	bookmarks,
+	bookmarksnumbered,
+	colorlinks,
+	linkcolor=myblue,
+	urlcolor=myblue,
+	citecolor=myblue,
+	pdfpagelabels,
+	pdftitle={Mitsuba \MitsubaVersion\, Documentation},
+	pdfauthor={Wenzel Jakob},
+	pdfstartview=FitH
 ]{hyperref}
 
 \typearea[current]{last}
 \raggedbottom
-
-\usepackage[expansion=false]{microtype}
-%\UseMicrotypeSet[protrusion]{basictext}
-
+\usepackage[expansion=false, babel=true]{microtype}
 \renewcommand*\ttdefault{txtt}
 
 \usepackage{scrpage2}
@@ -55,39 +66,56 @@
 
 \definecolor{myblue}{rgb}{0,.1,.6}
 \definecolor{myred}{rgb}{0.63,.16,.16}
-\definecolor{lstshade}{gray}{0.94}
-\definecolor{lstframe}{gray}{0.75}
+\definecolor{lstshade}{gray}{0.95}
+\definecolor{lstframe}{gray}{0.80}
 \definecolor{lstcomment}{gray}{0.5}
+\definecolor{lstattrib}{rgb}{0,0.34,0}
 
-% Cite a figure/listing
-\newcommand{\cfig}[1]{\mbox{Figure \ref{fig:#1}}}
-\newcommand{\clst}[1]{\mbox{Listing \ref{lst:#1}}}
-
-\newcommand{\code}[1]{\texttt{#1}}
 
 % Listings settings
 \lstset{
+	basicstyle = \small\ttfamily\raggedright,
 	mathescape = true,
-	captionpos = b,
-	frame = single,
+	frame = lrtb,
 	backgroundcolor = \color{lstshade},
 	rulecolor = \color{lstframe},
 	tabsize = 4,
 	columns = flexible,
 	keepspaces,
 	belowskip = \smallskipamount,
-	keywordstyle = \bfseries,
-	commentstyle=\color{lstcomment}\itshape,
-	basicstyle = \small\ttfamily,
+	framerule = .7pt,
 	breaklines = true,
-	showstringspaces = false
+	showstringspaces = false,
+	keywordstyle = \bfseries,
+	captionpos = b,
+	upquote = true
 }
 
-\lstnewenvironment{cpp}{\lstset{language=c++}}
+
+\lstdefinelanguage{xml} {
+	sensitive=true,
+	morecomment=[s][\color{lstcomment}\itshape]{<!--}{-->},
+	morecomment=[s][\color{lstcomment}]{<?}{?>},
+	string=[b]", stringstyle=\color{lstattrib},
+	keywords= [1] {
+		shape,bsdf,scene,texture,phase,integer,float,
+		string,transform,ref,rgb,srgb,spectrum,blackbody,
+		medium,camera,film,sampler
+	},
+}
+
+% Thick frames for images
+\setlength\fboxsep{0pt}
+\setlength\fboxrule{1.5pt}
+
+% Less vertical spacing for \figure[h] floats
+\setlength{\intextsep}{3pt}
+
+\lstnewenvironment{cpp}[1][]{\lstset{language=c++, #1}}
 	{}
-\lstnewenvironment{xml}{\lstset{language=xml}}
+\lstnewenvironment{xml}[1][]{\lstset{language=xml, #1}}
 	{}
-\lstnewenvironment{shell}{\lstset{language=bash}}
+\lstnewenvironment{shell}[1]{\lstset{language=bash, #1}}
 	{}
 \lstnewenvironment{console}[1][]{\lstset{basicstyle=\footnotesize\ttfamily, float, #1}}
 	{}
@@ -95,7 +123,8 @@
 % ----- 8< ----- 8< ------
 
 \title{
-	Mitsuba Documentation
+	Mitsuba Documentation\\\vspace{3mm}
+	\large Version \MitsubaVersion
 }
 \author{Wenzel Jakob}
 \date{\today}
@@ -108,15 +137,15 @@
 \tableofcontents
 
 \include{introduction}
-\include{compiling}
-\include{basics}
-\include{format}
-\include{plugins}
-\include{import}
-\include{development}
-\include{integrator}
-\include{parallelization}
-\include{acknowledgements}
+%\include{compiling}
+%\include{basics}
+%\include{format}
+\IfFileExists{plugins_generated.tex}{\include{plugins_generated}}{}
+%\include{import}
+%\include{development}
+%\include{integrator}
+%\include{parallelization}
+%\include{acknowledgements}
 
 
 \end{document}

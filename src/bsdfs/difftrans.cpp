@@ -23,9 +23,43 @@
 MTS_NAMESPACE_BEGIN
 
 
-/**
- * Simple diffuse transmitter
+/*! \plugin{difftrans}{Diffuse transmitter}
+ *
+ * \parameters{
+ *     \lastparameter{transmittance}{\Spectrum\Or\Texture}{
+ *       Specifies the diffuse transmittance / albedo of the material
+ *       \default{0.5}
+ *     }
+ * }
+ *
+ * \renderings{
+ *     \rendering{Homogeneous reflectance, see \lstref{lambertian-uniform}}{bsdf_lambertian_plain}
+ *     \rendering{Textured reflectance, see \lstref{lambertian-textured}}{bsdf_lambertian_textured}
+ * }
+ *
+ * The Lambertian material represents an ideally diffuse material
+ * with a user-specified amount of reflectance. Apart from a 
+ * homogeneous reflectance value, the plugin can also accept a nested 
+ * or referenced texture map to be used as the source of reflectance 
+ * information, which is then mapped onto the shape based on its UV
+ * parameterization.
+ * When no parameters are specified, the model uses the default 
+ * of 50% reflectance.
+ *
+ * \begin{xml}[caption=Reflectance specified as an sRGB color, label=lst:lambertian-uniform]
+ * <bsdf type="lambertian">
+ *     <srgb name="reflectance" value="#6d7185"/>
+ * </bsdf>
+ * \end{xml}
+ * \begin{xml}[caption=Lambertian material with a texture map, label=lst:lambertian-textured]
+ * <bsdf type="lambertian">
+ *     <texture type="ldrtexture" name="reflectance">
+ *       <string name="filename" value="wood.jpg"/>
+ *     </texture>
+ * </bsdf>
+ * \end{xml}
  */
+
 class DiffuseTransmitter : public BSDF {
 public:
 	DiffuseTransmitter(const Properties &props) 
@@ -34,7 +68,7 @@ public:
 			props.getSpectrum("transmittance", Spectrum(.5f)));
 		m_componentCount = 1;
 		m_type = new unsigned int[m_componentCount];
-		m_combinedType = m_type[0] = EDiffuseTransmission;
+		m_combinedType = m_type[0] = EDiffuseTransmission | EFrontSide | EBackSide;
 		m_usesRayDifferentials = false;
 	}
 
@@ -43,7 +77,7 @@ public:
 		m_transmittance = static_cast<Texture *>(manager->getInstance(stream));
 		m_componentCount = 1;
 		m_type = new unsigned int[m_componentCount];
-		m_combinedType = m_type[0] = EDiffuseTransmission;
+		m_combinedType = m_type[0] = EDiffuseTransmission | EFrontSide | EBackSide;
 		m_usesRayDifferentials = m_transmittance->usesRayDifferentials();
 	}
 
@@ -113,7 +147,9 @@ public:
 
 	std::string toString() const {
 		std::ostringstream oss;
-		oss << "DiffuseTransmitter[transmittance=" << m_transmittance->toString() << "]";
+		oss << "DiffuseTransmitter[" << endl
+			<< "  transmittance = " << indent(m_transmittance->toString()) << endl
+			<< "]";
 		return oss.str();
 	}
 
