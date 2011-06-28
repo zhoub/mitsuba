@@ -182,7 +182,7 @@ public:
 		if (!f)
 			Log(EError, "Output file cannot be created!");
 
-		fprintf(f, "[");
+		fprintf(f, "A = [");
 		int pos = 0;
 		for (int y=0; y<m_cropSize.y; y++) {
 			for (int x=0; x<m_cropSize.x; x++) {
@@ -216,7 +216,7 @@ public:
 				fprintf(f, ";\n ");
 		}
 
-		fprintf(f, "]\n");
+		fprintf(f, "];\n");
 		fclose(f);
 	}
 	

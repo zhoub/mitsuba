@@ -427,8 +427,12 @@ public:
 		if (!solveQuadratic(A, B, C, nearT, farT))
 			return false;
 
-		if (nearT > maxt || farT < mint)
+		cerr.precision(10);
+		cerr << "nearT " << nearT << ", mint " << mint << ", maxt " << maxt << ", farT " << farT << endl;
+		if (nearT > maxt || farT < mint) {
+			cerr << "miss1!" << endl;
 			return false;
+		}
 
 		/* Next check the intersection points against the miter planes */
 		Point pointNear = ray(nearT);
@@ -439,10 +443,12 @@ public:
 			t = nearT;
 		} else if (dot(pointFar - firstVertex(iv), firstMiterNormal(iv)) >= 0 &&
 				dot(pointFar - secondVertex(iv), secondMiterNormal(iv)) <= 0) {
-			if (farT > maxt)
+			if (farT >= maxt)
+				cerr << "miss2! farT " << farT << " maxt " << maxt << endl;
 				return false;
 			t = farT;
 		} else {
+			cerr << "miss3!" << endl;
 			return false;
 		}
 
@@ -450,6 +456,7 @@ public:
 		if (storage)
 			*storage = iv;
 
+		//cerr << "hit!" << endl;
 		return true;
 	}
 	
