@@ -31,6 +31,7 @@
 #include <mitsuba/render/subsurface.h>
 #include <mitsuba/render/texture.h>
 #include <mitsuba/render/medium.h>
+#include <mitsuba/render/fiberscat.h>
 #include <mitsuba/render/volume.h>
 #include <mitsuba/render/phase.h>
 

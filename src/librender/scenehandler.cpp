@@ -175,6 +175,9 @@ void SceneHandler::endElement(const XMLCh* const xmlName) {
 	} else if (name == "phase") {
 		object = static_cast<PhaseFunction *> (m_pluginManager->createObject(
 			MTS_CLASS(PhaseFunction), context.properties));
+	} else if (name == "fiberscat") {
+		object = static_cast<FiberScatteringFunction *> (m_pluginManager->createObject(
+			MTS_CLASS(FiberScatteringFunction), context.properties));
 	} else if (name == "bsdf") {
 		object = static_cast<BSDF *> (m_pluginManager->createObject(
 			MTS_CLASS(BSDF), context.properties));

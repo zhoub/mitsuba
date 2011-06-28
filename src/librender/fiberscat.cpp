@@ -16,15 +16,13 @@
     along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <mitsuba/render/phase.h>
-#include <mitsuba/render/medium.h>
+#include <mitsuba/render/fiberscat.h>
 
 MTS_NAMESPACE_BEGIN
 
-std::string PhaseFunctionQueryRecord::toString() const {
+std::string FiberScatteringRecord::toString() const {
 	std::ostringstream oss;
-	oss << "PhaseFunctionQueryRecord[" << std::endl
-		<< "  mRec = " << indent(mRec.toString()) << "," << std::endl
+	oss << "FiberScatteringQueryRecord[" << std::endl
 		<< "  wi = " << wi.toString() << "," << std::endl
 		<< "  wo = " << wo.toString() << "," << std::endl
 		<< "  quantity = " << quantity << std::endl
@@ -32,25 +30,5 @@ std::string PhaseFunctionQueryRecord::toString() const {
 	return oss.str();
 }
 
-Float PhaseFunction::pdf(const PhaseFunctionQueryRecord &pRec) const {
-	return f(pRec);
-}
-	
-bool PhaseFunction::needsDirectionallyVaryingCoefficients() const {
-	return false;
-}
-	
-Float PhaseFunction::sigmaDir(Float cosTheta) const {
-	Log(EError, "sigmaDir(): Not implemented! (this is not"
-		" an anisotropic medium)");
-	return 0.0f;
-}
-	
-Float PhaseFunction::sigmaDirMax() const {
-	Log(EError, "sigmaDirMax(): Not implemented! (this is not"
-		" an anisotropic medium)");
-	return 0.0f;
-}
-
-MTS_IMPLEMENT_CLASS(PhaseFunction, true, ConfigurableObject)
+MTS_IMPLEMENT_CLASS(FiberScatteringFunction, true, ConfigurableObject)
 MTS_NAMESPACE_END

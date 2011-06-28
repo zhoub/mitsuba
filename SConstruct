@@ -56,6 +56,8 @@ build('src/utils/SConscript')
 build('src/bsdfs/SConscript')
 # Phase functions
 build('src/phase/SConscript')
+# Fiber scattering functions
+build('src/fiberscat/SConscript')
 # Intersection shapes
 build('src/shapes/SConscript')
 # Sample generators

@@ -148,8 +148,6 @@ protected:
 
 	/// Virtual destructor
 	virtual ~PhaseFunction() { }
-private:
-	bool m_dvSigmaT;
 };
 
 MTS_NAMESPACE_END
