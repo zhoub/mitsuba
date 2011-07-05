@@ -61,7 +61,7 @@ public:
 	 * \brief Evaluate the hair scattering function for a 
 	 * direction pair (wi, wo)
 	 */
-	virtual Spectrum f(const FiberScatteringRecord &hRec) const = 0;
+	virtual Spectrum evaluate(const FiberScatteringRecord &hRec) const = 0;
 
 	/**
 	 * \brief Importance sample the hair scattering function. 
@@ -73,7 +73,7 @@ public:
 	 *     the probability of the sampled direction.
 	 */
 	virtual Spectrum sample(FiberScatteringRecord &hRec, 
-		Sampler *sampler) const = 0;
+		Float &pdf, Sampler *sampler) const = 0;
 
 	/**
 	 * \brief Compute the probability of sampling wo (given wi).

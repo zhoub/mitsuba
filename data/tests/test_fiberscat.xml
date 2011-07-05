@@ -1,0 +1,7 @@
+<!-- This file defines a series of phase function instances
+	 to be tested for consistency. This is done using the 
+	 testcase 'test_chisquare' -->
+<scene>
+	<!-- Test the diffuse-fiber function -->
+	<fiberscat type="dfiber"></fiberscat>
+</scene>

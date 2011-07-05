@@ -39,6 +39,7 @@ public:
 	MTS_BEGIN_TESTCASE()
 	MTS_DECLARE_TEST(test01_BSDF)
 	MTS_DECLARE_TEST(test02_PhaseFunction)
+	MTS_DECLARE_TEST(test03_FiberScatteringFunction)
 	MTS_END_TESTCASE()
 
 	/// Adapter to use BSDFs in the chi-square test
@@ -175,6 +176,45 @@ public:
 	private:
 		const MediumSamplingRecord &m_mRec;
 		ref<const PhaseFunction> m_phase;
+		ref<Sampler> m_sampler;
+		Vector m_wi;
+		Float m_largestWeight;
+	};
+
+	/// Adapter to use fiber scattering functions in the chi-square test
+	class FiberScatteringFunctionAdapter {
+	public:
+		FiberScatteringFunctionAdapter(const FiberScatteringFunction *scatfn, Sampler *sampler, const Vector &wi)
+			: m_scatfn(scatfn), m_sampler(sampler), m_wi(wi),
+			  m_largestWeight(0) { }
+
+		std::pair<Vector, Float> generateSample() {
+			Point2 sample(m_sampler->next2D());
+			FiberScatteringRecord fsRec(m_wi);
+
+			Float pdfVal;
+			Spectrum f = m_scatfn->sample(fsRec, pdfVal, m_sampler);
+			Spectrum sampled2 = f/pdfVal;
+
+			for (int i=0; i<SPECTRUM_SAMPLES; ++i) {
+				Float a = sampled2[i];
+				Float cosTheta = std::sqrt(fsRec.wo.y*fsRec.wo.y + fsRec.wo.z*fsRec.wo.z);
+				m_largestWeight = std::max(m_largestWeight, a * cosTheta);
+			}
+
+			return std::make_pair(fsRec.wo, 1.0f);
+		}
+
+		Float pdf(const Vector &wo) const {
+			FiberScatteringRecord fsRec(m_wi, wo);
+			if (m_scatfn->evaluate(fsRec).isZero())
+				return 0.0f;
+			return m_scatfn->pdf(fsRec);
+		}
+
+		inline Float getLargestWeight() const { return m_largestWeight; }
+	private:
+		ref<const FiberScatteringFunction> m_scatfn;
 		ref<Sampler> m_sampler;
 		Vector m_wi;
 		Float m_largestWeight;
@@ -348,6 +388,69 @@ public:
 					"importance weight was = %.2f", largestWeight);
 		}
 		Log(EInfo, "%i/%i phase function checks succeeded", testCount-failureCount, testCount);
+		delete progress;
+	}
+
+	void test03_FiberScatteringFunction() {
+		/* Load a set of fiberscat instances to be tested from the following XML file */
+		ref<Scene> scene = loadScene("data/tests/test_fiberscat.xml");
+
+		const std::vector<ConfigurableObject *> objects = scene->getReferencedObjects();
+		size_t thetaBins = 10, wiSamples = 20, failureCount = 0, testCount = 0;
+		ref<Sampler> sampler = static_cast<Sampler *> (PluginManager::getInstance()->
+				createObject(MTS_CLASS(Sampler), Properties("independent")));
+
+		ProgressReporter *progress = new ProgressReporter("Checking", wiSamples, NULL);
+
+		Log(EInfo, "Verifying fiber scattering function sampling routines ..");
+		for (size_t i=0; i<objects.size(); ++i) {
+			if (!objects[i]->getClass()->derivesFrom(MTS_CLASS(FiberScatteringFunction)))
+				continue;
+
+			const FiberScatteringFunction *scatfn = static_cast<const FiberScatteringFunction *>(objects[i]);
+			Float largestWeight = 0;
+
+			Log(EInfo, "Processing fiber scattering function model %s", scatfn->toString().c_str());
+			Log(EInfo, "Checking the model for %i incident directions", wiSamples);
+			progress->reset();
+
+			/* Sampler fiber/particle orientation */
+			//fsRec.orientation = squareToSphere(sampler->next2D());
+
+			/* Test for a number of different incident directions */
+			for (size_t j=0; j<wiSamples; ++j) {
+				Vector wi = squareToSphere(sampler->next2D());
+
+				FiberScatteringFunctionAdapter adapter(scatfn, sampler, wi);
+				ref<ChiSquare> chiSqr = new ChiSquare(thetaBins, 2*thetaBins, wiSamples);
+				chiSqr->setLogLevel(EDebug);
+
+				// Initialize the tables used by the chi-square test
+				chiSqr->fill(
+					boost::bind(&FiberScatteringFunctionAdapter::generateSample, &adapter),
+					boost::bind(&FiberScatteringFunctionAdapter::pdf, &adapter, _1)
+				);
+
+				// (the following assumes that the distribution has 1 parameter, e.g. exponent value)
+				ChiSquare::ETestResult result = chiSqr->runTest(1, SIGNIFICANCE_LEVEL);
+				if (result == ChiSquare::EReject) {
+					std::string filename = formatString("failure_%i.m", failureCount++);
+					chiSqr->dumpTables(filename);
+					failAndContinue(formatString("Uh oh, the chi-square test indicates a potential "
+						"issue for wi=%s. Dumped the contingency tables to '%s' for user analysis",
+						wi.toString().c_str(), filename.c_str()));
+				} else {
+					succeed();
+				}
+				largestWeight = std::max(largestWeight, adapter.getLargestWeight());
+				++testCount;
+				progress->update(j+1);
+			}
+
+			Log(EInfo, "Done with this fiber scattering function. The largest encountered "
+					"importance weight was = %.2f", largestWeight);
+		}
+		Log(EInfo, "%i/%i fiber scattering function checks succeeded", testCount-failureCount, testCount);
 		delete progress;
 	}
 };
