@@ -24,7 +24,7 @@
 #include <mitsuba/core/cobject.h>
 #include <mitsuba/core/version.h>
 
-#if !defined(WIN32)
+#if !defined(__WINDOWS__)
 #include <dlfcn.h>
 #endif
 
@@ -36,7 +36,7 @@ MTS_NAMESPACE_BEGIN
 
 Plugin::Plugin(const std::string &shortName, const fs::path &path) 
  : m_shortName(shortName), m_path(path) {
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 	m_handle = LoadLibrary(path.file_string().c_str());
 	if (!m_handle) {
 		SLog(EError, "Error while loading plugin \"%s\": %s", 
@@ -52,7 +52,7 @@ Plugin::Plugin(const std::string &shortName, const fs::path &path)
 	try {
 		m_getDescription = (GetDescriptionFunc) getSymbol("GetDescription");
 	} catch (...) {
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 		FreeLibrary(m_handle);
 #else
 		dlclose(m_handle);
@@ -77,7 +77,7 @@ Plugin::Plugin(const std::string &shortName, const fs::path &path)
 }
 
 bool Plugin::hasSymbol(const std::string &sym) const {
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 	void *ptr = GetProcAddress(m_handle, sym.c_str());
 #else
 	void *ptr = dlsym(m_handle, sym.c_str());
@@ -86,7 +86,7 @@ bool Plugin::hasSymbol(const std::string &sym) const {
 }
 
 void *Plugin::getSymbol(const std::string &sym) {
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 	void *data = GetProcAddress(m_handle, sym.c_str());
 	if (!data) {
 		SLog(EError, "Could not resolve symbol \"%s\" in \"%s\": %s",
@@ -115,7 +115,7 @@ std::string Plugin::getDescription() const {
 }
 
 Plugin::~Plugin() {
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 	FreeLibrary(m_handle);
 #else
 	dlclose(m_handle);
@@ -203,7 +203,7 @@ void PluginManager::ensurePluginLoaded(const std::string &name) {
 		return;
 
 	/* Build the full plugin file name */
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 	std::string shortName = std::string("plugins/") + name + std::string(".dll");
 #elif defined(__OSX__)
 	std::string shortName = std::string("plugins/") + name + std::string(".dylib");

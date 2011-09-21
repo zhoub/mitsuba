@@ -33,7 +33,7 @@
 #include <fstream>
 #include <stdexcept>
 
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 #include <mitsuba/core/getopt.h>
 #else
 #include <signal.h>
@@ -88,7 +88,7 @@ void help() {
 			if (!fs::is_regular_file(it->status()))
 				continue;
 			std::string extension(boost::to_lower_copy(it->path().extension()));
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 			if (extension != ".dll")
 				continue;
 #elif defined(__OSX__)
@@ -252,7 +252,7 @@ int mtsutil(int argc, char **argv) {
 				scheduler->registerWorker(new RemoteWorker(formatString("net%i", i), stream));
 			} catch (std::runtime_error &e) {
 				if (hostName.find("@") != std::string::npos) {
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 					SLog(EWarn, "Please ensure that passwordless authentication "
 						"using plink.exe and pageant.exe is enabled (see the documentation for more information)");
 #else
@@ -283,7 +283,7 @@ int mtsutil(int argc, char **argv) {
 					if (!fs::is_regular_file(it->status()))
 						continue;
 					std::string extension(boost::to_lower_copy(it->path().extension()));
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 					if (extension != ".dll")
 						continue;
 #elif defined(__OSX__)
@@ -326,7 +326,7 @@ int mtsutil(int argc, char **argv) {
 			fs::path pluginName(argv[optind]);
 
 			/* Build the full plugin file name */
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 			pluginName.replace_extension(".dll");
 #elif defined(__OSX__)
 			pluginName.replace_extension(".dylib");
@@ -378,7 +378,7 @@ int mts_main(int argc, char **argv) {
 	SHVector::staticInitialization();
 	SceneHandler::staticInitialization();
 
-#ifdef WIN32
+#if defined(__WINDOWS__)
 	/* Initialize WINSOCK2 */
 	WSADATA wsaData;
 	if (WSAStartup(MAKEWORD(2,2), &wsaData)) 
@@ -387,7 +387,7 @@ int mts_main(int argc, char **argv) {
 		SLog(EError, "Could not find the required version of winsock.dll!");
 #endif
 
-#if !defined(WIN32)
+#if !defined(__WINDOWS__)
 	/* Correct number parsing on some locales (e.g. ru_RU) */
 	setlocale(LC_NUMERIC, "C");
 #endif
@@ -405,7 +405,7 @@ int mts_main(int argc, char **argv) {
 	PluginManager::staticShutdown();
 	Class::staticShutdown();
 	
-#ifdef WIN32
+#if defined(__WINDOWS__)
 	/* Shut down WINSOCK2 */
 	WSACleanup();
 #endif

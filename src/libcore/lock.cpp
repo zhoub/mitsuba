@@ -19,7 +19,7 @@
 #include <mitsuba/core/lock.h>
 #include <errno.h>
 
-#if !defined(WIN32)
+#if !defined(__WINDOWS__)
 #include <sys/time.h>
 #else
 #include <sys/timeb.h>
@@ -77,7 +77,7 @@ bool ConditionVariable::wait(int ms) {
 		ts.tv_nsec = (tv.tv_usec + ms % 1000) * 1000;
 
 		int retval = pthread_cond_timedwait(&m_cond, &m_mutex->m_mutex, &ts);
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 		/* Should be outside of the switch statement (depending
 		   on the used compiler, the constants ETIMEDOUT and WSAETIMEDOUT
 		   are potentially identical */   

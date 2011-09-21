@@ -66,7 +66,7 @@ void ServerThread::run() {
 		/* Bind the socket to the port number */
 		if (bind(m_socket, p->ai_addr, (socklen_t) p->ai_addrlen) == -1) {
 			SocketStream::handleError(formatString("bind(%s:%i)", m_nodeName.c_str(), m_listenPort), EError);
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 			closesocket(m_socket);
 #else
 			close(m_socket);
@@ -107,7 +107,7 @@ void ServerThread::run() {
 		SOCKET newSocket = accept(m_socket, (struct sockaddr *) &sockaddr, &addrlen);
 		
 		if (newSocket == INVALID_SOCKET) {
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 			if(!m_active)
 				break;
 #else
@@ -123,7 +123,7 @@ void ServerThread::run() {
 		backend->start();
 	}
 
-#if defined(WIN32)	
+#if defined(__WINDOWS__)	
 	closesocket(m_socket);
 #else
 	close(m_socket);

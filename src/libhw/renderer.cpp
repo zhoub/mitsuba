@@ -17,7 +17,7 @@
 */
 
 #include <mitsuba/hw/renderer.h>
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 #include <mitsuba/hw/wglrenderer.h>
 #elif defined(__OSX__)
 #include <mitsuba/hw/nsglrenderer.h>
@@ -48,7 +48,7 @@ void Renderer::shutdown() {
 }
 
 Renderer *Renderer::create(Session *session) {
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 	return new WGLRenderer(static_cast<WGLSession *>(session));
 #elif defined(__OSX__)
 	return new NSGLRenderer(static_cast<NSGLSession *>(session));

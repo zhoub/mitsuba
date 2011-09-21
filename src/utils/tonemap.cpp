@@ -21,7 +21,7 @@
 #include <mitsuba/core/fresolver.h>
 #include <mitsuba/core/fstream.h>
 #include <mitsuba/core/bitmap.h>
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 #include <mitsuba/core/getopt.h>
 #endif
 

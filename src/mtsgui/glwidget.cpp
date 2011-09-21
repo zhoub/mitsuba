@@ -283,12 +283,12 @@ void GLWidget::initializeGL() {
 		);
 
 		if (!m_preview->isRunning()) {
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 			wglMakeCurrent(NULL, NULL);
 #endif
 			m_preview->start();
 			m_preview->waitUntilStarted();
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 			makeCurrent();
 #endif
 		}

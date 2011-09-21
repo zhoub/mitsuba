@@ -19,7 +19,7 @@
 #include "ui_addserverdlg.h"
 #include "addserverdlg.h"
 
-#if !defined(WIN32)
+#if !defined(__WINDOWS__)
 #include <pwd.h>
 #endif
 
@@ -27,7 +27,7 @@ AddServerDialog::AddServerDialog(QWidget *parent) :
 		QDialog(parent),
 	ui(new Ui::AddServerDialog) {
 	ui->setupUi(this);
-#if !defined(WIN32)
+#if !defined(__WINDOWS__)
 	uid_t uid = getuid();
 	struct passwd *info = getpwuid(uid);
 	if (info) 

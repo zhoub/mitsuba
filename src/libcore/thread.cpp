@@ -266,7 +266,7 @@ void Thread::detach() {
 }
 
 void Thread::sleep(unsigned int ms) {
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 	SleepEx(ms, FALSE);
 #else
 	struct timeval tv;
@@ -277,7 +277,7 @@ void Thread::sleep(unsigned int ms) {
 }
 
 void Thread::yield() {
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 	Yield();
 #else
 	sched_yield();

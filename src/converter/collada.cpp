@@ -38,7 +38,7 @@
 #include <GL/glu.h>
 #endif
 
-#ifndef WIN32
+#if !defined(__WINDOWS__)
 #define __stdcall
 #endif
 

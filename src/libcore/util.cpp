@@ -27,13 +27,13 @@
 
 #if defined(__OSX__)
 #include <sys/sysctl.h>
-#elif defined(WIN32)
+#elif defined(__WINDOWS__)
 #include <direct.h>
 #else
 #include <malloc.h>
 #endif
 
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #else
@@ -186,7 +186,7 @@ std::string memString(size_t size) {
 }
 
 void * __restrict allocAligned(size_t size) {
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 	return _aligned_malloc(size, L1_CACHE_LINE_SIZE);
 #elif defined(__OSX__)
 	/* OSX malloc already returns 16-byte aligned data suitable
@@ -198,7 +198,7 @@ void * __restrict allocAligned(size_t size) {
 }
 
 void freeAligned(void *ptr) {
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 	_aligned_free(ptr);
 #else
 	free(ptr);
@@ -206,7 +206,7 @@ void freeAligned(void *ptr) {
 }
 
 int getProcessorCount() {
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 	SYSTEM_INFO sys_info;
 	GetSystemInfo(&sys_info);
 	return sys_info.dwNumberOfProcessors;
@@ -221,7 +221,7 @@ int getProcessorCount() {
 #endif
 }
 
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 std::string lastErrorText() {
 	DWORD errCode = GetLastError();
 	char *errorText = NULL;
@@ -244,7 +244,7 @@ std::string lastErrorText() {
 
 bool enableFPExceptions() {
 	bool exceptionsWereEnabled = false;
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 	_clearfp();
 	uint32_t cw = _controlfp(0, 0);
 	exceptionsWereEnabled = ~cw & (_EM_INVALID | _EM_ZERODIVIDE | _EM_OVERFLOW);
@@ -269,7 +269,7 @@ bool enableFPExceptions() {
 
 bool disableFPExceptions() {
 	bool exceptionsWereEnabled = false;
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 	_clearfp();
 	uint32_t cw = _controlfp(0, 0);
 	exceptionsWereEnabled = ~cw & (_EM_INVALID | _EM_ZERODIVIDE | _EM_OVERFLOW);
@@ -294,7 +294,7 @@ bool disableFPExceptions() {
 
 void restoreFPExceptions(bool oldState) {
 	bool currentState;
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 	uint32_t cw = _controlfp(0, 0);
 	currentState = ~cw & (_EM_INVALID | _EM_ZERODIVIDE | _EM_OVERFLOW);
 #elif defined(__OSX__)
@@ -318,7 +318,7 @@ void restoreFPExceptions(bool oldState) {
 std::string getHostName() {
 	char hostName[128];
 	if (gethostname(hostName, sizeof(hostName)) != 0)
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 		SLog(EError, "Could not retrieve the computer's host name: %s!",
 			lastErrorText().c_str());
 #else
@@ -349,7 +349,7 @@ std::string getFQDN() {
 		fqdn, NI_MAXHOST, NULL, 0, 0);
 	if (retVal != 0) {
 		freeaddrinfo(addrInfo);
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 		SLog(EWarn, "Could not retrieve the computer's fully "
 			"qualified domain name: error %i!", WSAGetLastError());
 #else
@@ -373,7 +373,7 @@ std::string formatString(const char *fmt, ...) {
 	char tmp[512];
 	va_list iterator;
 
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 	va_start(iterator, fmt);
 	size_t size = _vscprintf(fmt, iterator) + 1;
 
@@ -1074,7 +1074,7 @@ Float radicalInverseIncremental(int b, Float x) {
 std::string timeString(Float time, bool precise) {
 	std::ostringstream os;
 	char suffix = 's';
-#ifdef WIN32
+#if defined(__WINDOWS__)
 	if (mts_isnan(time) || std::isinf(time)) {
 #else
 	if (mts_isnan(time) || std::fpclassify(time) == FP_INFINITE) {
@@ -1176,4 +1176,5 @@ Float hypot2(Float a, Float b) {
 	}
 	return r;
 }
+
 MTS_NAMESPACE_END

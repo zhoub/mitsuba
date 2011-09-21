@@ -28,7 +28,7 @@ Timer::~Timer() {
 }
 
 void Timer::reset() {
-#ifdef WIN32
+#if defined(__WINDOWS__)
 	QueryPerformanceFrequency((PLARGE_INTEGER) &m_frequency);
 	QueryPerformanceCounter((PLARGE_INTEGER) &m_start);
 #else
@@ -37,7 +37,7 @@ void Timer::reset() {
 }
 
 unsigned int Timer::getMilliseconds() const {
-#ifdef WIN32
+#if defined(__WINDOWS__)
 	LARGE_INTEGER current;
 	QueryPerformanceCounter(&current);
 
@@ -53,7 +53,7 @@ unsigned int Timer::getMilliseconds() const {
 }
 
 unsigned int Timer::getMicroseconds() const {
-#ifdef WIN32
+#if defined(__WINDOWS__)
 	Log(EError, "Microsecond timer resolution is not available on WIN32");
 	return 0;
 #else

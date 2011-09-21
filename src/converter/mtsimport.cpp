@@ -32,7 +32,7 @@
 #include <mitsuba/core/plugin.h>
 #include <mitsuba/core/statistics.h>
 #include <mitsuba/core/version.h>
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 #include <mitsuba/core/getopt.h>
 #endif
 
@@ -176,7 +176,7 @@ int mts_main(int argc, char **argv) {
 
 	Thread::getThread()->getLogger()->setLogLevel(EInfo);
 
-#if !defined(WIN32)
+#if !defined(__WINDOWS__)
 	/* Correct number parsing on some locales (e.g. ru_RU) */
 	setlocale(LC_NUMERIC, "C");
 #endif

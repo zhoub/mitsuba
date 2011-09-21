@@ -24,19 +24,31 @@
 #include <mitsuba/core/appender.h>
 #include <mitsuba/core/statistics.h>
 #include <mitsuba/render/scenehandler.h>
+
 #if defined(__OSX__)
 #include <ApplicationServices/ApplicationServices.h>
 #endif
+
 #include "mainwindow.h"
 
 #if defined(__LINUX__)
 #include <X11/Xlib.h>
 #endif
 
-#if !defined(WIN32)
+#if !defined(__WINDOWS__)
 #include <signal.h>
 #include <sys/wait.h>
 #include <errno.h>
+#endif
+
+#if defined(MTS_HAS_BREAKPAD)
+#if defined(__LINUX__)
+#include <client/linux/handler/exception_handler.h>
+#elif defined(__WINDOWS__)
+#include <client/windows/handler/exception_handler.h>
+#elif defined(__OSX__)
+#include <client/mac/handler/exception_handler.h>
+#endif
 #endif
 
 XERCES_CPP_NAMESPACE_USE
@@ -79,14 +91,37 @@ public:
 };
 
 /* Collect zombie processes */
-#if !defined(WIN32)
+#if !defined(__WINDOWS__)
 void collect_zombies(int s) {
 	while (waitpid(-1, NULL, WNOHANG) > 0);
 }
 #endif
 
+#if defined(MTS_HAS_BREAKPAD) && defined(__LINUX__)
+static bool dumpCallbackLinux(
+		const char* dump_path,
+		const char* minidump_id,
+		void* context, bool succeeded) {
+	SLog(EInfo, "A critical application error occurred! A mini-dump file "
+			"has been created in %s/%s.dmp. Please submit this file "
+			" and the responsible scene to the Mitsuba bug tracker at "
+			"https://www.mitsuba-renderer.org/tracker.", dump_path, minidump_id);
+	return succeeded;
+}
+#endif
+
 int main(int argc, char *argv[]) {
 	int retval;
+
+#if defined(MTS_HAS_BREAKPAD)
+	/* Set up Google Breakpad, a crash handler that can be 
+	   used to get useful backtraces from end-users. */
+	
+	#if defined(__LINUX__)
+		google_breakpad::ExceptionHandler eh(
+			"/tmp", NULL, dumpCallbackLinux, NULL, true);
+	#endif
+#endif
 
 	/* Initialize the core framework */
 	Class::staticInitialization();
@@ -111,7 +146,7 @@ int main(int argc, char *argv[]) {
 	MTS_AUTORELEASE_END() 
 #endif
 
-#ifdef WIN32
+#if defined(__WINDOWS)
 	/* Initialize WINSOCK2 */
 	WSADATA wsaData;
 	if (WSAStartup(MAKEWORD(2,2), &wsaData)) 
@@ -120,7 +155,7 @@ int main(int argc, char *argv[]) {
 		SLog(EError, "Could not find the required version of winsock.dll!");
 #endif
 
-#if !defined(WIN32)
+#if !defined(__WINDOWS__)
 	/* Avoid zombies processes when running the server */
 	struct sigaction sa;
 	sa.sa_handler = collect_zombies;
@@ -166,7 +201,7 @@ int main(int argc, char *argv[]) {
 		logger->addAppender(new StreamAppender(formatString("mitsuba.%s.log", getHostName().c_str())));
 #endif
 
-#if !defined(WIN32)
+#if !defined(__WINDOWS__)
 		/* Correct number parsing on some locales (e.g. ru_RU) */
 		setlocale(LC_NUMERIC, "C");
 #endif
@@ -184,7 +219,7 @@ int main(int argc, char *argv[]) {
 	Statistics::getInstance()->printStats();
 
 
-#ifdef WIN32
+#if defined(__WINDOWS__)
 	/* Shut down WINSOCK2 */
 	WSACleanup();
 #endif

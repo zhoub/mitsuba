@@ -30,7 +30,7 @@
 #include <fstream>
 #include <stdexcept>
 
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 #include <mitsuba/core/getopt.h>
 #else
 #include <signal.h>
@@ -77,7 +77,7 @@ void help() {
 
 ref<RenderQueue> renderQueue = NULL;
 
-#if !defined(WIN32)
+#if !defined(__WINDOWS__)
 /* Handle the hang-up signal and write a partially rendered image to disk */
 void signalHandler(int signal) {
 	if (signal == SIGHUP && renderQueue.get()) {
@@ -283,7 +283,7 @@ int mts_main(int argc, char **argv) {
 				scheduler->registerWorker(new RemoteWorker(formatString("net%i", i), stream));
 			} catch (std::runtime_error &e) {
 				if (hostName.find("@") != std::string::npos) {
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 					SLog(EWarn, "Please ensure that passwordless authentication "
 						"using plink.exe and pageant.exe is enabled (see the documentation for more information)");
 #else
@@ -297,7 +297,7 @@ int mts_main(int argc, char **argv) {
 
 		scheduler->start();
 
-#if !defined(WIN32)
+#if !defined(__WINDOWS__)
 			/* Initialize signal handlers */
 			struct sigaction sa;
 			sa.sa_handler = signalHandler;
@@ -411,7 +411,7 @@ int main(int argc, char **argv) {
 	SHVector::staticInitialization();
 	SceneHandler::staticInitialization();
 
-#ifdef WIN32
+#if defined(__WINDOWS__)
 	/* Initialize WINSOCK2 */
 	WSADATA wsaData;
 	if (WSAStartup(MAKEWORD(2,2), &wsaData)) 
@@ -420,7 +420,7 @@ int main(int argc, char **argv) {
 		SLog(EError, "Could not find the required version of winsock.dll!");
 #endif
 
-#if !defined(WIN32)
+#if !defined(__WINDOWS__)
 	/* Correct number parsing on some locales (e.g. ru_RU) */
 	setlocale(LC_NUMERIC, "C");
 #endif
@@ -438,7 +438,7 @@ int main(int argc, char **argv) {
 	PluginManager::staticShutdown();
 	Class::staticShutdown();
 	
-#ifdef WIN32
+#if defined(__WINDOWS__)
 	/* Shut down WINSOCK2 */
 	WSACleanup();
 #endif

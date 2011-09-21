@@ -20,7 +20,7 @@
 #include <mitsuba/core/fstream.h>
 #include <mitsuba/core/version.h>
 
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 #undef _CRT_SECURE_NO_WARNINGS
 #define _MATH_DEFINES_DEFINED
 #endif
@@ -309,11 +309,11 @@ void Bitmap::loadTGA(Stream *stream) {
 }
 
 void Bitmap::loadBMP(Stream *stream) {
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 #pragma pack(push, 1)
 #endif
 	struct 
-#if !defined(WIN32)
+#if !defined(__WINDOWS__)
 		__attribute__((__packed__))
 #endif
 	{
@@ -324,7 +324,7 @@ void Bitmap::loadBMP(Stream *stream) {
 	} BMPFileHeader;
 
 	struct 
-#if !defined(WIN32)
+#if !defined(__WINDOWS__)
 	__attribute__((__packed__))
 #endif
 	{
@@ -340,7 +340,7 @@ void Bitmap::loadBMP(Stream *stream) {
 		uint32_t ncolors;
 		uint32_t nimpcolors;
 	} DIBHeader;
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 #pragma pack(pop)
 #endif
 

@@ -19,7 +19,7 @@
 #include <mitsuba/core/sstream.h>
 #include <mitsuba/core/statistics.h>
 
-#if !defined(WIN32)
+#if !defined(__WINDOWS__)
 #include <unistd.h>
 #include <errno.h>
 #include <sys/types.h>
@@ -36,7 +36,7 @@
 
 MTS_NAMESPACE_BEGIN
 
-#ifdef WIN32
+#if defined(__WINDOWS__)
 const char *inet_ntop(int af, const void *src, char *dst, socklen_t len) {
 	if (af == AF_INET) {
 		struct sockaddr_in in;
@@ -67,7 +67,7 @@ static void *get_in_addr(struct sockaddr_storage *sa) {
 	return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 SocketStream::SocketStream(SOCKET socket)
 #else
 SocketStream::SocketStream(int socket)
@@ -140,7 +140,7 @@ SocketStream::SocketStream(const std::string &host, int port)
 }
 
 SocketStream::~SocketStream() {
-#ifdef WIN32
+#if defined(__WINDOWS__)
 	if (closesocket(m_socket) == SOCKET_ERROR)
 		handleError("closesocket");
 #else
@@ -154,7 +154,7 @@ void SocketStream::read(void *ptr, size_t size) {
 	const size_t total = size;
 	char *data = (char *) ptr;
 	while (size > 0) {
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 		int n = recv(m_socket, data, (int) size, 0);
 #else
 		int n = recv(m_socket, data, size, 0);
@@ -182,7 +182,7 @@ void SocketStream::write(const void *ptr, size_t size) {
 #if defined(__LINUX__)
 		/* Linux: Don't send the EPIPE signal when the connection breaks */
 		int n = send(m_socket, data, size, MSG_NOSIGNAL);
-#elif defined(WIN32)
+#elif defined(__WINDOWS__)
 		int n = send(m_socket, data, (int) size, 0);
 #else
 		int n = send(m_socket, data, size, 0);
@@ -237,7 +237,7 @@ void SocketStream::flush() {
 }
 	
 void SocketStream::handleError(const std::string &cmd, ELogLevel level) {
-#ifndef WIN32
+#if !defined(__WINDOWS__)
 	if (cmd.find("(") == std::string::npos)
 		Log(level, "Error in %s(): %s!", cmd.c_str(), strerror(errno));
 	else

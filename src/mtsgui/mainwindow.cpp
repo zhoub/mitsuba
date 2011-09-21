@@ -39,7 +39,7 @@
 #include <mitsuba/core/fresolver.h>
 #include <mitsuba/core/fstream.h>
 
-#if !defined(WIN32)
+#if !defined(__WINDOWS__)
 #include <QX11Info>
 #include <pwd.h>
 #endif

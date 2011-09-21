@@ -17,7 +17,7 @@
 */
 
 #include <mitsuba/hw/session.h>
-#if  defined(WIN32)
+#if  defined(__WINDOWS__)
 #include <mitsuba/hw/wglsession.h>
 #elif defined(__OSX__)
 #include <mitsuba/hw/nsglsession.h>
@@ -32,7 +32,7 @@ Session::Session() {
 }
 
 Session *Session::create() {
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 	return new WGLSession();
 #elif defined(__OSX__)
 	return new NSGLSession();

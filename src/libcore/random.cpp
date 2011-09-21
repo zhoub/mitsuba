@@ -60,7 +60,7 @@ MTS_NAMESPACE_BEGIN
 
 Random::Random() {
 	mti=MT_N+1; /* mti==N+1 means mt[N] is not initialized */
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 	seed();
 #else
 #if 0

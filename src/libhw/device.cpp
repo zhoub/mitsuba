@@ -18,7 +18,7 @@
 
 #include <mitsuba/hw/device.h>
 #include <mitsuba/core/timer.h>
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 #include <mitsuba/hw/wgldevice.h>
 #elif defined(__OSX__)
 #include <mitsuba/hw/nsgldevice.h>
@@ -53,7 +53,7 @@ Device::~Device() {
 }
 
 Device *Device::create(Session *name) {
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 	return new WGLDevice(static_cast<WGLSession *>(name));
 #elif defined(__OSX__)
 	return new NSGLDevice(static_cast<NSGLSession *>(name));

@@ -21,7 +21,7 @@
 #include <mitsuba/core/fresolver.h>
 #include <mitsuba/core/plugin.h>
 #include <boost/algorithm/string.hpp>
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 #include <mitsuba/core/getopt.h>
 #endif
 

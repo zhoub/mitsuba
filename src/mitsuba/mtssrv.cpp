@@ -29,7 +29,7 @@
 #include <fstream>
 #include <stdexcept>
 
-#ifdef WIN32
+#if defined(__WINDOWS__)
 #include <io.h>
 #include <ws2tcpip.h>
 #include <mitsuba/core/getopt.h>
@@ -55,7 +55,7 @@ using namespace mitsuba;
 static bool running = true;
 static SOCKET sock = INVALID_SOCKET;
 
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 BOOL CtrlHandler(DWORD type) {
 	switch (type) {
 		case CTRL_C_EVENT:
@@ -208,7 +208,7 @@ int mts_main(int argc, char **argv) {
 		SLog(EInfo, "Mitsuba version %s, Copyright (c) " MTS_YEAR " Wenzel Jakob",
 			Version(MTS_VERSION).toStringComplete().c_str());
 
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 		/* Custom handler for Ctrl-C signals */
 		SetConsoleCtrlHandler((PHANDLER_ROUTINE) CtrlHandler, TRUE);
 #endif
@@ -251,7 +251,7 @@ int mts_main(int argc, char **argv) {
 				scheduler->registerWorker(new RemoteWorker(formatString("net%i", i), stream));
 			} catch (std::runtime_error &e) {
 				if (hostName.find("@") != std::string::npos) {
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 					SLog(EWarn, "Please ensure that passwordless authentication "
 						"using plink.exe and pageant.exe is enabled (see the documentation for more information)");
 #else
@@ -299,7 +299,7 @@ int mts_main(int argc, char **argv) {
 			/* Bind the socket to the port number */
 			if (bind(sock, p->ai_addr, (socklen_t) p->ai_addrlen) == -1) {
 				SocketStream::handleError(formatString("bind(%s:%i)", hostName.c_str(), listenPort), EError);
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 				closesocket(sock);
 #else
 				close(sock);
@@ -317,7 +317,7 @@ int mts_main(int argc, char **argv) {
 			SocketStream::handleError("bind");
 		SLog(EInfo, "Enter mtssrv -h for more options");
 
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 		SLog(EInfo, "%s: Listening on port %i.. Send Ctrl-C to stop.", hostName.c_str(), listenPort);
 #else
 		/* Avoid zombies processes */
@@ -348,7 +348,7 @@ int mts_main(int argc, char **argv) {
 
 			SOCKET newSocket = accept(sock, (struct sockaddr *) &sockaddr, &addrlen);
 			if (newSocket == INVALID_SOCKET) {
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 				if(!running)
 					break;
 #else
@@ -363,7 +363,7 @@ int mts_main(int argc, char **argv) {
 				scheduler, nodeName, new SocketStream(newSocket), true);
 			backend->start();
 		}
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 		SLog(EInfo, "Caught signal - shutting down..");
 #else
 		close(sock);
@@ -391,7 +391,7 @@ int main(int argc, char **argv) {
 	Scheduler::staticInitialization();
 	SHVector::staticInitialization();
 
-#ifdef WIN32
+#if defined(__WINDOWS__)
 	/* Initialize WINSOCK2 */
 	WSADATA wsaData;
 	if (WSAStartup(MAKEWORD(2,2), &wsaData)) 
@@ -400,7 +400,7 @@ int main(int argc, char **argv) {
 		SLog(EError, "Could not find the required version of winsock.dll!");
 #endif
 
-#if !defined(WIN32)
+#if !defined(__WINDOWS__)
 	setlocale(LC_NUMERIC, "C");
 #endif
 
@@ -417,7 +417,7 @@ int main(int argc, char **argv) {
 	Class::staticShutdown();
 	
 
-#ifdef WIN32
+#if defined(__WINDOWS__)
 	/* Shut down WINSOCK2 */
 	WSACleanup();
 #endif

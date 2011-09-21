@@ -19,7 +19,7 @@
 #include <mitsuba/core/sshstream.h>
 #include <mitsuba/core/statistics.h>
 
-#if !defined(WIN32)
+#if !defined(__WINDOWS__)
 #include <unistd.h>
 #endif
 #include <errno.h>
@@ -34,7 +34,7 @@ SSHStream::SSHStream(const std::string &userName,
 	Log(EInfo, "Establishing a SSH connection to \"%s@%s\"", 
 		userName.c_str(), hostName.c_str());
 
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 	/* Inherit pipe handles */
 	SECURITY_ATTRIBUTES sAttr;
 	sAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
@@ -145,7 +145,7 @@ SSHStream::SSHStream(const std::string &userName,
 
 SSHStream::~SSHStream() {
 	Log(EDebug, "Closing SSH connection");
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 	CloseHandle(m_childInWr);
 	CloseHandle(m_childOutRd);
 #else
@@ -181,7 +181,7 @@ void SSHStream::truncate(size_t size) {
 }
 
 void SSHStream::flush() {
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 	// No-op
 #else
 	if (fflush(m_output) == EOF)
@@ -191,7 +191,7 @@ void SSHStream::flush() {
 
 void SSHStream::read(void *ptr, size_t size) {
 	static StatsCounter bytesRcvd("Network", "Bytes received (SSH)");
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 	size_t left = size;
 	char *data = (char *) ptr;
 	while (left > 0) {
@@ -216,7 +216,7 @@ void SSHStream::read(void *ptr, size_t size) {
 
 void SSHStream::write(const void *ptr, size_t size) {
 	static StatsCounter bytesSent("Network", "Bytes sent (SSH)");
-#if defined(WIN32)
+#if defined(__WINDOWS__)
 	size_t left = size;
 	char *data = (char *) ptr;
 	while (left > 0) {

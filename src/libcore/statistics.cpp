@@ -90,7 +90,7 @@ StatsCounter::StatsCounter(const std::string &cat, const std::string &name, ESta
 	m_base = (CacheLineCounter *) allocAligned(sizeof(CacheLineCounter) * NUM_COUNTERS);
 	memset(m_value, 0, sizeof(CacheLineCounter) * NUM_COUNTERS);
 	memset(m_base, 0, sizeof(CacheLineCounter) * NUM_COUNTERS);
-#if defined(WIN32) && !defined(WIN64)
+#if defined(__WINDOWS__) && !defined(WIN64)
 	if (sizeof(LONG) != sizeof(uint32_t)) {
 		cerr << "Internal error: sizeof(LONG) != sizeof(uint32_t)!" << endl;
 		exit(-1);

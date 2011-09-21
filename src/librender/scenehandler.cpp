@@ -47,7 +47,7 @@ SceneHandler::SceneHandler(const SAXParser *parser,
 		m_namedObjects = new NamedObjectMap();
 	}
 
-#if !defined(WIN32)
+#if !defined(__WINDOWS__)
 	setlocale(LC_NUMERIC, "C");
 #endif
 }
@@ -220,7 +220,7 @@ void SceneHandler::endElement(const XMLCh* const xmlName) {
 	/* Construct properties */
 	} else if (name == "integer") {
 		char *end_ptr = NULL;
-#ifdef WIN32
+#if defined(__WINDOWS__)
 		int64_t i = _strtoi64(context.attributes["value"].c_str(), &end_ptr, 10);
 #else
 		int64_t i = strtoll(context.attributes["value"].c_str(), &end_ptr, 10);

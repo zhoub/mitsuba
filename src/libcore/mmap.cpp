@@ -22,7 +22,7 @@ MemoryMappedFile::MemoryMappedFile(const fs::path &filename) : m_filename(filena
 		Log(EError, "Could not map \"%s\" to memory!", m_filename.file_string().c_str());
 	if (close(fd) != 0)
 		Log(EError, "close(): unable to close file!");
-#elif defined(WIN32)
+#elif defined(__WINDOWS__)
 	m_file = CreateFile(filename.file_string().c_str(), GENERIC_READ, 
 		FILE_SHARE_READ, NULL, OPEN_EXISTING, 
 		FILE_ATTRIBUTE_NORMAL, NULL);
@@ -47,7 +47,7 @@ MemoryMappedFile::~MemoryMappedFile() {
 	int retval = munmap(m_data, m_size);
 	if (retval != 0)
 		Log(EError, "munmap(): unable to unmap memory!");
-#elif defined(WIN32)
+#elif defined(__WINDOWS__)
 	if (!UnmapViewOfFile(m_data))
 		Log(EError, "UnmapViewOfFile(): unable to unmap memory: %s", lastErrorText().c_str());
 	if (!CloseHandle(m_fileMapping))

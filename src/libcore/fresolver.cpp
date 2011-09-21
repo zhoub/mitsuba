@@ -22,7 +22,7 @@ FileResolver::FileResolver() {
 	MTS_AUTORELEASE_BEGIN()
 	addPath(__mts_bundlepath());
 	MTS_AUTORELEASE_END() 
-#elif defined(WIN32)
+#elif defined(__WINDOWS__)
 	char lpFilename[1024];
 	if (GetModuleFileNameA(NULL, lpFilename, sizeof(lpFilename)))
 		addPath(fs::path(lpFilename).parent_path());

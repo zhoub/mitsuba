@@ -62,6 +62,10 @@ AboutDialog::AboutDialog(QWidget *parent) :
 	configFlags += "MTS_HAS_COLLADA ";
 #endif
 
+#if defined(MTS_HAS_BREAKPAD)
+	configFlags += "MTS_HAS_BREAKPAD ";
+#endif
+
 	configFlags += formatString("SPECTRUM_SAMPLES=%i ",
 		SPECTRUM_SAMPLES).c_str();
 
