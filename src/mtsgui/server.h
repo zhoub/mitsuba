@@ -21,7 +21,7 @@
 
 #include "logwidget.h"
 
-#ifdef WIN32
+#if defined(__WINDOWS__)
 #include <io.h>
 #include <ws2tcpip.h>
 #else

@@ -146,7 +146,7 @@ int main(int argc, char *argv[]) {
 	MTS_AUTORELEASE_END() 
 #endif
 
-#if defined(__WINDOWS)
+#if defined(__WINDOWS__)
 	/* Initialize WINSOCK2 */
 	WSADATA wsaData;
 	if (WSAStartup(MAKEWORD(2,2), &wsaData)) 

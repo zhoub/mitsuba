@@ -28,7 +28,8 @@
 #include <mitsuba/hw/gpuprogram.h>
 #include <mitsuba/hw/gpusync.h>
 #include <mitsuba/hw/vpl.h>
-#if defined(WIN32)
+
+#if defined(__WINDOWS__)
 #include <mitsuba/hw/wgldevice.h>
 #endif
 

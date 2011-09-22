@@ -34,7 +34,7 @@ void Object::incRef() const {
 		cout << this << ": Increasing reference count (" << getClass()->getName() << ") -> "
 			<< m_refCount + 1 << endl;
 #endif
-#if defined(_WIN32)
+#if defined(__WINDOWS__)
 	InterlockedIncrement(&m_refCount);
 #else
 	__sync_fetch_and_add(&m_refCount, 1);
@@ -48,7 +48,7 @@ void Object::decRef() const {
 			<< m_refCount - 1 << endl;
 	}
 #endif
-#if defined(_WIN32)
+#if defined(__WINDOWS__)
 	int count = InterlockedDecrement(&m_refCount);
 #else
 	int count = __sync_sub_and_fetch(&m_refCount, 1);
