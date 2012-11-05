@@ -718,6 +718,17 @@ extern MTS_EXPORT_CORE Float fresnelDiffuseReflectance(
 	Float eta, bool fast = false);
 
 /**
+ * \brief Computes the second moment of the Fresnel reflectance
+ * of a dielectric material
+ *
+ * This function computes the integral between the Fresnel reflectance
+ * and the squared cosine of the angle of incidence. The function
+ * \ref fresnelDiffuseReflectance() correspondingly computes what
+ * can be thought of as the first moment.
+ */
+extern MTS_EXPORT_CORE Float fresnelDiffuseReflectanceSecondMoment(Float eta);
+
+/**
  * \brief Specularly reflect direction \c wi with respect to the given surface normal
  * \param wi
  *     Incident direction

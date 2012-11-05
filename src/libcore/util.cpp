@@ -1072,6 +1072,31 @@ Float fresnelDiffuseReflectance(Float eta, bool fast) {
 	return 0.0f;
 }
 
+Float fresnelDiffuseReflectanceSecondMoment(Float eta) {
+	/* Fit by d'Eon and Irving (2011) */
+	Float invEta = 1.0f / eta,
+			  invEta2 = invEta*invEta,
+			  invEta3 = invEta2*invEta,
+			  invEta4 = invEta3*invEta,
+			  invEta5 = invEta4*invEta;
+	if (eta < 1) {
+		return -1641.1f + 1213.67f * invEta
+			 - 568.556f * invEta2
+			 + 164.798f * invEta3
+			 - 27.0181f * invEta4
+			 + 1.91826f * invEta5
+			 + 135.926 * eta * eta * eta
+			 - 656.175 * eta * eta
+			 + 1376.53 * eta;
+	} else {
+		return 0.828421f - 2.62051f * invEta
+			 + 3.36231f * invEta2
+			 - 1.95284f * invEta3
+			 + 0.236494f * invEta4
+			 - 0.145787f * invEta5;
+	}
+}
+
 std::string timeString(Float time, bool precise) {
 	std::ostringstream os;
 
