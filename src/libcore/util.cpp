@@ -469,377 +469,6 @@ bool solveLinearSystem2x2(const Float a[2][2], const Float b[2], Float x[2]) {
 	return true;
 }
 
-Float interpCubic1D(Float x, const Float *data, Float min, Float max, size_t size, bool extrapolate) {
-	/* Give up when given an out-of-range or NaN argument */
-	if (!(x >= min && x <= max) && !extrapolate)
-		return 0.0f;
-
-	/* Transform 'x' so that knots lie at integer positions */
-	Float t = ((x - min) * (size - 1)) / (max - min);
-
-	/* Find the index of the left knot in the queried subinterval, be
-	   robust to cases where 't' lies exactly on the right endpoint */
-	size_t k = std::max((size_t) 0, std::min((size_t) t, size - 2));
-
-	Float f0  = data[k],
-		  f1  = data[k+1],
-		  d0, d1;
-
-	/* Approximate the derivatives */
-	if (k > 0)
-		d0 = 0.5f * (data[k+1] - data[k-1]);
-	else
-		d0 = data[k+1] - data[k];
-
-	if (k + 2 < size)
-		d1 = 0.5f * (data[k+2] - data[k]);
-	else
-		d1 = data[k+1] - data[k];
-
-	/* Compute the relative position within the interval */
-	t = t - (Float) k;
-
-	Float t2 = t*t, t3 = t2*t;
-
-	return
-		( 2*t3 - 3*t2 + 1) * f0 +
-		(-2*t3 + 3*t2)     * f1 +
-		(   t3 - 2*t2 + t) * d0 +
-		(   t3 - t2)       * d1;
-}
-
-Float interpCubic1DIrregular(Float x, const Float *nodes, const Float *data, size_t size, bool extrapolate) {
-	/* Give up when given an out-of-range or NaN argument */
-	if (!(x >= nodes[0] && x <= nodes[size-1]) && !extrapolate)
-		return 0.0f;
-
-	size_t k = (size_t) std::max((ptrdiff_t) 0, std::min((ptrdiff_t) size - 2,
-				std::lower_bound(nodes, nodes + size, x) - nodes - 1));
-
-	Float f0       = data[k],
-		  f1       = data[k+1],
-		  width    = nodes[k+1] - nodes[k],
-		  invWidth = 1.0f / width,
-		  d0, d1;
-
-	/* Approximate the derivatives */
-	if (k > 0)
-		d0 = (f1 - data[k-1]) / (nodes[k+1] - nodes[k-1]);
-	else
-		d0 = (f1 - f0) * invWidth;
-
-	if (k + 2 < size)
-		d1 = (data[k+2] - f0) / (nodes[k+2] - nodes[k]);
-	else
-		d1 = (f1 - f0) * invWidth;
-
-	Float t = (x - nodes[k]) * invWidth;
-	Float t2 = t*t, t3 = t2*t;
-
-	return
-	    ( 2*t3 - 3*t2 + 1) * f0 +
-	    (-2*t3 + 3*t2)     * f1 +
-	   ((   t3 - 2*t2 + t) * d0 +
-	    (   t3 - t2)       * d1) * width;
-}
-
-
-Float interpCubic2D(const Point2 &p, const Float *data,
-		const Point2 &min, const Point2 &max, const Size2 &size, bool extrapolate) {
-	Float knotWeights[2][4];
-	Size2 knot;
-
-	/* Compute interpolation weights separately for each dimension */
-	for (int dim=0; dim<2; ++dim) {
-		Float *weights = knotWeights[dim];
-		/* Give up when given an out-of-range or NaN argument */
-		if (!(p[dim] >= min[dim] && p[dim] <= max[dim]) && !extrapolate)
-			return 0.0f;
-
-		/* Transform 'p' so that knots lie at integer positions */
-		Float t = ((p[dim] - min[dim]) * (size[dim] - 1))
-			/ (max[dim]-min[dim]);
-
-		/* Find the index of the left knot in the queried subinterval, be
-		   robust to cases where 't' lies exactly on the right endpoint */
-		knot[dim] = std::min((size_t) t, size[dim] - 2);
-
-		/* Compute the relative position within the interval */
-		t = t - (Float) knot[dim];
-
-		/* Compute node weights */
-		Float t2 = t*t, t3 = t2*t;
-		weights[0] = 0.0f;
-		weights[1] = 2*t3 - 3*t2 + 1;
-		weights[2] = -2*t3 + 3*t2;
-		weights[3] = 0.0f;
-
-		/* Derivative weights */
-		Float d0 = t3 - 2*t2 + t,
-			  d1 = t3 - t2;
-
-		/* Turn derivative weights into node weights using
-		   an appropriate chosen finite differences stencil */
-		if (knot[dim] > 0) {
-			weights[2] +=  0.5f * d0;
-			weights[0] -=  0.5f * d0;
-		} else {
-			weights[2] += d0;
-			weights[1] -= d0;
-		}
-
-		if (knot[dim] + 2 < size[dim]) {
-			weights[3] += 0.5f * d1;
-			weights[1] -= 0.5f * d1;
-		} else {
-			weights[2] += d1;
-			weights[1] -= d1;
-		}
-	}
-
-	Float result = 0.0f;
-	for (int y=-1; y<=2; ++y) {
-		Float wy = knotWeights[1][y+1];
-		for (int x=-1; x<=2; ++x) {
-			Float wxy = knotWeights[0][x+1] * wy;
-
-			if (wxy == 0)
-				continue;
-
-			size_t pos = (knot[1] + y) * size[0] + knot[0] + x;
-
-			result += data[pos] * wxy;
-		}
-	}
-	return result;
-}
-
-Float interpCubic2DIrregular(const Point2 &p, const Float **nodes_,
-			const Float *data, const Size2 &size, bool extrapolate) {
-	Float knotWeights[2][4];
-	Size2 knot;
-
-	/* Compute interpolation weights separately for each dimension */
-	for (int dim=0; dim<2; ++dim) {
-		const Float *nodes = nodes_[dim];
-		Float *weights = knotWeights[dim];
-
-		/* Give up when given an out-of-range or NaN argument */
-		if (!(p[dim] >= nodes[0] && p[dim] <= nodes[size[dim]-1]) && !extrapolate)
-			return 0.0f;
-
-		/* Find the index of the left knot in the queried subinterval, be
-		   robust to cases where 't' lies exactly on the right endpoint */
-		size_t k = (size_t) std::max((ptrdiff_t) 0, std::min((ptrdiff_t) size[dim] - 2,
-			std::lower_bound(nodes, nodes + size[dim], p[dim]) - nodes - 1));
-		knot[dim] = k;
-
-		Float width = nodes[k+1] - nodes[k], invWidth = 1 / width;
-
-		/* Compute the relative position within the interval */
-		Float t = (p[dim] - nodes[k]) * invWidth,
-			  t2 = t*t, t3 = t2*t;
-
-		/* Compute node weights */
-		weights[0] = 0.0f;
-		weights[1] = 2*t3 - 3*t2 + 1;
-		weights[2] = -2*t3 + 3*t2;
-		weights[3] = 0.0f;
-
-		/* Derivative weights */
-		Float d0 = (t3 - 2*t2 + t) * width,
-			  d1 = (t3 - t2) * width;
-
-		/* Turn derivative weights into node weights using
-		   an appropriate chosen finite differences stencil */
-		if (k > 0) {
-			Float factor = 1 / (nodes[k+1]-nodes[k-1]);
-			weights[2] += d0 * factor;
-			weights[0] -= d0 * factor;
-		} else {
-			weights[2] += d0 * invWidth;
-			weights[1] -= d0 * invWidth;
-		}
-
-		if (k + 2 < size[dim]) {
-			Float factor = 1 / (nodes[k+2]-nodes[k]);
-			weights[3] += d1 * factor;
-			weights[1] -= d1 * factor;
-		} else {
-			weights[2] += d1 * invWidth;
-			weights[1] -= d1 * invWidth;
-		}
-	}
-
-	Float result = 0.0f;
-	for (int y=-1; y<=2; ++y) {
-		Float wy = knotWeights[1][y+1];
-		for (int x=-1; x<=2; ++x) {
-			Float wxy = knotWeights[0][x+1] * wy;
-
-			if (wxy == 0)
-				continue;
-
-			size_t pos = (knot[1] + y) * size[0] + knot[0] + x;
-
-			result += data[pos] * wxy;
-		}
-	}
-	return result;
-}
-
-Float interpCubic3D(const Point3 &p, const Float *data,
-		const Point3 &min, const Point3 &max, const Size3 &size, bool extrapolate) {
-	Float knotWeights[3][4];
-	Size3 knot;
-
-	/* Compute interpolation weights separately for each dimension */
-	for (int dim=0; dim<3; ++dim) {
-		Float *weights = knotWeights[dim];
-		/* Give up when given an out-of-range or NaN argument */
-		if (!(p[dim] >= min[dim] && p[dim] <= max[dim]) && !extrapolate)
-			return 0.0f;
-
-		/* Transform 'p' so that knots lie at integer positions */
-		Float t = ((p[dim] - min[dim]) * (size[dim] - 1))
-			/ (max[dim]-min[dim]);
-
-		/* Find the index of the left knot in the queried subinterval, be
-		   robust to cases where 't' lies exactly on the right endpoint */
-		knot[dim] = std::min((size_t) t, size[dim] - 2);
-
-		/* Compute the relative position within the interval */
-		t = t - (Float) knot[dim];
-
-		/* Compute node weights */
-		Float t2 = t*t, t3 = t2*t;
-		weights[0] = 0.0f;
-		weights[1] = 2*t3 - 3*t2 + 1;
-		weights[2] = -2*t3 + 3*t2;
-		weights[3] = 0.0f;
-
-		/* Derivative weights */
-		Float d0 = t3 - 2*t2 + t,
-			  d1 = t3 - t2;
-
-		/* Turn derivative weights into node weights using
-		   an appropriate chosen finite differences stencil */
-		if (knot[dim] > 0) {
-			weights[2] +=  0.5f * d0;
-			weights[0] -=  0.5f * d0;
-		} else {
-			weights[2] += d0;
-			weights[1] -= d0;
-		}
-
-		if (knot[dim] + 2 < size[dim]) {
-			weights[3] += 0.5f * d1;
-			weights[1] -= 0.5f * d1;
-		} else {
-			weights[2] += d1;
-			weights[1] -= d1;
-		}
-	}
-
-	Float result = 0.0f;
-	for (int z=-1; z<=2; ++z) {
-		Float wz = knotWeights[2][z+1];
-		for (int y=-1; y<=2; ++y) {
-			Float wyz = knotWeights[1][y+1] * wz;
-			for (int x=-1; x<=2; ++x) {
-				Float wxyz = knotWeights[0][x+1] * wyz;
-
-				if (wxyz == 0)
-					continue;
-
-				size_t pos = ((knot[2] + z) * size[1] + (knot[1] + y))
-					* size[0] + knot[0] + x;
-
-				result += data[pos] * wxyz;
-			}
-		}
-	}
-	return result;
-}
-
-Float interpCubic3DIrregular(const Point3 &p, const Float **nodes_,
-			const Float *data, const Size3 &size, bool extrapolate) {
-	Float knotWeights[3][4];
-	Size3 knot;
-
-	/* Compute interpolation weights separately for each dimension */
-	for (int dim=0; dim<3; ++dim) {
-		const Float *nodes = nodes_[dim];
-		Float *weights = knotWeights[dim];
-
-		/* Give up when given an out-of-range or NaN argument */
-		if (!(p[dim] >= nodes[0] && p[dim] <= nodes[size[dim]-1]) && !extrapolate)
-			return 0.0f;
-
-		/* Find the index of the left knot in the queried subinterval, be
-		   robust to cases where 't' lies exactly on the right endpoint */
-		size_t k = (size_t) std::max((ptrdiff_t) 0, std::min((ptrdiff_t) size[dim] - 2,
-			std::lower_bound(nodes, nodes + size[dim], p[dim]) - nodes - 1));
-		knot[dim] = k;
-
-		Float width = nodes[k+1] - nodes[k], invWidth = 1 / width;
-
-		/* Compute the relative position within the interval */
-		Float t = (p[dim] - nodes[k]) * invWidth,
-			  t2 = t*t, t3 = t2*t;
-
-		/* Compute node weights */
-		weights[0] = 0.0f;
-		weights[1] = 2*t3 - 3*t2 + 1;
-		weights[2] = -2*t3 + 3*t2;
-		weights[3] = 0.0f;
-
-		/* Derivative weights */
-		Float d0 = (t3 - 2*t2 + t) * width,
-			  d1 = (t3 - t2) * width;
-
-		/* Turn derivative weights into node weights using
-		   an appropriate chosen finite differences stencil */
-		if (k > 0) {
-			Float factor = 1 / (nodes[k+1]-nodes[k-1]);
-			weights[2] += d0 * factor;
-			weights[0] -= d0 * factor;
-		} else {
-			weights[2] += d0 * invWidth;
-			weights[1] -= d0 * invWidth;
-		}
-
-		if (k + 2 < size[dim]) {
-			Float factor = 1 / (nodes[k+2]-nodes[k]);
-			weights[3] += d1 * factor;
-			weights[1] -= d1 * factor;
-		} else {
-			weights[2] += d1 * invWidth;
-			weights[1] -= d1 * invWidth;
-		}
-	}
-
-	Float result = 0.0f;
-	for (int z=-1; z<=2; ++z) {
-		Float wz = knotWeights[2][z+1];
-		for (int y=-1; y<=2; ++y) {
-			Float wyz = knotWeights[1][y+1] * wz;
-			for (int x=-1; x<=2; ++x) {
-				Float wxyz = knotWeights[0][x+1] * wyz;
-
-				if (wxyz == 0)
-					continue;
-
-				size_t pos = ((knot[2] + z) * size[1] + (knot[1] + y))
-					* size[0] + knot[0] + x;
-
-				result += data[pos] * wxyz;
-			}
-		}
-	}
-	return result;
-}
-
 void stratifiedSample1D(Random *random, Float *dest, int count, bool jitter) {
 	Float invCount = 1.0f / count;
 
@@ -957,18 +586,84 @@ Float fresnelDielectricExt(Float cosThetaI_, Float &cosThetaT_, Float eta) {
 	return 0.5f * (Rs * Rs + Rp * Rp);
 }
 
-Spectrum fresnelConductor(Float cosThetaI, const Spectrum &eta, const Spectrum &k) {
-	Spectrum tmp = (eta*eta + k*k) * (cosThetaI * cosThetaI);
+Float fresnelConductorApprox(Float cosThetaI, Float eta, Float k) {
+	Float cosThetaI2 = cosThetaI*cosThetaI;
 
-	Spectrum rParl2 = (tmp - (eta * (2.0f * cosThetaI)) + Spectrum(1.0f))
-					/ (tmp + (eta * (2.0f * cosThetaI)) + Spectrum(1.0f));
+	Float tmp = (eta*eta + k*k) * cosThetaI2;
+
+	Float Rp2 = (tmp - (eta * (2 * cosThetaI)) + 1)
+	          / (tmp + (eta * (2 * cosThetaI)) + 1);
+
+	Float tmpF = eta*eta + k*k;
+
+	Float Rs2 = (tmpF - (eta * (2 * cosThetaI)) + cosThetaI2) /
+	            (tmpF + (eta * (2 * cosThetaI)) + cosThetaI2);
+
+	return 0.5f * (Rp2 + Rs2);
+}
+
+Spectrum fresnelConductorApprox(Float cosThetaI, const Spectrum &eta, const Spectrum &k) {
+	Float cosThetaI2 = cosThetaI*cosThetaI;
+
+	Spectrum tmp = (eta*eta + k*k) * cosThetaI2;
+
+	Spectrum Rp2 = (tmp - (eta * (2 * cosThetaI)) + Spectrum(1.0f))
+	             / (tmp + (eta * (2 * cosThetaI)) + Spectrum(1.0f));
 
 	Spectrum tmpF = eta*eta + k*k;
 
-	Spectrum rPerp2 = (tmpF - (eta * (2.0f * cosThetaI)) + Spectrum(cosThetaI*cosThetaI)) /
-					  (tmpF + (eta * (2.0f * cosThetaI)) + Spectrum(cosThetaI*cosThetaI));
+	Spectrum Rs2 = (tmpF - (eta * (2 * cosThetaI)) + Spectrum(cosThetaI2)) /
+	               (tmpF + (eta * (2 * cosThetaI)) + Spectrum(cosThetaI2));
 
-	return (rParl2 + rPerp2) / 2.0f;
+	return 0.5f * (Rp2 + Rs2);
+}
+
+Float fresnelConductorExact(Float cosThetaI, Float eta, Float k) {
+	/* Modified from "Optics" by K.D. Moeller, University Science Books, 1988 */
+
+	Float cosThetaI2 = cosThetaI*cosThetaI,
+	      sinThetaI2 = 1-cosThetaI2,
+		  sinThetaI4 = sinThetaI2*sinThetaI2;
+
+	Float temp1 = eta*eta - k*k - sinThetaI2,
+	      a2pb2 = math::safe_sqrt(temp1*temp1 + 4*k*k*eta*eta),
+	      a     = math::safe_sqrt(0.5f * (a2pb2 + temp1));
+
+	Float term1 = a2pb2 + cosThetaI2,
+	      term2 = 2*a*cosThetaI;
+
+	Float Rs2 = (term1 - term2) / (term1 + term2);
+
+	Float term3 = a2pb2*cosThetaI2 + sinThetaI4,
+	      term4 = term2*sinThetaI2;
+
+	Float Rp2 = Rs2 * (term3 - term4) / (term3 + term4);
+
+	return 0.5f * (Rp2 + Rs2);
+}
+
+Spectrum fresnelConductorExact(Float cosThetaI, const Spectrum &eta, const Spectrum &k) {
+	/* Modified from "Optics" by K.D. Moeller, University Science Books, 1988 */
+
+	Float cosThetaI2 = cosThetaI*cosThetaI,
+	      sinThetaI2 = 1-cosThetaI2,
+		  sinThetaI4 = sinThetaI2*sinThetaI2;
+
+	Spectrum temp1 = eta*eta - k*k - Spectrum(sinThetaI2),
+	         a2pb2 = (temp1*temp1 + k*k*eta*eta*4).safe_sqrt(),
+	         a     = ((a2pb2 + temp1) * 0.5f).safe_sqrt();
+
+	Spectrum term1 = a2pb2 + Spectrum(cosThetaI2),
+	         term2 = a*(2*cosThetaI);
+
+	Spectrum Rs2 = (term1 - term2) / (term1 + term2);
+
+	Spectrum term3 = a2pb2*cosThetaI2 + Spectrum(sinThetaI4),
+	         term4 = term2*sinThetaI2;
+
+	Spectrum Rp2 = Rs2 * (term3 - term4) / (term3 + term4);
+
+	return 0.5f * (Rp2 + Rs2);
 }
 
 Vector reflect(const Vector &wi, const Normal &n) {
