@@ -35,18 +35,20 @@ template <typename T> T DGrosjean(const T muA, const T muSPrime)
 
 /**
  * Computes the combined diffuse radiant exitance
- * caused by a number of dipole sources
+ * caused by a number of dipole sources using the improved dipole model [d'Eon 2012] - "A Better Dipole".
+ * This implements the R(r) given in Table 2 and weights it by the area and irradiance
  */
-struct IsotropicDipoleQuery {
-	inline IsotropicDipoleQuery(const Spectrum &zr,
+struct BetterDipoleQuery {
+	inline BetterDipoleQuery(const Spectrum &zr,
 								const Spectrum &zv,
 								const Spectrum &muTr,
 								const Spectrum &muA,
 								const Spectrum &muSPrime,
-								const Spectrum &DCE,
-								const Float &Cphi,
+								const Spectrum &D,
+								const float &in_CE,
+								const Float &in_Cphi,
 								const Point &p)
-		: zr(zr), zv(zv), muTr(muTr), muA(muA), muSPrime(muSPrime), DCE(DCE), Cphi(Cphi), result(0.0f), p(p) {
+		: zr(zr), zv(zv), muTr(muTr), muA(muA), muSPrime(muSPrime), m_D(D), Cphi(in_Cphi), CE(in_CE), result(0.0f), p(p) {
 	}
 
 	inline void operator()(const IrradianceSample &sample) {
@@ -60,24 +62,27 @@ struct IsotropicDipoleQuery {
 
 		Spectrum muTPrime = muA + muSPrime;
 
-		Spectrum coeff0 = 3 * muSPrime * muTPrime / (2 * muA + muSPrime);
-		Spectrum coeff1 = ( DCE * zr * (muTr * dr + Spectrum(1))) / (dr * dr) + Spectrum( Cphi );
-		Spectrum coeff2 = ( DCE * zv * (muTr * dv + Spectrum(1))) / (dv * dv) + Spectrum( Cphi );
+		Spectrum alpha = muSPrime / muTPrime; // single-scattering albedo
+
+		Spectrum coeff0 = alpha * alpha; // one from Grosjean's modified diffusion, and one from the fraction of energy leaving the first scatter (at depth 1 mfp)
+		Spectrum coeff1 = ( CE * zr * (muTr * dr + Spectrum(1))) / (dr * dr) + Spectrum( Cphi ) / m_D;
+		Spectrum coeff2 = ( CE * zv * (muTr * dv + Spectrum(1))) / (dv * dv) + Spectrum( Cphi ) / m_D;
 
 		/* Do not include the reduced albedo - will be canceled out later */
-		Spectrum dMo = Spectrum(INV_FOURPI) * coeff0 *
+		Spectrum R = Spectrum(INV_FOURPI) * coeff0 *
 			 (coeff1 * ((-muTr * dr).exp()) / dr
 			- coeff2 * ((-muTr * dv).exp()) / dv);
 
-		result += dMo * sample.E * sample.area;
+		result += R * sample.E * sample.area;
 	}
 
 	inline const Spectrum &getResult() const {
 		return result;
 	}
 
-	const Spectrum &zr, &zv, &muTr, &muA, &muSPrime, &DCE;
+	const Spectrum &zr, &zv, &muTr, &muA, &muSPrime, &m_D;
 	Float Cphi;
+	Float CE;
 	Spectrum result;
 
 	Point p;
@@ -90,9 +95,9 @@ static int irrOctreeIndex = 0;
  * Add proper exitance calculation and boundary conditions to the dipole model
  */
 
-class IsotropicDipole : public Subsurface {
+class BetterDipole : public Subsurface {
 public:
-	IsotropicDipole(const Properties &props)
+	BetterDipole(const Properties &props)
 		: Subsurface(props) {
 		{
 			LockGuard lock(irrOctreeMutex);
@@ -114,13 +119,14 @@ public:
 		/* Error threshold - lower means better quality */
 		m_quality = props.getFloat("quality", 0.2f);
 
+		/* Asymmetry parameter of the phase function */
 		m_ready = false;
 		m_octreeResID = -1;
 
 		lookupMaterial(props, m_muS, m_muA, m_g, &m_eta);
 	}
 
-	IsotropicDipole(Stream *stream, InstanceManager *manager)
+	BetterDipole(Stream *stream, InstanceManager *manager)
 	 : Subsurface(stream, manager) {
 		m_muS = Spectrum(stream);
 		m_muA = Spectrum(stream);
@@ -136,7 +142,7 @@ public:
 		configure();
 	}
 
-	virtual ~IsotropicDipole() {
+	virtual ~BetterDipole() {
 		if (m_octreeResID != -1)
 			Scheduler::getInstance()->unregisterResource(m_octreeResID);
 	}
@@ -163,14 +169,14 @@ public:
 			const Intersection &its, const Vector &d, int depth) const {
 		if (!m_ready || dot(its.shFrame.n, d) < 0)
 			return Spectrum(0.0f);
-		IsotropicDipoleQuery query(m_zr, m_zv, m_muTr, m_muA, m_muSPrime, m_DCE, m_Cphi, its.p);
+		BetterDipoleQuery query(m_zr, m_zv, m_muTr, m_muA, m_muSPrime, m_D, m_CE, m_Cphi, its.p);
 
 		m_octree->performQuery(query);
 		Spectrum result(query.getResult() * INV_PI);
 
 		// include the normalization factor missing from Jensen et al. 2001 (see d'Eon and Irving 2011)
 		if (m_eta != 1.0f)
-			result *= (1.0f - fresnelDielectricExt(dot(its.shFrame.n, d), m_eta)) / ( 1.0f - fresnelDiffuseReflectance( m_eta ) );
+			result *= (1.0f - fresnelDielectricExt(dot(its.shFrame.n, d), m_eta)) / (1.0f - m_FdrExt);
 
 		return result;
 	}
@@ -186,29 +192,32 @@ public:
 			m_radius = std::min(m_radius, mfp[lambda]);
 
 		/* Average diffuse reflectance due to mismatched indices of refraction */
-		m_Fdr = fresnelDiffuseReflectance(1 / m_eta); // Fdr == 2 C1
-		Float _3C2 = fresnelDiffuseReflectanceSecondMoment(1 / m_eta);
-		Spectrum D = DGrosjean( m_muA, m_muSPrime );
+		m_FdrInt = fresnelDiffuseReflectance(1 / m_eta); // Fdr == 2 C1
+		m_FdrExt = fresnelDiffuseReflectance(m_eta);
 
-		m_Cphi = 0.25f * (1.0f - m_Fdr);
-		m_DCE  = D * 0.5f * (1.0f - _3C2);
+		Float _3C2 = fresnelDiffuseReflectanceSecondMoment(1 / m_eta);
+		m_D = DGrosjean( m_muA, m_muSPrime );
+
+		m_Cphi = 0.25f * (1.0f - m_FdrInt);
+		m_CE  = 0.5f * (1.0f - _3C2);
 
 		/* Dipole boundary condition distance term */
-		Float A = (1 + _3C2) / (1 - m_Fdr);
+		Float A = (1 + _3C2) / (1 - m_FdrInt);
 
 		/* Effective transport extinction coefficient */
-		m_muTr = (m_muA / D).sqrt();
+		m_muTr = (m_muA / m_D).sqrt();
+
+		Spectrum zb = 2.0 * A * m_D;
 
 		/* Distance of the two dipole point sources to the surface */
-		m_zr = mfp / ( Spectrum(1.0f) + m_muA ); // Durian and Rudnick 1999
-		m_zv = mfp * (1.0f + 4.0f/3.0f * A);
+		m_zr = mfp;
+		m_zv = -m_zr - 2.0 * zb;
 	}
 
 	bool preprocess(const Scene *scene, RenderQueue *queue, const RenderJob *job,
 		int sceneResID, int cameraResID, int _samplerResID) {
 		if (m_ready)
 			return true;
-
 		if (!scene->getIntegrator()->getClass()
 				->derivesFrom(MTS_CLASS(SamplingIntegrator)))
 			Log(EError, "The dipole subsurface scattering model requires "
@@ -296,8 +305,10 @@ public:
 	MTS_DECLARE_CLASS()
 private:
 	Float m_radius, m_sampleMultiplier;
-	Float m_Fdr, m_Cphi, m_quality, m_eta;
-	Spectrum m_muS, m_muA, m_DCE, m_g;
+	Float m_FdrInt, m_FdrExt, m_Cphi;
+	Float m_CE, m_quality, m_eta;
+	Spectrum m_muS, m_muA;
+	Spectrum m_D, m_g;
 	Spectrum m_muTr, m_zr, m_zv;
 	Spectrum m_muSPrime, m_muTPrime;
 	ref<IrradianceOctree> m_octree;
@@ -308,6 +319,6 @@ private:
 	bool m_ready;
 };
 
-MTS_IMPLEMENT_CLASS_S(IsotropicDipole, false, Subsurface)
-MTS_EXPORT_PLUGIN(IsotropicDipole, "Isotropic dipole model");
+MTS_IMPLEMENT_CLASS_S(BetterDipole, false, Subsurface)
+MTS_EXPORT_PLUGIN(BetterDipole, "Better dipole model");
 MTS_NAMESPACE_END
