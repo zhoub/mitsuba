@@ -200,6 +200,8 @@ public:
 			  sAvg = m_specularReflectance->getAverage().getLuminance();
 
 		m_specularSamplingWeight = sAvg / (dAvg + sAvg);
+		if (m_eta == 1.0f)
+			m_specularSamplingWeight = 0.0f;
 
 		m_invEta2 = 1/(m_eta*m_eta);
 

@@ -27,8 +27,7 @@
 MTS_NAMESPACE_BEGIN
 
 // Modified diffusion coefficient of Grosjean 1956 - "A high accuracy approximation for solving multiple scattering problems in infinite homogeneous media"
-template <typename T> T DGrosjean(const T muA, const T muSPrime)
-{
+template <typename T> T DGrosjean(const T muA, const T muSPrime) {
     T denomterm = muA + muSPrime;
     return (2 * muA + muSPrime) / (3 * denomterm * denomterm);
 }
@@ -65,8 +64,8 @@ struct BetterDipoleQuery {
 		Spectrum alpha = muSPrime / muTPrime; // single-scattering albedo
 
 		Spectrum coeff0 = alpha * alpha; // one from Grosjean's modified diffusion, and one from the fraction of energy leaving the first scatter (at depth 1 mfp)
-		Spectrum coeff1 = ( CE * zr * (muTr * dr + Spectrum(1))) / (dr * dr) + Spectrum( Cphi ) / m_D;
-		Spectrum coeff2 = ( CE * zv * (muTr * dv + Spectrum(1))) / (dv * dv) + Spectrum( Cphi ) / m_D;
+		Spectrum coeff1 = (CE * zr * (muTr * dr + Spectrum(1))) / (dr * dr) + Spectrum(Cphi) / m_D;
+		Spectrum coeff2 = (CE * zv * (muTr * dv + Spectrum(1))) / (dv * dv) + Spectrum(Cphi) / m_D;
 
 		/* Do not include the reduced albedo - will be canceled out later */
 		Spectrum R = Spectrum(INV_FOURPI) * coeff0 *
@@ -124,6 +123,9 @@ public:
 		m_octreeResID = -1;
 
 		lookupMaterial(props, m_muS, m_muA, m_g, &m_eta);
+
+		if (m_eta < 1)
+			Log(EError, "Unsupported material configuration (intIOR/extIOR < 1)");
 	}
 
 	BetterDipole(Stream *stream, InstanceManager *manager)
@@ -165,10 +167,102 @@ public:
 		stream->writeBool(m_irrIndirect);
 	}
 
+	Spectrum LoSingle(const Scene *scene, Sampler *sampler,
+			const Intersection &its, const Vector &dInternal) const {
+
+		/* Sample a traveled distance within the medium */
+		Float distance = -math::fastlog(1-sampler->next1D()) * m_radius;
+
+		/* Sample a point on a light source */
+		DirectSamplingRecord dRec(its.p + dInternal*distance, its.time);
+		Spectrum value = scene->sampleEmitterDirect(dRec, sampler->next2D(), false);
+
+		if (value.isZero() || !(distance > 0))
+			return Spectrum(0.0f);
+
+		/* Build a local frame based on the plane of incidence */
+		Vector toLight = dRec.p - dRec.ref;
+		Frame frame;
+		frame.n = its.shFrame.n;
+		frame.s = normalize(toLight - its.shFrame.n*dot(toLight, its.shFrame.n));
+		frame.t = cross(frame.n, frame.s);
+
+		/* Express the scattering and light source position in this frame */
+		Vector V = frame.toLocal(dRec.ref - its.p);
+		Vector L = frame.toLocal(dRec.p - its.p);
+
+		if (L.z < 0)
+			return Spectrum(0.0f);
+
+		/* Find the connection path that accounts for the dielectric boundary */
+		Float Vz = V.z, Lx = L.x-V.x, Lz = L.z;
+
+		/* Starting guess proposed by Walter et al */
+		Float x = (-Vz * Lx * 4) / ((m_eta * Lz - Vz) * (3 + m_eta));
+
+		/* Perform three Newton-Raphson iterations, which is plenty */
+		for (int i=0; i<3; ++i) {
+			Float tmp1 = 1/(x*x + Vz*Vz), sqrtTmp1 = std::sqrt(tmp1);
+			Float tmp2 = 1/((Lx-x)*(Lx-x) + Lz*Lz), sqrtTmp2 = std::sqrt(tmp2);
+
+			Float fx  = -m_eta * x * sqrtTmp1 + (Lx - x) * sqrtTmp2;
+			Float dfx = -m_eta * Vz*Vz * tmp1 * sqrtTmp1 - Lz*Lz * sqrtTmp2 * tmp2;
+
+			x -= fx / dfx;
+		}
+
+		/* Done! */
+		Vector P(V.x + x, V.y, 0);
+		Point PWorld = its.p + frame.toWorld(P);
+
+		/* Make sure that the light source is not occluded from this position */
+		Vector surfaceToLight = dRec.p - PWorld;
+		Float dL = surfaceToLight.length();
+		surfaceToLight /= dL;
+
+		Ray ray(PWorld, surfaceToLight, Epsilon,
+			dL*(1-ShadowEpsilon), its.time);
+		if (scene->rayIntersect(ray))
+			return Spectrum(0.0f);
+
+		/* Account for importance sampling wrt. transmittance */
+		value *= m_radius * m_muS * (Spectrum(m_invRadius * distance) - m_muT * distance).exp();
+
+		/* Fresnel transmittance at the new position */
+		Float F = fresnelDielectricExt(surfaceToLight.z, m_eta);
+
+		Vector interactionToSurface = P - V;
+		Float dV = interactionToSurface.length();
+		interactionToSurface /= dV;
+
+		/* Evaluate the Henyey-Greenstein model */
+		Float g = m_g.average(), temp = 1.0f + g*g + 2.0f * g
+			* dot(interactionToSurface, -normalize(V));
+		Float phase = INV_FOURPI * (1 - g*g) / (temp * std::sqrt(temp));
+
+		Spectrum result = (1-F) * phase * value * (-m_muT * dV).exp();
+
+		Float cosThetaL = dot(surfaceToLight, its.shFrame.n);
+		Float cosThetaV = interactionToSurface.z;
+		if (cosThetaL == 0 || cosThetaV == 0)
+			return Spectrum(0.0f);
+
+		/* Adjust contribution of the solution path (generalized geometric term) */
+		return result * (dRec.dist*dRec.dist / (
+			(dV + m_eta * dL) * (cosThetaL/cosThetaV*dV + cosThetaV/cosThetaL*m_eta*dL)));
+	}
+
 	Spectrum Lo(const Scene *scene, Sampler *sampler,
 			const Intersection &its, const Vector &d, int depth) const {
-		if (!m_ready || dot(its.shFrame.n, d) < 0)
+		Float cosTheta = dot(its.shFrame.n, d);
+
+		if (!m_ready || cosTheta < 0)
 			return Spectrum(0.0f);
+
+		Float F = 0, cosThetaT = 0 /* unused */;
+		Vector dInternal = refract(d, its.shFrame.n, m_eta, cosThetaT, F);
+
+#if 0
 		BetterDipoleQuery query(m_zr, m_zv, m_muTr, m_muA, m_muSPrime, m_D, m_CE, m_Cphi, its.p);
 
 		m_octree->performQuery(query);
@@ -176,27 +270,31 @@ public:
 
 		// include the normalization factor missing from Jensen et al. 2001 (see d'Eon and Irving 2011)
 		if (m_eta != 1.0f)
-			result *= (1.0f - fresnelDielectricExt(dot(its.shFrame.n, d), m_eta)) / (1.0f - m_FdrExt);
+			result *= (1.0f - F) / (1.0f - m_FdrExt);
+#endif
+		Spectrum result(0.0f);
+		result += (1-F) * LoSingle(scene, sampler, its, dInternal);
 
 		return result;
 	}
 
 	void configure() {
 		m_muSPrime = m_muS * (Spectrum(1.0f) - m_g);
+		m_muT = m_muS + m_muA;
 		m_muTPrime = m_muSPrime + m_muA;
+		m_invEta = 1 / m_eta;
 
 		/* Find the smallest mean-free path over all wavelengths */
 		Spectrum mfp = Spectrum(1.0f) / m_muTPrime;
-		m_radius = std::numeric_limits<Float>::max();
-		for (int lambda=0; lambda<SPECTRUM_SAMPLES; lambda++)
-			m_radius = std::min(m_radius, mfp[lambda]);
+		m_radius = mfp.min();
+		m_invRadius = 1/m_radius;
 
 		/* Average diffuse reflectance due to mismatched indices of refraction */
 		m_FdrInt = fresnelDiffuseReflectance(1 / m_eta); // Fdr == 2 C1
 		m_FdrExt = fresnelDiffuseReflectance(m_eta);
 
 		Float _3C2 = fresnelDiffuseReflectanceSecondMoment(1 / m_eta);
-		m_D = DGrosjean( m_muA, m_muSPrime );
+		m_D = DGrosjean(m_muA, m_muSPrime);
 
 		m_Cphi = 0.25f * (1.0f - m_FdrInt);
 		m_CE  = 0.5f * (1.0f - _3C2);
@@ -304,10 +402,10 @@ public:
 
 	MTS_DECLARE_CLASS()
 private:
-	Float m_radius, m_sampleMultiplier;
+	Float m_radius, m_invRadius, m_sampleMultiplier;
 	Float m_FdrInt, m_FdrExt, m_Cphi;
-	Float m_CE, m_quality, m_eta;
-	Spectrum m_muS, m_muA;
+	Float m_CE, m_quality, m_eta, m_invEta;
+	Spectrum m_muS, m_muA, m_muT;
 	Spectrum m_D, m_g;
 	Spectrum m_muTr, m_zr, m_zv;
 	Spectrum m_muSPrime, m_muTPrime;

@@ -353,9 +353,7 @@ public:
 
 		/* Find the smallest mean-free path over all wavelengths */
 		Spectrum mfp = Spectrum(1.0f) / m_sigmaTPrime;
-		m_radius = std::numeric_limits<Float>::max();
-		for (int lambda=0; lambda<SPECTRUM_SAMPLES; lambda++)
-			m_radius = std::min(m_radius, mfp[lambda]);
+		m_radius = mfp.min();
 
 		/* Average diffuse reflectance due to mismatched indices of refraction */
 		m_Fdr = fresnelDiffuseReflectance(1 / m_eta);
