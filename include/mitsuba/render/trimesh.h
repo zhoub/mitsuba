@@ -356,7 +356,7 @@ protected:
 	DiscreteDistribution m_areaDistr;
 	Float m_surfaceArea;
 	Float m_invSurfaceArea;
-	ref<Mutex> m_mutex;
+	ref<UVKDTree> m_uvkdtree;
 };
 
 MTS_NAMESPACE_END

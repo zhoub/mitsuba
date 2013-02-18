@@ -180,7 +180,8 @@ void SamplingIntegrator::renderBlock(const Scene *scene,
 
 			sensorRay.scaleDifferential(diffScaleFactor);
 
-			spec *= Li(sensorRay, rRec);
+			if (!spec.isZero())
+				spec *= Li(sensorRay, rRec);
 			block->put(samplePos, spec, rRec.alpha);
 			sampler->advance();
 		}

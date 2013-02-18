@@ -117,7 +117,7 @@ public:
 		ray.setDirection(Frame(pRec.n).toWorld(
 			Warp::squareToCosineHemisphere(otherSample)));
 
-		return Spectrum(M_PI);
+		return Spectrum(pRec.pdf > 0 ? M_PI : 0);
 	}
 
 	Spectrum samplePosition(PositionSamplingRecord &pRec,
@@ -135,7 +135,7 @@ public:
 		pRec.uv = Point2(samplePos.x * m_resolution.x,
 			samplePos.y * m_resolution.y);
 
-		return Spectrum(M_PI / (pRec.pdf * m_shape->getSurfaceArea()));
+		return Spectrum(pRec.pdf > 0 ? 0 : (M_PI / (pRec.pdf * m_shape->getSurfaceArea())));
 	}
 
 	Spectrum evalPosition(const PositionSamplingRecord &pRec) const {

@@ -22,7 +22,6 @@
 
 #include <mitsuba/core/aabb.h>
 #include <mitsuba/render/gkdtree.h>
-#include <mitsuba/core/warp.h>
 
 MTS_NAMESPACE_BEGIN
 

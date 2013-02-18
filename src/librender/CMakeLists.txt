@@ -47,6 +47,7 @@ set(HDRS
   ${INCLUDE_DIR}/trimesh.h
   ${INCLUDE_DIR}/util.h
   ${INCLUDE_DIR}/volume.h
+  ${INCLUDE_DIR}/vkdtree2.h
   ${INCLUDE_DIR}/vpl.h
 )
 

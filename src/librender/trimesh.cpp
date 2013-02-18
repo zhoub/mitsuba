@@ -27,7 +27,9 @@
 #include <mitsuba/render/medium.h>
 #include <mitsuba/render/bsdf.h>
 #include <mitsuba/render/emitter.h>
+#include <mitsuba/render/vkdtree2.h>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/thread/mutex.hpp>
 
 #define MTS_FILEFORMAT_HEADER     0x041C
 #define MTS_FILEFORMAT_VERSION_V3 0x0003
@@ -49,7 +51,6 @@ TriMesh::TriMesh(const std::string &name, size_t triangleCount,
 	m_colors = hasVertexColors ? new Color3[m_vertexCount] : NULL;
 	m_tangents = NULL;
 	m_surfaceArea = m_invSurfaceArea = -1;
-	m_mutex = new Mutex();
 }
 
 TriMesh::TriMesh(const Properties &props)
@@ -71,7 +72,6 @@ TriMesh::TriMesh(const Properties &props)
 
 	m_triangles = NULL;
 	m_surfaceArea = m_invSurfaceArea = -1;
-	m_mutex = new Mutex();
 }
 
 TriMesh::TriMesh(Stream *stream, int index)
@@ -79,7 +79,6 @@ TriMesh::TriMesh(Stream *stream, int index)
 	m_positions(NULL), m_normals(NULL), m_texcoords(NULL),
 	m_tangents(NULL), m_colors(NULL) {
 
-	m_mutex = new Mutex();
 	loadCompressed(stream, index);
 }
 
@@ -139,7 +138,6 @@ TriMesh::TriMesh(Stream *stream, InstanceManager *manager)
 		m_triangleCount * sizeof(Triangle)/sizeof(uint32_t));
 	m_flipNormals = false;
 	m_surfaceArea = m_invSurfaceArea = -1;
-	m_mutex = new Mutex();
 	configure();
 }
 
@@ -389,19 +387,33 @@ void TriMesh::configure() {
 		computeUVTangents();
 }
 
+static boost::mutex __samplingTableMutex;
+
 void TriMesh::prepareSamplingTable() {
 	if (m_triangleCount == 0) {
 		Log(EError, "Encountered an empty triangle mesh!");
 		return;
 	}
 
-	LockGuard guard(m_mutex);
+	boost::lock_guard<boost::mutex> guard(__samplingTableMutex);
 	if (m_surfaceArea < 0) {
-		/* Generate a PDF for sampling wrt. area */
-		m_areaDistr.reserve(m_triangleCount);
-		for (size_t i=0; i<m_triangleCount; i++)
-			m_areaDistr.append(m_triangles[i].surfaceArea(m_positions));
-		m_surfaceArea = m_areaDistr.normalize();
+		/* Only create a fully fledged parameterization when a sensor
+		   is attached to this shape */
+		if (isSensor()) {
+			if (m_texcoords == NULL)
+				Log(EError, "Unable to create a UV parameterization of the sensor "
+					"because no UV coordinates were specified!");
+			m_uvkdtree = new UVKDTree(m_triangleCount, m_triangles, m_texcoords);
+			m_surfaceArea = 0;
+			for (size_t i=0; i<m_triangleCount; i++)
+				m_surfaceArea += m_triangles[i].surfaceArea(m_positions);
+		} else {
+			/* Generate a PDF for sampling wrt. area */
+			m_areaDistr.reserve(m_triangleCount);
+			for (size_t i=0; i<m_triangleCount; i++)
+				m_areaDistr.append(m_triangles[i].surfaceArea(m_positions));
+			m_surfaceArea = m_areaDistr.normalize();
+		}
 		m_invSurfaceArea = 1.0f / m_surfaceArea;
 	}
 }
@@ -418,11 +430,52 @@ void TriMesh::samplePosition(PositionSamplingRecord &pRec,
 	if (EXPECT_NOT_TAKEN(m_surfaceArea < 0))
 		const_cast<TriMesh *>(this)->prepareSamplingTable();
 
-	Point2 sample(_sample);
-	size_t index = m_areaDistr.sampleReuse(sample.y);
-	pRec.p = m_triangles[index].sample(m_positions, m_normals,
-		m_texcoords, pRec.n, pRec.uv, sample);
-	pRec.pdf = m_invSurfaceArea;
+	if (EXPECT_TAKEN(m_uvkdtree.get() == NULL)) {
+		Point2 sample(_sample);
+		size_t index = m_areaDistr.sampleReuse(sample.y);
+		pRec.p = m_triangles[index].sample(m_positions, m_normals,
+			m_texcoords, pRec.n, pRec.uv, sample);
+		pRec.pdf = m_invSurfaceArea;
+	} else {
+		uint32_t index = 0;
+		Point2 bary(0.0f);
+
+		if (m_uvkdtree->find(_sample, index, bary)) {
+			const Triangle &tri = m_triangles[index];
+			const Point2 &uv0 = m_texcoords[tri.idx[0]];
+			const Point2 &uv1 = m_texcoords[tri.idx[1]];
+			const Point2 &uv2 = m_texcoords[tri.idx[2]];
+
+			const Point &p0 = m_positions[tri.idx[0]];
+			const Point &p1 = m_positions[tri.idx[1]];
+			const Point &p2 = m_positions[tri.idx[2]];
+			Vector sideA = p1 - p0, sideB = p2 - p0;
+			Vector2 sideA_uv = uv1 - uv0, sideB_uv = uv2 - uv0;
+
+			pRec.pdf = m_invSurfaceArea;
+			pRec.p = p0 + sideA * bary.x + sideB * bary.y;
+			pRec.uv = uv0 + sideA_uv * bary.x + sideB_uv * bary.y;
+
+			if (m_normals) {
+				const Normal &n0 = m_normals[tri.idx[0]];
+				const Normal &n1 = m_normals[tri.idx[1]];
+				const Normal &n2 = m_normals[tri.idx[2]];
+
+				pRec.n = Normal(normalize(
+					n0 * (1.0f - bary.x - bary.y) +
+					n1 * bary.x + n2 * bary.y
+				));
+			} else {
+				pRec.n = Normal(normalize(cross(sideA, sideB)));
+			}
+		} else {
+			pRec.pdf = 0;
+			pRec.p = Point3(0.0f);
+			pRec.n = Normal(0.0f);
+			pRec.uv = Point2(0.0f);
+		}
+	}
+
 	pRec.measure = EArea;
 }
 
@@ -973,5 +1026,7 @@ std::string TriMesh::toString() const {
 	return oss.str();
 }
 
+
+MTS_IMPLEMENT_CLASS(UVKDTree, false, KDTreeBase)
 MTS_IMPLEMENT_CLASS_S(TriMesh, false, Shape)
 MTS_NAMESPACE_END

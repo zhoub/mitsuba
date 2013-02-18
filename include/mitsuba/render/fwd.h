@@ -42,6 +42,7 @@ class IrradianceCache;
 template <typename AABBType> class KDTreeBase;
 template <typename AABBType, typename TreeConstructionHeuristic, typename Derived> class GenericKDTree;
 template <typename Derived> class SAHKDTree3D;
+template <typename Derived> class VKDTree2D;
 class ShapeKDTree;
 class LocalWorker;
 struct LuminaireSamplingRecord;
@@ -81,6 +82,7 @@ struct TriAccel;
 struct TriAccel4;
 class TriMesh;
 class Utility;
+class UVKDTree;
 class VolumeDataSource;
 struct VPL;
 
