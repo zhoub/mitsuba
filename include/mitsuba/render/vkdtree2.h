@@ -167,7 +167,7 @@ public:
 		return aabb;
 	}
 
-	bool contains(IndexType index, const Point2 &p, Point2 &uv) const {
+	bool contains(IndexType index, const Point2 &p, Point2 &bary) const {
 		const Triangle &tri = m_triangles[index];
 		const Point2 &p0 = m_uv[tri.idx[0]];
 		Vector2 rel = p - p0;
@@ -179,14 +179,14 @@ public:
 			return false;
 
 		Float invDet = (Float) 1 / det;
-		Float u = (-d2.y*rel.x + d2.x*rel.y) * invDet;
-		Float v = ( d1.y*rel.x - d1.x*rel.y) * invDet;
+		Float b0 = (-d2.y*rel.x + d2.x*rel.y) * invDet;
+		Float b1 = ( d1.y*rel.x - d1.x*rel.y) * invDet;
 
-		if (u >= 0 && u <= 1 && v >= 0 && v <= 1) {
-			uv = Point2(u, v);
-			return true;
-		}
-		return false;
+		if (!(b0 >= 0 && b0 <= 1 && b1 >= 0 && b1 <= 1 && b0 + b1 <= 1))
+			return false;
+
+		bary = Point2(b0, b1);
+		return true;
 	}
 
 	/// Return the total number of segments

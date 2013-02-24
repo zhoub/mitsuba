@@ -109,15 +109,25 @@ public:
 		ray.maxt = std::numeric_limits<Float>::infinity();
 
 		PositionSamplingRecord pRec(ray.time);
-			m_shape->samplePosition(pRec, Point2(
+		m_shape->samplePosition(pRec, Point2(
 			pixelSample.x * m_invResolution.x,
 			pixelSample.y * m_invResolution.y));
 
 		ray.setOrigin(pRec.p);
-		ray.setDirection(Frame(pRec.n).toWorld(
-			Warp::squareToCosineHemisphere(otherSample)));
+		ray.setDirection(normalize(Frame(pRec.n).toWorld(
+			Warp::squareToCosineHemisphere(otherSample))));
+		ray.mint = Epsilon;
+		ray.maxt = std::numeric_limits<Float>::infinity();
 
 		return Spectrum(pRec.pdf > 0 ? M_PI : 0);
+	}
+
+	Spectrum sampleRayDifferential(RayDifferential &ray, const Point2 &pixelSample,
+			const Point2 &otherSample, Float timeSample) const {
+		/* There is not much point in computing differentials for this type of sensor */
+		Spectrum result = sampleRay(ray, pixelSample, otherSample, timeSample);
+		ray.hasDifferentials = false;
+		return result;
 	}
 
 	Spectrum samplePosition(PositionSamplingRecord &pRec,

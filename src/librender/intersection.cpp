@@ -94,6 +94,7 @@ std::string Intersection::toString() const {
 			<< "  dvd[x,y] = [" << dvdx << ", " << dvdy << "]," << endl;
 	}
 	oss << "  time = " << time << "," << endl
+		<< "  primIndex = " << primIndex << "," << endl
 		<< "  shape = " << indent(((Object *)shape)->toString()) << endl
 		<< "]";
 	return oss.str();
