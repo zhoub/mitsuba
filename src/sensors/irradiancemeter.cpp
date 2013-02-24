@@ -145,11 +145,11 @@ public:
 		pRec.uv = Point2(samplePos.x * m_resolution.x,
 			samplePos.y * m_resolution.y);
 
-		return Spectrum(pRec.pdf > 0 ? 0 : (M_PI / (pRec.pdf * m_shape->getSurfaceArea())));
+		return Spectrum(pRec.pdf > 0 ? 0 : (M_PI * m_shape->pdfPosition(pRec) / pRec.pdf));
 	}
 
 	Spectrum evalPosition(const PositionSamplingRecord &pRec) const {
-		return Spectrum(M_PI / m_shape->getSurfaceArea());
+		return Spectrum(M_PI * m_shape->pdfPosition(pRec));
 	}
 
 	Float pdfPosition(const PositionSamplingRecord &pRec) const {
@@ -196,11 +196,13 @@ public:
 		   a reference point within a medium or on a transmissive surface
 		   will set dRec.refN = 0, hence they should always be accepted. */
 		if (dot(dRec.d, dRec.refN) >= 0 && dot(dRec.d, dRec.n) < 0 && dRec.pdf != 0.0f) {
+			Float value = m_shape->pdfPosition(dRec) / dRec.pdf;
+
 			dRec.uv = Point2(
 				dRec.uv.x * m_resolution.x,
 				dRec.uv.y * m_resolution.y);
 
-			return Spectrum(1.0f / (dRec.pdf * m_shape->getSurfaceArea()));
+			return Spectrum(value);
 		} else {
 			dRec.pdf = 0.0f;
 			return Spectrum(0.0f);
@@ -225,7 +227,9 @@ public:
 			its.uv.x * m_resolution.x,
 			its.uv.y * m_resolution.y);
 
-		return Spectrum(1.0f / cross(its.dpdu, its.dpdv).length());
+		/* Correct for UV->position determinant and shading normals */
+		return Spectrum(std::abs(dot(its.shFrame.n, d)
+			/ (dot(its.geoFrame.n, d) * cross(its.dpdu, its.dpdv).length())));
 	}
 
 	bool getSamplePosition(const PositionSamplingRecord &pRec,

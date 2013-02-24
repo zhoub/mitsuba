@@ -82,7 +82,6 @@ TriMesh::TriMesh(Stream *stream, int index)
 	loadCompressed(stream, index);
 }
 
-
 /* Flags used to identify available data during serialization */
 enum ETriMeshFlags {
 	EHasNormals      = 0x0001,
@@ -357,7 +356,15 @@ AABB TriMesh::getAABB() const {
 }
 
 Float TriMesh::pdfPosition(const PositionSamplingRecord &pRec) const {
-	return m_invSurfaceArea;
+	if (EXPECT_TAKEN(m_uvkdtree.get() == NULL)) {
+		return m_invSurfaceArea;
+	} else {
+		Point2 bary;
+		uint32_t index;
+		if (!m_uvkdtree->find(pRec.uv, index, bary))
+			return 0.0f;
+		return 1 / cross(m_tangents[index].dpdu, m_tangents[index].dpdv).length();
+	}
 }
 
 void TriMesh::configure() {
@@ -440,6 +447,7 @@ void TriMesh::samplePosition(PositionSamplingRecord &pRec,
 	} else {
 		uint32_t index = 0;
 		Point2 bary(0.0f);
+		Assert(m_texcoords != NULL && m_tangents != NULL);
 
 		if (m_uvkdtree->find(_sample, index, bary)) {
 			const Triangle &tri = m_triangles[index];
@@ -453,7 +461,7 @@ void TriMesh::samplePosition(PositionSamplingRecord &pRec,
 			Vector sideA = p1 - p0, sideB = p2 - p0;
 			Vector2 sideA_uv = uv1 - uv0, sideB_uv = uv2 - uv0;
 
-			pRec.pdf = m_invSurfaceArea;
+			pRec.pdf = 1 / cross(m_tangents[index].dpdu, m_tangents[index].dpdv).length();
 			pRec.p = p0 + sideA * bary.x + sideB * bary.y;
 			pRec.uv = uv0 + sideA_uv * bary.x + sideB_uv * bary.y;
 
