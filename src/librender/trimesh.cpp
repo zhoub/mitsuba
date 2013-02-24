@@ -374,11 +374,12 @@ void TriMesh::configure() {
 	computeNormals();
 
 	/* Compute proper position partials with respect to the UV paramerization when:
-	    1. An anisotropic BRDF is attached to the shape
-		2. The material explicitly requests tangents so that it can do texture filtering
+	    1. An irradiance sensor is attached to the shape OR
+	    2. An anisotropic BRDF is attached to the shape
+		3. The material explicitly requests tangents so that it can do texture filtering
 	*/
-	if (hasBSDF() &&
-		((m_bsdf->getType() & BSDF::EAnisotropic) || m_bsdf->usesRayDifferentials()))
+	if (isSensor() || (hasBSDF() &&
+		((m_bsdf->getType() & BSDF::EAnisotropic) || m_bsdf->usesRayDifferentials())))
 		computeUVTangents();
 
 	/* For manifold exploration: always compute UV tangents when a glossy material

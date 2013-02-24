@@ -225,7 +225,7 @@ public:
 			its.uv.x * m_resolution.x,
 			its.uv.y * m_resolution.y);
 
-		return Spectrum(1.0f / m_shape->getSurfaceArea());
+		return Spectrum(1.0f / cross(its.dpdu, its.dpdv).length());
 	}
 
 	bool getSamplePosition(const PositionSamplingRecord &pRec,
