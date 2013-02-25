@@ -470,6 +470,7 @@ void PreviewThread::oglRenderVPL(PreviewQueueEntry &target, const VPL &vpl) {
 		target.buffer->clear();
 		target.buffer->releaseTarget();
 		m_accumBuffer = target.buffer;
+		Thread::sleep(100);
 		return;
 	}
 
