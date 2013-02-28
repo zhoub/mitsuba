@@ -134,7 +134,8 @@ public:
 	/// Evaluate the contributions of the given eye and light paths
 	void evaluate(BDPTWorkResult *wr,
 			Path &emitterSubpath, Path &sensorSubpath) {
-		Point2 initialSamplePos = sensorSubpath.vertex(1)->getSamplePosition();
+		Point2 initialSamplePos = sensorSubpath.vertex(0)->getEndpointRecord().samplePos;
+
 		const Scene *scene = m_scene;
 		PathVertex tempEndpoint, tempSample;
 		PathEdge tempEdge, connectionEdge;

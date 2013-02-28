@@ -312,7 +312,7 @@ int PathVertex::sampleSensor(const Scene *scene, Sampler *sampler,
 		const Point2i &pixelPosition_, PathEdge *e0, PathVertex *v1,
 		PathEdge *e1, PathVertex *v2) {
 	BDAssert(type == ESensorSupernode);
-	const EndpointRecord &eRec = getEndpointRecord();
+	EndpointRecord &eRec = getEndpointRecord();
 	const Sensor *sensor = scene->getSensor();
 	Point2 pixelPosition(pixelPosition_);
 
@@ -324,6 +324,9 @@ int PathVertex::sampleSensor(const Scene *scene, Sampler *sampler,
 
 	PositionSamplingRecord &pRec = v1->getPositionSamplingRecord();
 	pRec = PositionSamplingRecord(eRec.time);
+
+	eRec.samplePos = pixelPosition + pixelSample;
+
 	Spectrum result = scene->sampleSensorPosition(pRec,
 		(sensor->getType() & Sensor::EPositionSampleMapsToPixels) ? pixelSample
 		: apertureSample, &pixelPosition);

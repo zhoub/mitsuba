@@ -75,7 +75,7 @@ MTS_NAMESPACE_BEGIN
 class IrradianceMeter : public Sensor {
 public:
 	IrradianceMeter(const Properties &props) : Sensor(props) {
-		m_type |= ENeedsApertureSample | EOnSurface;
+		m_type |= ENeedsApertureSample | EOnSurface | EPositionSampleMapsToPixels;
 
 		if (props.hasProperty("toWorld"))
 			Log(EError, "Found a 'toWorld' transformation -- this is not "
@@ -145,7 +145,7 @@ public:
 		pRec.uv = Point2(samplePos.x * m_resolution.x,
 			samplePos.y * m_resolution.y);
 
-		return Spectrum(pRec.pdf > 0 ? 0 : (M_PI * m_shape->pdfPosition(pRec) / pRec.pdf));
+		return Spectrum(pRec.pdf > 0 ? M_PI : 0);
 	}
 
 	Spectrum evalPosition(const PositionSamplingRecord &pRec) const {
