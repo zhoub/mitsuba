@@ -65,6 +65,9 @@ int main(int argc, char **argv) {
 	if (FT_New_Face(library, argv[1], 0, &face))
 		SLog(EError, "Unable to load font");
 
+	if (FT_Select_Charmap(face, FT_ENCODING_UNICODE))
+		SLog(EError, "Unable to set unicode charmap!");
+
 	std::string name = FT_Get_Postscript_Name(face);
 	cout << "Font name   : " << name << endl;
 	cout << "Glyph count : " << face->num_glyphs << endl;
@@ -80,6 +83,15 @@ int main(int argc, char **argv) {
 	memset(kerningMatrix, 0, 256*256);
 
 	cout << "Analyzing.." << endl;
+	FT_UInt gindex;
+
+	/* Iterate through characters
+	FT_ULong charcode = FT_Get_First_Char(face, &gindex);
+	while (gindex != 0) {
+		charcode = FT_Get_Next_Char(face, charcode, &gindex);
+	}
+	*/
+
 	for (int i=0; i<255; ++i) {
 //		int index = FT_Get_Char_Index(face, i);
 		int index = i;
@@ -113,7 +125,7 @@ int main(int argc, char **argv) {
 
 	/* Calculate the total required area in square pixels */
 	uint32_t area = 256 * maxWidth * maxHeight;
-	
+
 	/* Side length of the square bitmap */
 	uint32_t finalSide = 0, side = (uint32_t) sqrtf(area);
 
